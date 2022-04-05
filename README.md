@@ -6,4 +6,4 @@ The chemistry search stack. Index chemical structures, including arbitrary extra
  * RDkit provides the smarts
  * Rust provides the type safety and relative ease of use
 
-See [rdkit-sys](https://github.com/turues/rdkit-sys) for more on how the bindings work.
+See [rdkit-sys](https://github.com/tureus/rdkit-sys) for more on how the bindings work.
