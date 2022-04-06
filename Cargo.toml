@@ -6,4 +6,9 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-rdkit-sys = "0.1.6"
+eyre = "0"
+#rdkit-sys = "0.1.7"
+rdkit-sys = { path = "../rdkit-sys" }
+reqwest = "0"
+tokio = { version = "1", features = ["full"] }
+regex = "1"
