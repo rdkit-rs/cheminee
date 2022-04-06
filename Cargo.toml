@@ -7,8 +7,8 @@ edition = "2021"
 
 [dependencies]
 eyre = "0"
-#rdkit-sys = "0.1.7"
-rdkit-sys = { path = "../rdkit-sys" }
+rdkit-sys = "0.1.10"
+#rdkit-sys = { path = "../rdkit-sys" }
 reqwest = "0"
 tokio = { version = "1", features = ["full"] }
 regex = "1"
