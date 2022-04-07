@@ -1,19 +1,26 @@
-use rdkit_sys::molecule::Molecule;
-use rdkit_sys::MolBlockIter;
+use clap::*;
+
+use cheminee::actions;
 
 #[tokio::main]
-async fn main() {
-    let mol_iter = MolBlockIter::from_gz_file("tmp/Compound_000000001_000500000.sdf.gz").unwrap();
+async fn main() -> eyre::Result<()> {
+    env_logger::init();
 
-    let mut error_count = 0;
-    let mut success_count = 0;
+    let app = Command::new("cheminee")
+        .subcommand_required(true)
+        .subcommand(actions::index_pubchem_sdf::command())
+        .subcommand(actions::stream_pubchem_sdf::command());
 
-    for mol_block in mol_iter {
-        match Molecule::new(&mol_block, "") {
-            Some(_) => success_count += 1,
-            None => error_count += 1,
+    let matches = app.get_matches();
+    let matches = match matches.subcommand().unwrap() {
+        (actions::index_pubchem_sdf::NAME, matches) => actions::index_pubchem_sdf::action(matches),
+        (actions::stream_pubchem_sdf::NAME, matches) => {
+            actions::stream_pubchem_sdf::action(matches)
         }
-    }
+        (unknown, _) => panic!("🤨: {}", unknown),
+    };
 
-    println!("successes: {}, errors: {}", success_count, error_count)
+    matches.unwrap();
+
+    Ok(())
 }
