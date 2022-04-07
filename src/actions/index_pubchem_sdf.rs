@@ -1,7 +1,4 @@
-use crate::tantivy::*;
-use clap::{Arg, ArgMatches, Command};
-use rdkit_sys::molecule::Molecule;
-use rdkit_sys::MolBlockIter;
+use super::prelude::*;
 
 pub const NAME: &'static str = "index-pubchem-sdf";
 
@@ -29,7 +26,7 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
         Box::new(mol_iter)
     };
 
-    let (schema, index) = index()?;
+    let (schema, index) = create_index()?;
 
     let mut index_writer = index.writer_with_num_threads(1, 50 * 1024 * 1024)?;
 

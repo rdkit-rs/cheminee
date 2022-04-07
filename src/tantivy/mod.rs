@@ -1,3 +1,5 @@
+use std::path::Path;
+use tantivy::directory::MmapDirectory;
 use tantivy::schema::*;
 use tantivy::{Index, IndexBuilder};
 
@@ -11,7 +13,7 @@ pub fn schema() -> Schema {
     builder.build()
 }
 
-pub fn index() -> eyre::Result<(Schema, Index)> {
+pub fn create_index() -> eyre::Result<(Schema, Index)> {
     let schema = schema();
 
     let builder = IndexBuilder::new().schema(schema.clone());
@@ -19,4 +21,12 @@ pub fn index() -> eyre::Result<(Schema, Index)> {
     let index = builder.create_in_dir("tmp/index/")?;
 
     Ok((schema, index))
+}
+
+pub fn open_index(p: impl AsRef<Path>) -> eyre::Result<Index> {
+    let directory = MmapDirectory::open(p)?;
+
+    let index = Index::open(directory)?;
+
+    Ok(index)
 }

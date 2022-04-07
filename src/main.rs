@@ -9,7 +9,8 @@ async fn main() -> eyre::Result<()> {
     let app = Command::new("cheminee")
         .subcommand_required(true)
         .subcommand(actions::index_pubchem_sdf::command())
-        .subcommand(actions::stream_pubchem_sdf::command());
+        .subcommand(actions::stream_pubchem_sdf::command())
+        .subcommand(actions::search::command());
 
     let matches = app.get_matches();
     let matches = match matches.subcommand().unwrap() {
@@ -17,6 +18,7 @@ async fn main() -> eyre::Result<()> {
         (actions::stream_pubchem_sdf::NAME, matches) => {
             actions::stream_pubchem_sdf::action(matches)
         }
+        (actions::search::NAME, matches) => actions::search::action(matches),
         (unknown, _) => panic!("🤨: {}", unknown),
     };
 
