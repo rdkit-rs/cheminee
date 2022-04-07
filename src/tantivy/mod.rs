@@ -8,17 +8,17 @@ pub use tantivy::doc;
 pub fn schema() -> Schema {
     let mut builder = SchemaBuilder::new();
     builder.add_text_field("smile", TEXT | STORED);
-    builder.add_json_field("description", TEXT | STORED);
+    builder.add_json_field("descriptors", TEXT | STORED);
 
     builder.build()
 }
 
-pub fn create_index() -> eyre::Result<(Schema, Index)> {
+pub fn create_index(p: impl AsRef<Path>) -> eyre::Result<(Schema, Index)> {
     let schema = schema();
 
     let builder = IndexBuilder::new().schema(schema.clone());
 
-    let index = builder.create_in_dir("tmp/index/")?;
+    let index = builder.create_in_dir(p)?;
 
     Ok((schema, index))
 }

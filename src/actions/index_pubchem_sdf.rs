@@ -6,6 +6,13 @@ pub fn command() -> Command<'static> {
     Command::new(NAME)
         .arg(Arg::new("sdf").required(true).long("sdf").takes_value(true))
         .arg(
+            Arg::new("index")
+                .required(true)
+                .long("index")
+                .short('i')
+                .takes_value(true),
+        )
+        .arg(
             Arg::new("limit")
                 .required(false)
                 .long("limit")
@@ -14,10 +21,11 @@ pub fn command() -> Command<'static> {
 }
 
 pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
-    let path = matches.value_of("sdf").unwrap();
+    let sdf_path = matches.value_of("sdf").unwrap();
+    let index_dir = matches.value_of("index").unwrap();
     let limit = matches.value_of("limit");
 
-    let mol_iter = MolBlockIter::from_gz_file(path)
+    let mol_iter = MolBlockIter::from_gz_file(sdf_path)
         .map_err(|e| eyre::eyre!("could not read gz file: {:?}", e))?;
 
     let mol_iter: Box<dyn Iterator<Item = _>> = if let Some(limit) = limit {
@@ -26,7 +34,7 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
         Box::new(mol_iter)
     };
 
-    let (schema, index) = create_index()?;
+    let (schema, index) = create_index(index_dir)?;
 
     let mut index_writer = index.writer_with_num_threads(1, 50 * 1024 * 1024)?;
 
@@ -37,13 +45,13 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
         };
 
         let smile = schema.get_field("smile").unwrap();
-        let description = schema.get_field("description").unwrap();
+        let descriptors = schema.get_field("descriptors").unwrap();
 
         let json: serde_json::Value = serde_json::from_str(&mol.get_descriptors())?;
 
         let doc = doc!(
             smile => mol.get_smiles(""),
-            description => json
+            descriptors => json
         );
 
         index_writer.add_document(doc)?;

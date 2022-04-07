@@ -34,7 +34,10 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
 
     for mol_block in mol_iter {
         match Molecule::new(&mol_block, "") {
-            Some(_) => success_count += 1,
+            Some(m) => {
+                println!("descriptors: {}", m.get_descriptors());
+                success_count += 1
+            }
             None => error_count += 1,
         }
     }
