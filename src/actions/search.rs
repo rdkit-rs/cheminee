@@ -30,7 +30,7 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
     let schema = index.schema();
 
     let smile = schema.get_field("smile").unwrap();
-    let description = schema.get_field("description").unwrap();
+    let description = schema.get_field("descriptors").unwrap();
 
     let reader = index.reader()?;
 
