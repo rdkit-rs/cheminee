@@ -17,3 +17,4 @@ serde_json = { version = "1" }
 env_logger = "0"
 log = "0"
 clap = "3.1"
+bitvec = "1"
