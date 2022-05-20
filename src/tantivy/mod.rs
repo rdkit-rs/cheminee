@@ -1,7 +1,7 @@
 use std::path::Path;
 use tantivy::directory::MmapDirectory;
 use tantivy::schema::*;
-use tantivy::{Index, IndexBuilder};
+use tantivy::{Index, IndexBuilder, TantivyError};
 
 pub use tantivy::doc;
 
@@ -13,12 +13,21 @@ pub fn schema() -> Schema {
     builder.build()
 }
 
-pub fn create_index(p: impl AsRef<Path>) -> eyre::Result<(Schema, Index)> {
+pub fn create_or_reset_index(p: impl AsRef<Path>) -> eyre::Result<(Schema, Index)> {
     let schema = schema();
 
     let builder = IndexBuilder::new().schema(schema.clone());
 
-    let index = builder.create_in_dir(p)?;
+    let index = match builder.create_in_dir(&p) {
+        Ok(index) => index,
+        Err(TantivyError::IndexAlreadyExists) => {
+            std::fs::remove_dir_all(&p)?;
+            std::fs::create_dir(&p)?;
+            let builder = IndexBuilder::new().schema(schema.clone());
+            builder.create_in_dir(&p)?
+        }
+        Err(e) => return Err(eyre::eyre!("unhandled error: {:?}", e)),
+    };
 
     Ok((schema, index))
 }

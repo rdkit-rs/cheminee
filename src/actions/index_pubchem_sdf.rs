@@ -1,4 +1,5 @@
 use super::prelude::*;
+use rdkit::MolBlockIter;
 
 pub const NAME: &'static str = "index-pubchem-sdf";
 
@@ -20,12 +21,12 @@ pub fn command() -> Command<'static> {
         )
 }
 
-pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
+pub fn action(matches: &ArgMatches) -> eyre::Result<usize> {
     let sdf_path = matches.value_of("sdf").unwrap();
     let index_dir = matches.value_of("index").unwrap();
     let limit = matches.value_of("limit");
 
-    let mol_iter = MolBlockIter::from_gz_file(sdf_path)
+    let mol_iter = MolBlockIter::from_gz_file(sdf_path, true, false, false)
         .map_err(|e| eyre::eyre!("could not read gz file: {:?}", e))?;
 
     let mol_iter: Box<dyn Iterator<Item = _>> = if let Some(limit) = limit {
@@ -34,30 +35,35 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
         Box::new(mol_iter)
     };
 
-    let (schema, index) = create_index(index_dir)?;
+    let (schema, index) = create_or_reset_index(index_dir)?;
 
     let mut index_writer = index.writer_with_num_threads(1, 50 * 1024 * 1024)?;
 
-    for mol_block in mol_iter {
-        let mol = match Molecule::new(&mol_block, "") {
-            Some(m) => m,
-            None => continue,
-        };
+    let properties = rdkit::Properties::new();
+
+    let mut counter = 0;
+    for mol in mol_iter {
+        if mol.is_none() {
+            continue;
+        }
+        let mol = mol.unwrap();
 
         let smile = schema.get_field("smile").unwrap();
         let descriptors = schema.get_field("descriptors").unwrap();
 
-        let json: serde_json::Value = serde_json::from_str(&mol.get_descriptors())?;
+        let computed = properties.compute_properties(&mol.to_romol());
+        let json: serde_json::Value = serde_json::to_value(&computed)?;
 
         let doc = doc!(
-            smile => mol.get_smiles(""),
+            smile => mol.as_smile(),
             descriptors => json
         );
 
         index_writer.add_document(doc)?;
+        counter += 1;
     }
 
     index_writer.commit()?;
 
-    Ok(())
+    Ok(counter)
 }

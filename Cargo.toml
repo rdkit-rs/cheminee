@@ -6,15 +6,14 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-eyre = "0"
-rdkit-sys = "0.1.10"
-#rdkit-sys = { path = "../rdkit-sys" }
-reqwest = "0"
-tokio = { version = "1", features = ["full"] }
-regex = "1"
-tantivy = "0"
-serde_json = { version = "1" }
-env_logger = "0"
-log = "0"
-clap = "3.1"
 bitvec = "1"
+clap = "3.1"
+env_logger = "0"
+eyre = "0"
+log = "0"
+rdkit = "0.2"
+regex = "1"
+reqwest = "0"
+serde_json = { version = "1" }
+tantivy = "0"
+tokio = { version = "1", features = ["full"] }

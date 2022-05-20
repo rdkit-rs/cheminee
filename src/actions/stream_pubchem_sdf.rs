@@ -1,7 +1,5 @@
 use super::prelude::*;
-
-use rdkit_sys::molecule::Molecule;
-use rdkit_sys::MolBlockIter;
+use rdkit::MolBlockIter;
 
 pub const NAME: &'static str = "stream-pubchem-sdf";
 
@@ -20,7 +18,7 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
     let path = matches.value_of("sdf").unwrap();
     let limit = matches.value_of("limit");
 
-    let mol_iter = MolBlockIter::from_gz_file(path)
+    let mol_iter = MolBlockIter::from_gz_file(path, true, false, false)
         .map_err(|e| eyre::eyre!("could not read gz file: {:?}", e))?;
 
     let mol_iter: Box<dyn Iterator<Item = _>> = if let Some(limit) = limit {
@@ -32,10 +30,13 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
     let mut error_count = 0;
     let mut success_count = 0;
 
-    for mol_block in mol_iter {
-        match Molecule::new(&mol_block, "") {
+    let properties = rdkit::Properties::new();
+
+    for mol in mol_iter {
+        match mol {
             Some(m) => {
-                println!("descriptors: {}", m.get_descriptors());
+                let computed = properties.compute_properties(&m.to_romol());
+                log::info!("{:?}", computed);
                 success_count += 1
             }
             None => error_count += 1,
