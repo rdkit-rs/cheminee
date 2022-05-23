@@ -1,5 +1,5 @@
 use super::prelude::*;
-use rdkit::MolBlockIter;
+use rdkit::{MolBlockIter, ROMol};
 
 pub const NAME: &'static str = "index-pubchem-sdf";
 
@@ -26,6 +26,13 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<usize> {
     let index_dir = matches.value_of("index").unwrap();
     let limit = matches.value_of("limit");
 
+    log::info!(
+        "indexing path={}, index_dir={}, limit={:?}",
+        sdf_path,
+        index_dir,
+        limit
+    );
+
     let mol_iter = MolBlockIter::from_gz_file(sdf_path, true, false, false)
         .map_err(|e| eyre::eyre!("could not read gz file: {:?}", e))?;
 
@@ -47,16 +54,21 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<usize> {
             continue;
         }
         let mol = mol.unwrap();
+        let mol: ROMol = mol.to_ro_mol();
 
         let smile = schema.get_field("smile").unwrap();
         let descriptors = schema.get_field("descriptors").unwrap();
+        let fingerprint = schema.get_field("fingerprint").unwrap();
 
-        let computed = properties.compute_properties(&mol.to_romol());
+        let computed = properties.compute_properties(&mol);
         let json: serde_json::Value = serde_json::to_value(&computed)?;
+
+        let fp = mol.fingerprint();
 
         let doc = doc!(
             smile => mol.as_smile(),
-            descriptors => json
+            descriptors => json,
+            fingerprint => fp.0.into_vec()
         );
 
         index_writer.add_document(doc)?;

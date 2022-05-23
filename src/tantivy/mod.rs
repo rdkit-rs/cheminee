@@ -9,6 +9,7 @@ pub fn schema() -> Schema {
     let mut builder = SchemaBuilder::new();
     builder.add_text_field("smile", TEXT | STORED);
     builder.add_json_field("descriptors", TEXT | STORED);
+    builder.add_bytes_field("fingerprint", FAST);
 
     builder.build()
 }

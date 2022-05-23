@@ -16,10 +16,8 @@ async fn main() -> eyre::Result<()> {
     let matches = app.get_matches();
     let matches = match matches.subcommand().unwrap() {
         (actions::index_pubchem_sdf::NAME, matches) => {
-            let writes = actions::index_pubchem_sdf::action(matches);
-            if let Ok(writes) = writes {
-                log::info!("wrote {} docs", writes);
-            }
+            let writes = actions::index_pubchem_sdf::action(matches)?;
+            log::info!("wrote: {}", writes);
             Ok(())
         }
         (actions::stream_pubchem_sdf::NAME, matches) => {

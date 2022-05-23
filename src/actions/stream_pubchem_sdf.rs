@@ -35,7 +35,7 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
     for mol in mol_iter {
         match mol {
             Some(m) => {
-                let computed = properties.compute_properties(&m.to_romol());
+                let computed = properties.compute_properties(&m.to_ro_mol());
                 log::info!("{:?}", computed);
                 success_count += 1
             }

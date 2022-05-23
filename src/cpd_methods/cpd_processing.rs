@@ -1,12 +1,12 @@
 use rdkit::*;
 
 pub fn mol_stdz(romol: &ROMol) -> ROMol {
-    let rwmol = romol.to_rw_mol(false, 1);
+    let rwmol = romol.as_rw_mol(false, 1);
     let cleanup_params = CleanupParameters::default();
     let parent_rwmol = fragment_parent(&rwmol, &cleanup_params, true);
 
     let uncharger = Uncharger::new(false);
-    let uncharged_mol = uncharger.uncharge(&parent_rwmol.to_romol());
+    let uncharged_mol = uncharger.uncharge(&parent_rwmol.to_ro_mol());
 
     let te = TautomerEnumerator::new();
     let canon_taut = te.canonicalize(&uncharged_mol);
