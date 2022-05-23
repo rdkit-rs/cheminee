@@ -1,4 +1,5 @@
 use rdkit::*;
+use std::collections::HashMap;
 
 pub fn mol_stdz(romol: &ROMol) -> ROMol {
     let rwmol = romol.as_rw_mol(false, 1);
@@ -17,4 +18,19 @@ pub fn smi_stdz(smi: &str) -> ROMol {
     let romol = ROMol::from_smile(smi).unwrap();
     let canon_taut = mol_stdz(&romol);
     canon_taut
+}
+
+pub fn get_tautomers(romol: &ROMol) -> Vec<ROMol> {
+    let te = TautomerEnumerator::new();
+    let ter = te.enumerate(&romol);
+    let ts = ter.collect::<Vec<_>>();
+    ts
+}
+
+pub fn process_cpd(smi: &str) -> (&str, Fingerprint, HashMap<std::string::String, f64>) {
+    let canon_taut = smi_stdz(smi);
+    let properties = Properties::new();
+    let computed = properties.compute_properties(&canon_taut);
+    let rdkit_fp = canon_taut.fingerprint();
+    (smi, rdkit_fp, computed)
 }
