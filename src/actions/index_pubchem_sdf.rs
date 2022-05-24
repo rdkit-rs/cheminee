@@ -1,5 +1,5 @@
 use super::prelude::*;
-use rdkit::{MolBlockIter, ROMol};
+use rdkit::{MolBlockIter, ROMol, RWMol};
 
 pub const NAME: &'static str = "index-pubchem-sdf";
 
@@ -36,7 +36,7 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<usize> {
     let mol_iter = MolBlockIter::from_gz_file(sdf_path, true, false, false)
         .map_err(|e| eyre::eyre!("could not read gz file: {:?}", e))?;
 
-    let mol_iter: Box<dyn Iterator<Item = _>> = if let Some(limit) = limit {
+    let mol_iter: Box<dyn Iterator<Item = Result<RWMol, String>>> = if let Some(limit) = limit {
         Box::new(mol_iter.take(limit.parse()?))
     } else {
         Box::new(mol_iter)
@@ -50,7 +50,7 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<usize> {
 
     let mut counter = 0;
     for mol in mol_iter {
-        if mol.is_none() {
+        if mol.is_err() {
             continue;
         }
         let mol = mol.unwrap();

@@ -34,12 +34,12 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
 
     for mol in mol_iter {
         match mol {
-            Some(m) => {
+            Ok(m) => {
                 let computed = properties.compute_properties(&m.to_ro_mol());
                 log::info!("{:?}", computed);
                 success_count += 1
             }
-            None => error_count += 1,
+            Err(_) => error_count += 1,
         }
     }
 
