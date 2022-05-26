@@ -10,7 +10,8 @@ clap = "3.1"
 env_logger = "0"
 eyre = "0"
 log = "0"
-rdkit = "0.2"
+rdkit = "0.2.8"
+#rdkit = { path="../rdkit" }
 regex = "1"
 reqwest = "0"
 serde_json = { version = "1" }

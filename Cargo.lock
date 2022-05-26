@@ -1205,9 +1205,9 @@ dependencies = [
 
 [[package]]
 name = "rdkit"
-version = "0.2.7"
+version = "0.2.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e4ffbe43986f147c9a7235ac3aa56c93e832a9622d1e85c37ba7589e4488dc17"
+checksum = "1d6a119c391cf8229edc3751feb2843448622289f6e25baad1fc750d2da7d28a"
 dependencies = [
  "bitvec",
  "cxx",
@@ -1218,13 +1218,14 @@ dependencies = [
 
 [[package]]
 name = "rdkit-sys"
-version = "0.2.9"
+version = "0.2.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d909d17e2b0de3b8da6ab208f248d5c67c9abf25aee6eb26b90346aa027dbb47"
+checksum = "f6f729de98ea2b488f7226c79c45d8a2d657a238a9f0913224437e0a2eef323e"
 dependencies = [
  "cxx",
  "cxx-build",
  "env_logger",
+ "which",
 ]
 
 [[package]]
@@ -1917,6 +1918,17 @@ checksum = "c060b319f29dd25724f09a2ba1418f142f539b2be99fbf4d2d5a8f7330afb8eb"
 dependencies = [
  "js-sys",
  "wasm-bindgen",
+]
+
+[[package]]
+name = "which"
+version = "4.2.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5c4fb54e6113b6a8772ee41c3404fb0301ac79604489467e0a9ce1f3e97c24ae"
+dependencies = [
+ "either",
+ "lazy_static",
+ "libc",
 ]
 
 [[package]]

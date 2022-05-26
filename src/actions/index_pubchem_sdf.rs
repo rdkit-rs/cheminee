@@ -50,7 +50,7 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<usize> {
 
     let mut counter = 0;
     for mol in mol_iter {
-        if mol.is_none() {
+        if mol.is_err() {
             continue;
         }
         let mol = mol.unwrap();
