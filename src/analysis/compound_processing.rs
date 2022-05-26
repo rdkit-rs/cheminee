@@ -2,7 +2,7 @@ use rdkit::*;
 use std::collections::HashMap;
 use bitvec::prelude::*;
 
-pub fn mol_stdz(romol: &ROMol) -> ROMol {
+pub fn standardize_mol(romol: &ROMol) -> ROMol {
     let rwmol = romol.as_rw_mol(false, 1);
     let cleanup_params = CleanupParameters::default();
     let parent_rwmol = fragment_parent(&rwmol, &cleanup_params, true);
@@ -15,9 +15,9 @@ pub fn mol_stdz(romol: &ROMol) -> ROMol {
     canon_taut
 }
 
-pub fn smi_stdz(smi: &str) -> ROMol {
+pub fn standardize_smiles(smi: &str) -> ROMol {
     let romol = ROMol::from_smile(smi).unwrap();
-    let canon_taut = mol_stdz(&romol);
+    let canon_taut = standardize_mol(&romol);
     canon_taut
 }
 
@@ -29,7 +29,7 @@ pub fn get_tautomers(romol: &ROMol) -> Vec<ROMol> {
 }
 
 pub fn process_cpd(smi: &str) -> (&str, BitVec<u8>, HashMap<String, f64>) {
-    let canon_taut = smi_stdz(smi);
+    let canon_taut = standardize_smiles(smi);
     let properties = Properties::new();
     let computed = properties.compute_properties(&canon_taut);
     let rdkit_fp = canon_taut.fingerprint().0;
