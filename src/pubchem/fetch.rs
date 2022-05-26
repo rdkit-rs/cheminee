@@ -55,7 +55,7 @@ pub async fn down_all_current_sdf(p: impl AsRef<Path>) -> eyre::Result<()> {
 
 #[cfg(test)]
 mod test {
-    use tokio::io::AsyncWriteExt;
+    // use tokio::io::AsyncWriteExt;
 
     #[tokio::test]
     async fn get_index() {}

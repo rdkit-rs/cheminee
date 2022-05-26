@@ -6,12 +6,12 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+bitvec = "1"
 clap = "3.1"
 env_logger = "0"
 eyre = "0"
 log = "0"
-rdkit = "0.2.8"
-#rdkit = { path="../rdkit" }
+rdkit = "0.2.9"
 regex = "1"
 reqwest = "0"
 serde_json = { version = "1" }

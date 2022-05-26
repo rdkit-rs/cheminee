@@ -1,5 +1,6 @@
 use rdkit::*;
 use std::collections::HashMap;
+use bitvec::prelude::*;
 
 pub fn mol_stdz(romol: &ROMol) -> ROMol {
     let rwmol = romol.as_rw_mol(false, 1);
@@ -27,10 +28,10 @@ pub fn get_tautomers(romol: &ROMol) -> Vec<ROMol> {
     ts
 }
 
-pub fn process_cpd(smi: &str) -> (&str, Fingerprint, HashMap<std::string::String, f64>) {
+pub fn process_cpd(smi: &str) -> (&str, BitVec<u8>, HashMap<String, f64>) {
     let canon_taut = smi_stdz(smi);
     let properties = Properties::new();
     let computed = properties.compute_properties(&canon_taut);
-    let rdkit_fp = canon_taut.fingerprint();
+    let rdkit_fp = canon_taut.fingerprint().0;
     (smi, rdkit_fp, computed)
 }
