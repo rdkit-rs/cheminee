@@ -35,3 +35,12 @@ pub fn process_cpd(smi: &str) -> (&str, BitVec<u8>, HashMap<String, f64>) {
     let rdkit_fp = canon_taut.fingerprint().0;
     (smi, rdkit_fp, computed)
 }
+
+lazy_static::lazy_static! {
+    static ref BRACKETS_RE: regex::Regex = regex::Regex::new(r"\[(?P<e>B|C|N|O|P|S|F|Cl|Br|I)\]").unwrap();
+}
+
+pub fn remove_organic_brackets(smi: &str) -> String {
+    let new_smi = BRACKETS_RE.replace_all(smi, "$e");
+    new_smi.as_ref().to_string()
+}

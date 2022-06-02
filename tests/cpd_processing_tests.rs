@@ -52,3 +52,10 @@ fn test_process_cpd() {
     assert_eq!(fingerprint, expected_fp);
     assert_eq!(*descriptors.get("exactmw").unwrap(), 196.063662876);
 }
+
+#[test]
+fn test_remove_organic_brackets() {
+    let smiles = "CCCC([F])([Br])([Na])";
+    let new_smiles = remove_organic_brackets(smiles);
+    assert_eq!(&new_smiles, "CCCC(F)(Br)([Na])");
+}
