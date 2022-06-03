@@ -59,3 +59,10 @@ fn test_remove_organic_brackets() {
     let new_smiles = remove_organic_brackets(smiles);
     assert_eq!(&new_smiles, "CCCC(F)(Br)([Na])");
 }
+
+#[test]
+fn test_fix_repeating_smiles() {
+    let smiles = "CC(C)(C)OC(=O)NC(CC1=CSC=N1)C(=O)OCC(C)(C)OC(=O)NC(CC1=CSC=N1)C(=O)O.[Na+]";
+    let fixed_smiles = fix_repeating_smiles(smiles);
+    assert_eq!(&fixed_smiles, "CC(C)(C)OC(=O)NC(CC1=CSC=N1)C(=O)O");
+}
