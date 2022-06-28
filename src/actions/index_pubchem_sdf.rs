@@ -65,10 +65,11 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<usize> {
 
         let fp = mol.fingerprint();
 
+        todo!("we gotta map 64bits to 8 8bits");
         let doc = doc!(
             smile => mol.as_smile(),
             descriptors => json,
-            fingerprint => fp.0.into_vec()
+            fingerprint => vec![] // fp.0.into_vec()
         );
 
         index_writer.add_document(doc)?;

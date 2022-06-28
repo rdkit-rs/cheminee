@@ -52,3 +52,11 @@ fn test_process_cpd() {
     assert_eq!(fingerprint, expected_fp);
     assert_eq!(*descriptors.get("exactmw").unwrap(), 196.063662876);
 }
+
+#[test]
+fn bad_mol_test() {
+    let smiles = "F(C)(C)(C)(C)(C)";
+    let romol = ROMol::from_smile(smiles);
+    assert!(romol.is_err());
+    // let stdz_mol = mol_stdz(&romol);
+}

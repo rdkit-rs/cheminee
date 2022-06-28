@@ -1,6 +1,6 @@
+use bitvec::prelude::*;
 use rdkit::*;
 use std::collections::HashMap;
-use bitvec::prelude::*;
 
 pub fn mol_stdz(romol: &ROMol) -> ROMol {
     let rwmol = romol.as_rw_mol(false, 1);
@@ -32,6 +32,7 @@ pub fn process_cpd(smi: &str) -> (&str, BitVec<u8>, HashMap<String, f64>) {
     let canon_taut = smi_stdz(smi);
     let properties = Properties::new();
     let computed = properties.compute_properties(&canon_taut);
+    todo!("u64 must be converted to vec u8");
     let rdkit_fp = canon_taut.fingerprint().0;
-    (smi, rdkit_fp, computed)
+    (smi, BitVec::from_vec(vec![]), computed)
 }
