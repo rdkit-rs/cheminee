@@ -142,6 +142,7 @@ dependencies = [
  "clap",
  "env_logger",
  "eyre",
+ "lazy_static",
  "log",
  "rdkit",
  "regex",

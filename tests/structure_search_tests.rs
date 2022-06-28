@@ -1,4 +1,4 @@
-use cheminee::cpd_methods::structure_search::*;
+use cheminee::analysis::structure_search::*;
 use rdkit::*;
 
 #[test]

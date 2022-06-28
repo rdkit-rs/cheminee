@@ -1,4 +1,4 @@
 pub mod actions;
-pub mod cpd_methods;
+pub mod analysis;
 pub mod pubchem;
 pub mod tantivy;
