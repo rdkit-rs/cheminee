@@ -28,6 +28,7 @@ pub fn get_tautomers(romol: &ROMol) -> Vec<ROMol> {
     ts
 }
 
+#[allow(unreachable_code)]
 pub fn process_cpd(smi: &str) -> (&str, BitVec<u8>, HashMap<String, f64>) {
     let canon_taut = standardize_smiles(smi);
     let properties = Properties::new();

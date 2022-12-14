@@ -65,7 +65,7 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<usize> {
 
         let fp = mol.fingerprint();
 
-        todo!("we gotta map 64bits to 8 8bits");
+        // todo!("we gotta map 64bits to 8 8bits");
         let doc = doc!(
             smile => mol.as_smile(),
             descriptors => json,
