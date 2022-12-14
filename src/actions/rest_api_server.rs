@@ -1,5 +1,5 @@
 use poem::{listener::TcpListener, Route, Server};
-use poem_openapi::{payload::Json as OpenapiJson, ApiResponse, Object, OpenApi, OpenApiService};
+use poem_openapi::{payload::Json, ApiResponse, Object, OpenApi, OpenApiService};
 
 pub const NAME: &'static str = "rest-api-server";
 pub fn command() -> clap::Command<'static> {
@@ -9,7 +9,7 @@ pub fn command() -> clap::Command<'static> {
 #[derive(ApiResponse)]
 pub enum StandardizeResponse {
     #[oai(status = "200")]
-    Ok(OpenapiJson<Vec<Smile>>),
+    Ok(Json<Vec<Smile>>),
 }
 
 #[derive(Object)]
@@ -23,7 +23,7 @@ struct Api;
 impl Api {
     // curl -XPOST -d'{"smile": "abcd"}' http://localhost:3000/api/standardize
     #[oai(path = "/standardize", method = "post")]
-    async fn standardize(&self, mol: OpenapiJson<Vec<Smile>>) -> StandardizeResponse {
+    async fn standardize(&self, mol: Json<Vec<Smile>>) -> StandardizeResponse {
         let standardized_smiles = mol
             .0
             .into_iter()
@@ -32,7 +32,7 @@ impl Api {
             })
             .collect::<Vec<_>>();
 
-        StandardizeResponse::Ok(OpenapiJson(standardized_smiles))
+        StandardizeResponse::Ok(Json(standardized_smiles))
     }
 }
 
