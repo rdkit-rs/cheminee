@@ -1,3 +1,4 @@
+use crate::analysis::compound_processing::standardize_smiles;
 use poem::{listener::TcpListener, Route, Server};
 use poem_openapi::{payload::Json, ApiResponse, Object, OpenApi, OpenApiService};
 
@@ -28,7 +29,7 @@ impl Api {
             .0
             .into_iter()
             .map(|s| Smile {
-                smile: s.smile.to_uppercase(),
+                smile: standardize_smiles(&s.smile).as_smile(),
             })
             .collect::<Vec<_>>();
 
