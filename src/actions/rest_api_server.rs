@@ -113,8 +113,7 @@ pub async fn action(matches: &clap::ArgMatches) -> eyre::Result<()> {
 
 #[handler]
 // #[oai(path = "/standardize", method = "post")]
-async fn index(mol: Json<Vec<Smile>>)
-               -> fn(&str) -> ROMol {
+async fn index(mol: Json<Vec<Smile>>) -> ROMol {
     let sm = mol.0.first().unwrap().clone();
     let standardized_smiles = standardize_smiles(sm.smile.as_str());
     // let standardized_smiles = sm
