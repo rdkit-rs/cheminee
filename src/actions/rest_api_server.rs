@@ -3,7 +3,15 @@ use poem_openapi::{payload::Json, ApiResponse, Object, OpenApi, OpenApiService};
 
 pub const NAME: &'static str = "rest-api-server";
 pub fn command() -> clap::Command<'static> {
-    clap::Command::new("rest-api-server")
+    clap::Command::new("rest-api-server").subcommand(
+        clap::Command::new("spec").arg(
+            clap::Arg::new("output")
+                .required(true)
+                .short('d')
+                .long("output")
+                .takes_value(true),
+        ),
+    )
 }
 
 #[derive(ApiResponse)]
@@ -21,7 +29,6 @@ struct Api;
 
 #[OpenApi]
 impl Api {
-    // curl -XPOST -d'{"smile": "abcd"}' http://localhost:3000/api/standardize
     #[oai(path = "/standardize", method = "post")]
     async fn standardize(&self, mol: Json<Vec<Smile>>) -> StandardizeResponse {
         let standardized_smiles = mol
@@ -36,9 +43,12 @@ impl Api {
     }
 }
 
-pub async fn action(matches: &clap::ArgMatches) -> eyre::Result<()> {
-    let api_service =
-        OpenApiService::new(Api, "Cheminée", "1.0").server("http://localhost:3000/api");
+fn api_service() -> OpenApiService<Api, ()> {
+    OpenApiService::new(Api, "Cheminée", "1.0").server("http://localhost:3000/api")
+}
+
+async fn run_api_service() -> eyre::Result<()> {
+    let api_service = api_service();
     let ui = api_service.swagger_ui();
 
     let spec = api_service.spec();
@@ -53,6 +63,26 @@ pub async fn action(matches: &clap::ArgMatches) -> eyre::Result<()> {
                 .nest("/", ui),
         )
         .await?;
+
+    Ok(())
+}
+
+fn output_spec(dest: String) -> eyre::Result<()> {
+    let api_service = api_service();
+
+    let spec = api_service.spec();
+
+    std::fs::write(dest, spec)?;
+
+    Ok(())
+}
+
+pub async fn action(matches: &clap::ArgMatches) -> eyre::Result<()> {
+    match matches.subcommand() {
+        None => run_api_service().await?,
+        Some(("spec", args)) => output_spec(args.value_of_t_or_exit("output"))?,
+        Some((other, _args)) => Err(eyre::eyre!("can't handle {}", other))?,
+    }
 
     Ok(())
 }
