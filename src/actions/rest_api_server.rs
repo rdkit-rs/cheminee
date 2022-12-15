@@ -1,5 +1,7 @@
+use crate::analysis::compound_processing::standardize_smiles;
 use poem::{listener::TcpListener, Route, Server};
 use poem_openapi::{payload::Json, ApiResponse, Object, OpenApi, OpenApiService};
+use rayon::prelude::*;
 
 pub const NAME: &'static str = "rest-api-server";
 pub fn command() -> clap::Command<'static> {
@@ -33,9 +35,10 @@ impl Api {
     async fn standardize(&self, mol: Json<Vec<Smile>>) -> StandardizeResponse {
         let standardized_smiles = mol
             .0
-            .into_iter()
+            // .into_iter()
+            .into_par_iter()
             .map(|s| Smile {
-                smile: s.smile.to_uppercase(),
+                smile: standardize_smiles(&s.smile).as_smile(),
             })
             .collect::<Vec<_>>();
 
