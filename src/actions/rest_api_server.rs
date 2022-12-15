@@ -1,5 +1,5 @@
 use crate::analysis::compound_processing::standardize_smiles;
-use poem::{listener::TcpListener, Route, Server};
+use poem::{listener::TcpListener, Route, Server, post, handler, test::TestClient};
 use poem_openapi::{payload::Json, ApiResponse, Object, OpenApi, OpenApiService};
 use rayon::prelude::*;
 
@@ -112,7 +112,7 @@ async fn index() -> Json<Vec<Smile>> {
 
 
 #[tokio::test]
-async fn health() {
+async fn test_poem() {
     // let app = Route::new().at("/", index);
 
     let app = Route::new().at("/", post(index));
