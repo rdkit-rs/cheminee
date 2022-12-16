@@ -103,18 +103,18 @@ pub async fn action(matches: &clap::ArgMatches) -> eyre::Result<()> {
 // ]'
 // [{"smile":"CCC=O"}]%
 
-// #[handler]
-// async fn index() -> Json<Vec<Smile>> {
-// // fn index() -> Json<Vec<Smile>> {
-//     Json( vec! [Smile {
-//         // smile:  "CC=CO".to_string(),
-//         smile:  "CCC=O".to_string(),
-//     }])
-// }
 #[handler]
-async fn index(mol: Json<Vec<Smile>>) -> String  {
-    standardize_smiles(mol.0.first().unwrap().clone().smile.as_str()).as_smile()
+async fn index() -> Json<Vec<Smile>> {
+// fn index() -> Json<Vec<Smile>> {
+    Json( vec! [Smile {
+        // smile:  "CC=CO".to_string(),
+        smile:  "CCC=O".to_string(),
+    }])
 }
+// #[handler]
+// async fn index(mol: Json<Vec<Smile>>) -> String  {
+//     standardize_smiles(mol.0.first().unwrap().clone().smile.as_str()).as_smile()
+// }
 //async fn index(mol: Json<Vec<Smile>>) -> Vec<String> {
 //     let sm = mol.0.first().unwrap().clone();
 //     let standardized_smiles = standardize_smiles(sm.smile.as_str()).as_smile();
