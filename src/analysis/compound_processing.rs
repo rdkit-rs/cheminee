@@ -3,12 +3,7 @@ use rdkit::*;
 use std::collections::HashMap;
 
 pub fn standardize_mol(romol: &ROMol) -> eyre::Result<ROMol> {
-    log::info!(
-        "I'm gonna take an romol and turn it in to a rwmol: {:?}",
-        romol
-    );
     let rwmol = romol.as_rw_mol(false, 1);
-    log::info!("rwmol: {:?}", rwmol);
     let cleanup_params = CleanupParameters::default();
     let parent_rwmol = fragment_parent(&rwmol, &cleanup_params, true);
 
