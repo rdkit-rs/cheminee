@@ -15,10 +15,12 @@ pub fn standardize_mol(romol: &ROMol) -> ROMol {
     canon_taut
 }
 
-pub fn standardize_smiles(smi: &str) -> ROMol {
-    let romol = ROMol::from_smile(smi).unwrap();
+pub fn standardize_smiles(smi: &str) -> eyre::Result<ROMol> {
+    let romol = ROMol::from_smile(smi)?;
+    log::info!("gonna standardize");
     let canon_taut = standardize_mol(&romol);
-    canon_taut
+    log::info!("done standardizing");
+    Ok(canon_taut)
 }
 
 pub fn get_tautomers(romol: &ROMol) -> Vec<ROMol> {
@@ -29,13 +31,13 @@ pub fn get_tautomers(romol: &ROMol) -> Vec<ROMol> {
 }
 
 #[allow(unreachable_code)]
-pub fn process_cpd(smi: &str) -> (&str, BitVec<u8>, HashMap<String, f64>) {
-    let canon_taut = standardize_smiles(smi);
+pub fn process_cpd(smi: &str) -> eyre::Result<(&str, BitVec<u8>, HashMap<String, f64>)> {
+    let canon_taut = standardize_smiles(smi)?;
     let properties = Properties::new();
     let computed = properties.compute_properties(&canon_taut);
     let rdkit_fp = canon_taut.fingerprint().0;
     todo!("map u64 to vec u8");
-    (smi, BitVec::from_vec(vec![]), computed)
+    Ok((smi, BitVec::from_vec(vec![]), computed))
 }
 
 lazy_static::lazy_static! {

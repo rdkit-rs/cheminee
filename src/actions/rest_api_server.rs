@@ -1,5 +1,5 @@
 use crate::analysis::compound_processing::standardize_smiles;
-use poem::{listener::TcpListener, Route, Server, post, handler, test::TestClient};
+use poem::{handler, listener::TcpListener, post, test::TestClient, Route, Server};
 use poem_openapi::{payload::Json, ApiResponse, Object, OpenApi, OpenApiService};
 use rayon::prelude::*;
 use rdkit::ROMol;
@@ -23,7 +23,7 @@ pub enum StandardizeResponse {
     Ok(Json<Vec<Smile>>),
 }
 
-#[derive(Object)]
+#[derive(Object, Debug)]
 pub struct Smile {
     pub smile: String,
 }
@@ -33,13 +33,14 @@ struct Api;
 #[OpenApi]
 impl Api {
     #[oai(path = "/standardize", method = "post")]
-    pub async fn standardize(&self, mol: Json<Vec<Smile>>) -> StandardizeResponse {
+    async fn standardize(&self, mol: Json<Vec<Smile>>) -> StandardizeResponse {
         let standardized_smiles = mol
             .0
-            // .into_iter()
             .into_par_iter()
             .map(|s| Smile {
-                smile: standardize_smiles(&s.smile).as_smile(),
+                smile: standardize_smiles(&s.smile)
+                    .map(|s| s.as_smile())
+                    .unwrap_or_else(|_| format!("could not process smile: {}", s.smile)),
             })
             .collect::<Vec<_>>();
 
@@ -47,16 +48,19 @@ impl Api {
     }
 }
 
-fn api_service() -> OpenApiService<Api, ()> {
-    OpenApiService::new(Api, "Cheminée", "1.0").server("http://localhost:3000/api")
+fn api_service(hostname: &str, port: i16) -> OpenApiService<Api, ()> {
+    OpenApiService::new(Api, "Cheminée", "1.0").server(format!("http://{hostname}:{port}/api"))
 }
 
 async fn run_api_service() -> eyre::Result<()> {
-    let api_service = api_service();
+    let hostname = "127.0.0.1";
+    let port = 3000;
+
+    let api_service = api_service(hostname, port);
     let ui = api_service.swagger_ui();
 
     let spec = api_service.spec();
-    Server::new(TcpListener::bind("127.0.0.1:3000"))
+    Server::new(TcpListener::bind(format!("{hostname}:{port}")))
         .run(
             Route::new()
                 .at(
@@ -72,7 +76,7 @@ async fn run_api_service() -> eyre::Result<()> {
 }
 
 fn output_spec(dest: String) -> eyre::Result<()> {
-    let api_service = api_service();
+    let api_service = api_service("127.0.0.1", 3000);
 
     let spec = api_service.spec();
 
@@ -91,7 +95,6 @@ pub async fn action(matches: &clap::ArgMatches) -> eyre::Result<()> {
     Ok(())
 }
 
-
 // #[handler]
 // pub async fn graphql_handler(schema: Data<&AppSchema>, req:  Json<Vec<Smile>>) -> StandardizeResponse {
 //     Json(schema.execute(req.0).await)
@@ -105,10 +108,10 @@ pub async fn action(matches: &clap::ArgMatches) -> eyre::Result<()> {
 
 #[handler]
 async fn index() -> Json<Vec<Smile>> {
-// fn index() -> Json<Vec<Smile>> {
-    Json( vec! [Smile {
+    // fn index() -> Json<Vec<Smile>> {
+    Json(vec![Smile {
         // smile:  "CC=CO".to_string(),
-        smile:  "CCC=O".to_string(),
+        smile: "CCC=O".to_string(),
     }])
 }
 // #[handler]
@@ -123,7 +126,7 @@ async fn index() -> Json<Vec<Smile>> {
 //       .into_par_iter()
 //       .map(|s| standardize_smiles(s.smile.as_str()).clone().as_smile()).collect::<Vec<String>>();
 
-    //standardized_smiles
+//standardized_smiles
 //     // poem_openapi::payload::Json(standardized_smiles)
 // }
 
@@ -136,19 +139,21 @@ async fn test_poem() {
     let app = Route::new().at("/", post(index));
     // let app = Route::new().at("/", index);
     let client = TestClient::new(app);
-//
+    //
     // let resp = client.get("/").send().await;
-//
-// // check the status code
-//     resp.assert_status_is_ok();
-// // check the json
-//     let json = resp.json().await;
-//     let json_value = json.value();
-//     println!("{:?}", json_value);
-//
+    //
+    // // check the status code
+    //     resp.assert_status_is_ok();
+    // // check the json
+    //     let json = resp.json().await;
+    //     let json_value = json.value();
+    //     println!("{:?}", json_value);
+    //
 
     use serde_json::Value;
-    let schema: Smile = Smile { smile: r#"[{ "smile": "CC=CO"}]"#.to_string() } ;
+    let schema: Smile = Smile {
+        smile: r#"[{ "smile": "CC=CO"}]"#.to_string(),
+    };
     // let schema: Smile = Smile { smile: "[{ \"smile\": \"CC=CO\"}]".to_string() } ;
     // let mut object: Value = serde_json::from_str(schema).unwrap();
     let resp = client
@@ -161,17 +166,23 @@ async fn test_poem() {
         .send()
         .await;
 
-
     resp.assert_status_is_ok();
 
     let json = resp.json().await;
     let json_value = json.value();
     // json_value.object().get("smile").assert_string("CCC=O");
-    json_value.array().iter().map(|value| value.object().get("smile")).collect::<Vec<_>>().first().expect("first_value").assert_string("CCC=O");
+    json_value
+        .array()
+        .iter()
+        .map(|value| value.object().get("smile"))
+        .collect::<Vec<_>>()
+        .first()
+        .expect("first_value")
+        .assert_string("CCC=O");
     println!("{:?}", json_value);
     // TestJsonValue(Array([Object({"smile": String("CCC=O")})]))
-// check the body string
-//     resp.assert_text("CCC=O").await;
+    // check the body string
+    //     resp.assert_text("CCC=O").await;
     println!("lllla")
 }
 
@@ -186,16 +197,18 @@ async fn response_test() {
 
     // let client = reqwest::blocking::Client::new();
     let client = reqwest::Client::new();
-    let res = client.post("http://localhost:3000/api/standardize")
+    let res = client
+        .post("http://localhost:3000/api/standardize")
         .headers(headers)
         // .query()
-        .body(r#"
+        .body(
+            r#"
 [
  {
  "smile": "CC=CO"
  }
 ]
-"#
+"#,
         )
         .send()
         .await
