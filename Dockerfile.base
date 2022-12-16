@@ -4,11 +4,11 @@ ENV DEBIAN_FRONTEND=noninteractive
 ENV RELEASE=Release_2022_09_3
 ENV RUST_TOOLCHAIN=nightly-2022-12-14
 
-RUN apt-get update; apt-get install -y build-essential
-RUN apt-get install -y clang-14 curl cmake libboost-all-dev libeigen3-dev
+RUN apt-get update; apt-get install -y make clang-14 curl cmake libboost-all-dev libeigen3-dev libssl-dev git
 RUN curl -OL --silent https://github.com/rdkit/rdkit/archive/refs/tags/$RELEASE.tar.gz; tar xzf $RELEASE.tar.gz
 RUN cd rdkit-$RELEASE; mkdir -p build && cd build && \
-     cmake .. -D RDK_BUILD_PYTHON_WRAPPERS=OFF \
+     cmake .. -D CMAKE_CXX_COMPILER=clang++-14 \
+              -D RDK_BUILD_PYTHON_WRAPPERS=OFF \
               -D RDK_OPTIMIZE_POPCNT=OFF \
               -D RDK_INSTALL_COMIC_FONTS=OFF \
               -D RDK_BUILD_FREETYPE_SUPPORT=OFF \

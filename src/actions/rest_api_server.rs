@@ -17,15 +17,23 @@ pub fn command() -> clap::Command<'static> {
     )
 }
 
-#[derive(ApiResponse)]
-pub enum StandardizeResponse {
-    #[oai(status = "200")]
-    Ok(Json<Vec<Smile>>),
-}
-
 #[derive(Object, Debug)]
 pub struct Smile {
     pub smile: String,
+}
+
+#[derive(ApiResponse)]
+pub enum StandardizeResponse {
+    #[oai(status = "200")]
+    Ok(Json<Vec<StandardizedSmile>>),
+}
+
+#[derive(Object, Debug)]
+pub struct StandardizedSmile {
+    #[oai(skip_serializing_if_is_none)]
+    pub smile: Option<String>,
+    #[oai(skip_serializing_if_is_none)]
+    pub error: Option<String>,
 }
 
 struct Api;
@@ -37,10 +45,19 @@ impl Api {
         let standardized_smiles = mol
             .0
             .into_par_iter()
-            .map(|s| Smile {
-                smile: standardize_smiles(&s.smile)
-                    .map(|s| s.as_smile())
-                    .unwrap_or_else(|_| format!("could not process smile: {}", s.smile)),
+            .map(|s| {
+                let standardize = standardize_smiles(&s.smile);
+
+                match standardize {
+                    Ok(romol) => StandardizedSmile {
+                        smile: Some(romol.as_smile()),
+                        error: None,
+                    },
+                    Err(e) => StandardizedSmile {
+                        smile: Some(s.smile),
+                        error: Some(e.to_string()),
+                    },
+                }
             })
             .collect::<Vec<_>>();
 
@@ -103,9 +120,8 @@ pub async fn action(matches: &clap::ArgMatches) -> eyre::Result<()> {
 
 #[handler]
 async fn index() -> StandardizeResponse {
-    let smiles = Json( vec! [Smile {
-        smile:  "CC=CO".to_string(),
-        // smile:  "CCC=O".to_string(), -answer
+    let smiles = Json(vec![Smile {
+        smile: "CC=CO".to_string(), // smile:  "CCC=O".to_string(), -answer
     }]);
     Api.standardize(smiles).await
 }
@@ -115,21 +131,24 @@ async fn test_poem() {
     let app = Route::new().at("/", post(index));
     let client = TestClient::new(app);
 
-    let resp = client
-        .post("/")
-        .send()
-        .await;
-
+    let resp = client.post("/").send().await;
 
     resp.assert_status_is_ok();
 
     let json = resp.json().await;
     let json_value = json.value();
     // json_value.object().get("smile").assert_string("CCC=O");
-    json_value.array().iter().map(|value| value.object().get("smile")).collect::<Vec<_>>().first().expect("first_value").assert_string("CCC=O");
+    json_value
+        .array()
+        .iter()
+        .map(|value| value.object().get("smile"))
+        .collect::<Vec<_>>()
+        .first()
+        .expect("first_value")
+        .assert_string("CCC=O");
     println!("{:?}", json_value);
     // TestJsonValue(Array([Object({"smile": String("CCC=O")})]))
-//     resp.assert_text("CCC=O").await;
+    //     resp.assert_text("CCC=O").await;
 
     println!("lllla")
 }

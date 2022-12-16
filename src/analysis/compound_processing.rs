@@ -2,8 +2,13 @@ use bitvec::prelude::*;
 use rdkit::*;
 use std::collections::HashMap;
 
-pub fn standardize_mol(romol: &ROMol) -> ROMol {
+pub fn standardize_mol(romol: &ROMol) -> eyre::Result<ROMol> {
+    log::info!(
+        "I'm gonna take an romol and turn it in to a rwmol: {:?}",
+        romol
+    );
     let rwmol = romol.as_rw_mol(false, 1);
+    log::info!("rwmol: {:?}", rwmol);
     let cleanup_params = CleanupParameters::default();
     let parent_rwmol = fragment_parent(&rwmol, &cleanup_params, true);
 
@@ -12,13 +17,13 @@ pub fn standardize_mol(romol: &ROMol) -> ROMol {
 
     let te = TautomerEnumerator::new();
     let canon_taut = te.canonicalize(&uncharged_mol);
-    canon_taut
+    Ok(canon_taut)
 }
 
 pub fn standardize_smiles(smi: &str) -> eyre::Result<ROMol> {
     let romol = ROMol::from_smile(smi)?;
     log::info!("gonna standardize");
-    let canon_taut = standardize_mol(&romol);
+    let canon_taut = standardize_mol(&romol)?;
     log::info!("done standardizing");
     Ok(canon_taut)
 }

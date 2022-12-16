@@ -6,7 +6,7 @@ use rdkit::*;
 fn test_standardize_mol() {
     let smiles = "CC.Oc1c(cccc3CC(C(=O)[O-]))c3nc2c(C[NH+])cncc12.[Cl-]";
     let romol = ROMol::from_smile(smiles).unwrap();
-    let canon_taut = standardize_mol(&romol);
+    let canon_taut = standardize_mol(&romol).unwrap();
     assert_eq!(
         canon_taut.as_smile(),
         "[N]Cc1cncc2c(=O)c3cccc(CCC(=O)O)c3[nH]c12"
@@ -16,7 +16,19 @@ fn test_standardize_mol() {
 #[test]
 fn test_standardize_smiles() {
     let smiles = "CC.Oc1c(cccc3CC(C(=O)[O-]))c3nc2c(C[NH+])cncc12.[Cl-]";
-    let canon_taut = standardize_smiles(&smiles);
+    let canon_taut = standardize_smiles(&smiles).unwrap();
+    assert_eq!(
+        canon_taut.as_smile(),
+        "[N]Cc1cncc2c(=O)c3cccc(CCC(=O)O)c3[nH]c12"
+    );
+}
+
+#[test]
+fn test_standardize_bad_smiles() {
+    env_logger::init();
+
+    let smiles = "smiles";
+    let canon_taut = standardize_smiles(&smiles).unwrap();
     assert_eq!(
         canon_taut.as_smile(),
         "[N]Cc1cncc2c(=O)c3cccc(CCC(=O)O)c3[nH]c12"
@@ -34,7 +46,7 @@ fn test_get_tautomers() {
 #[test]
 fn test_process_cpd() {
     let smiles = "Oc1c(cccc3)c3nc2ccncc12";
-    let (proc_smiles, fingerprint, descriptors) = process_cpd(smiles);
+    let (proc_smiles, fingerprint, descriptors) = process_cpd(smiles).unwrap();
 
     let expected_fp = bitvec![
         1, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0,

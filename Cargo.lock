@@ -200,6 +200,7 @@ version = "0.1.0"
 dependencies = [
  "bitvec",
  "clap",
+ "env_logger",
  "eyre",
  "lazy_static",
  "log",
@@ -1654,21 +1655,19 @@ dependencies = [
 [[package]]
 name = "rdkit"
 version = "0.2.13"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "27e6b7765bf8b75a759a3b497a92e8bf8de19acd434a4293adf99677700e5065"
 dependencies = [
  "bitvec",
+ "byteorder",
  "cxx",
  "flate2",
  "log",
  "rdkit-sys",
+ "thiserror",
 ]
 
 [[package]]
 name = "rdkit-sys"
-version = "0.2.18"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3c171e71fe5a0bb4d3b15cf8efda2bddb11dff3cfa6ab6bd2c7fce50af8c8b25"
+version = "0.2.20"
 dependencies = [
  "cxx",
  "cxx-build",
