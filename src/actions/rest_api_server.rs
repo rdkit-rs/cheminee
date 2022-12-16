@@ -105,50 +105,36 @@ pub async fn action(matches: &clap::ArgMatches) -> eyre::Result<()> {
 
 // #[handler]
 // async fn index() -> Json<Vec<Smile>> {
+// // fn index() -> Json<Vec<Smile>> {
 //     Json( vec! [Smile {
 //         // smile:  "CC=CO".to_string(),
 //         smile:  "CCC=O".to_string(),
 //     }])
 // }
-
 #[handler]
-// #[oai(path = "/standardize", method = "post")]
-async fn index(mol: Json<Vec<Smile>>) -> ROMol {
-    let sm = mol.0.first().unwrap().clone();
-    let standardized_smiles = standardize_smiles(sm.smile.as_str());
-    // let standardized_smiles = sm
-    //   .0
-    //
-    //   .into_iter()
-    //   .map(|s| standardize_smiles(s.smile.as_str()).to_owned()).collect::<Vec<_>>();
-    //   .standardize_smiles(mol);
-      // .into_par_iter()
-      // .map(|s| Smile {smile: standardize_smiles(&s.smile).as_smile().to_string(), })
-      // .collect::<Vec<_>>();
-    // standardize_smiles(mol)
-    standardize_smiles
-// }
-//     -> StandardizeResponse {
-//         let standardized_smiles = mol
-//         .0
-//         // .into_iter()
-//         .into_par_iter()
-//         .map(|s| Smile {
-//         smile: standardize_smiles(&s.smile).as_smile(),
-//     })
-//     .collect::<Vec<_>>();
-    // poem_openapi::payload::Json(standardized_smiles)
-    // poem_openapi::payload::Json(standardized_smiles)
-//
-//     StandardizeResponse::Ok(Json(standardized_smiles))
+async fn index(mol: Json<Vec<Smile>>) -> String  {
+    standardize_smiles(mol.0.first().unwrap().clone().smile.as_str()).as_smile()
 }
+//async fn index(mol: Json<Vec<Smile>>) -> Vec<String> {
+//     let sm = mol.0.first().unwrap().clone();
+//     let standardized_smiles = standardize_smiles(sm.smile.as_str()).as_smile();
+//     let standardized_smiles = mol
+//       .0
+//       .into_par_iter()
+//       .map(|s| standardize_smiles(s.smile.as_str()).clone().as_smile()).collect::<Vec<String>>();
+
+    //standardized_smiles
+//     // poem_openapi::payload::Json(standardized_smiles)
+// }
 
 #[tokio::test]
 async fn test_poem() {
     // let app = Route::new().at("/", index);
 
-    // let app = Route::new().at("/", post(serde_json::from_str(index.first().smile)));
-    let app = Route::new().at("/", post(index.first().smile));
+    // let app = Route::new().at("/", post(serde_json::from_str(index)));
+    // println!("{:?}", index.0.first().unwrap().clone());
+    let app = Route::new().at("/", post(index));
+    // let app = Route::new().at("/", index);
     let client = TestClient::new(app);
 //
     // let resp = client.get("/").send().await;
@@ -166,9 +152,10 @@ async fn test_poem() {
     // let schema: Smile = Smile { smile: "[{ \"smile\": \"CC=CO\"}]".to_string() } ;
     // let mut object: Value = serde_json::from_str(schema).unwrap();
     let resp = client
-        // .post("/")
         .post("/")
-        .data(schema)  // <<<----- here
+        // .post("/")
+        // .post("/")
+        // .data(vec![schema])  // <<<----- here
         // .body(r#"{"query": "{ health { status } }" }"#)
         //     .body(r#"[{ "smile": "CC=CO"}]"#)
         .send()
@@ -176,9 +163,15 @@ async fn test_poem() {
 
 
     resp.assert_status_is_ok();
-// check the body string
 
-    resp.assert_text("CCC=O").await;
+    let json = resp.json().await;
+    let json_value = json.value();
+    // json_value.object().get("smile").assert_string("CCC=O");
+    json_value.array().iter().map(|value| value.object().get("smile")).collect::<Vec<_>>().first().expect("first_value").assert_string("CCC=O");
+    println!("{:?}", json_value);
+    // TestJsonValue(Array([Object({"smile": String("CCC=O")})]))
+// check the body string
+//     resp.assert_text("CCC=O").await;
     println!("lllla")
 }
 
