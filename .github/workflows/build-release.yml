@@ -1,5 +1,5 @@
-on:
-  push: {}
+#on:
+#  push: {}
 
 jobs:
   build-base-amd64:
@@ -30,7 +30,7 @@ jobs:
           context: .
           file: Dockerfile.base
           push: true
-          tags: ghcr.io/assaydepot/cheminee:base-amd64
+          tags: ${{ steps.meta.outputs.tags }}-amd64
           labels: ${{ steps.meta.outputs.labels }}
 
 # it's too slow build
