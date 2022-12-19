@@ -5,7 +5,7 @@ use std::collections::HashMap;
 pub fn standardize_mol(romol: &ROMol) -> ROMol {
     let rwmol = romol.as_rw_mol(false, 1);
     let cleanup_params = CleanupParameters::default();
-    let parent_rwmol = fragment_parent(&rwmol, &cleanup_params, true);
+    let parent_rwmol = fragment_parent(&rwmol, &cleanup_params, false);
 
     let uncharger = Uncharger::new(false);
     let uncharged_mol = uncharger.uncharge(&parent_rwmol.to_ro_mol());

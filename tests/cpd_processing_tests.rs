@@ -15,11 +15,18 @@ fn test_standardize_mol() {
 
 #[test]
 fn test_standardize_smiles() {
-    let smiles = "CC.Oc1c(cccc3CC(C(=O)[O-]))c3nc2c(C[NH+])cncc12.[Cl-]";
-    let canon_taut = standardize_smiles(&smiles);
+    let smiles1 = "CC.Oc1c(cccc3CC(C(=O)[O-]))c3nc2c(C[NH+])cncc12.[Cl-]";
+    let canon_taut1 = standardize_smiles(&smiles1);
     assert_eq!(
-        canon_taut.as_smile(),
+        canon_taut1.as_smile(),
         "[N]Cc1cncc2c(=O)c3cccc(CCC(=O)O)c3[nH]c12"
+    );
+
+    let smiles2 = "[Mg](OCC)OCC";
+    let canon_taut2 = standardize_smiles(&smiles2);
+    assert_eq!(
+        canon_taut2.as_smile(),
+        "CCO"
     );
 }
 
