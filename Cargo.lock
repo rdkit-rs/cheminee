@@ -1669,9 +1669,9 @@ dependencies = [
 
 [[package]]
 name = "rdkit-sys"
-version = "0.2.21"
+version = "0.2.22"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5e0842519486660bbaf2eab1650a38cc68ccfd04419fa0d3b274bd755b69b722"
+checksum = "946e29cf93a9242f010d0cebe134660be85afa49fb87bd5e04f9ddc385f9052a"
 dependencies = [
  "cxx",
  "cxx-build",
