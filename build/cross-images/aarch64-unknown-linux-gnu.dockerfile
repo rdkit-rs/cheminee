@@ -16,7 +16,7 @@ RUN apt-get update && \
         curl cmake libboost-all-dev libeigen3-dev libssl-dev git && \
     rm -rf /var/lib/apt/lists/*
 
-RUN curl -OL --silent https://github.com/rdkit/rdkit/archive/refs/tags/$RELEASE.tar.gz; tar xzf $RELEASE.tar.gz
+RUN curl -vOL --silent https://github.com/rdkit/rdkit/archive/refs/tags/$RELEASE.tar.gz; tar xzf $RELEASE.tar.gz
 RUN cd rdkit-$RELEASE; mkdir -p build && cd build && \
      cmake .. -D CMAKE_CXX_COMPILER=$CXX \
               -D RDK_BUILD_PYTHON_WRAPPERS=OFF \
