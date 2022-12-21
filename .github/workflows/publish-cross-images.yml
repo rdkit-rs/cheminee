@@ -9,9 +9,13 @@ on:
 #      - "build/cross-images/*"
 
 jobs:
+
   build-x86_64-unknown-linux-gnu:
     name: Publish cross images
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
     steps:
       - name: Check out the repo
         uses: actions/checkout@v3
@@ -39,6 +43,9 @@ jobs:
   build-aarch64-unknown-linux-gnu:
     name: Publish cross images
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
     steps:
       - name: Check out the repo
         uses: actions/checkout@v3
