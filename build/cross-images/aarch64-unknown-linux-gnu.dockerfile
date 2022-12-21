@@ -16,8 +16,9 @@ RUN dpkg --add-architecture arm64 && \
     apt-get update && \
     apt-get install -y \
         binutils-aarch64-linux-gnu \
-        curl cmake git && \
-    apt-get install -y \
+        curl cmake git \
+        aptitude && \
+    aptitude install -y \
         libboost-all-dev:arm64 libeigen3-dev:arm64 libssl-dev:arm64 && \
     rm -rf /var/lib/apt/lists/*
 
