@@ -71,6 +71,6 @@ jobs:
         uses: docker/build-push-action@v3
         with:
           push: true
-          tags: ghcr.io/${{ github.repository }}:build-${{ matrix.version }}
+          tags: ghcr.io/${{ github.repository }}:build-${{ matrix.platform }}
           context: build/cross-images
-          file: build/cross-images/${{ matrix.version }}.dockerfile
+          file: build/cross-images/${{ matrix.platform }}.dockerfile
