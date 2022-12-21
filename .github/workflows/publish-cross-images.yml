@@ -2,11 +2,11 @@ name: Publish custom cross images
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - main
-    paths:
-      - "build/cross-images/**"
+  push: {}
+#    branches:
+#      - main
+#    paths:
+#      - "build/cross-images/*"
 
 jobs:
   build-x86_64-unknown-linux-gnu:
