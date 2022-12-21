@@ -2,7 +2,7 @@
 #  push: {}
 
 jobs:
-  build-base-amd64:
+  build-release-amd64:
     runs-on: ubuntu-22.04
     permissions:
       contents: read
@@ -30,7 +30,7 @@ jobs:
           context: .
           file: Dockerfile.base
           push: true
-          tags: ${{ steps.meta.outputs.tags }}-amd64
+          tags: ghcr.io/assaydepot/cheminee:latest-amd64
           labels: ${{ steps.meta.outputs.labels }}
 
 # it's too slow build
