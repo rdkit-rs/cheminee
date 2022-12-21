@@ -11,7 +11,7 @@ on:
 jobs:
 
   build:
-    name: Build images for x86_64 and aarch64
+    name: Docker build
     runs-on: ubuntu-latest
     permissions:
       contents: read

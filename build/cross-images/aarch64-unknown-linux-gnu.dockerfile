@@ -13,7 +13,8 @@ ENV LIBZ_SYS_STATIC=1 \
     X86_64_UNKNOWN_LINUX_MUSL_OPENSSL_DIR=/usr/local/musl/
 
 ENV RDKIT_RELEASE=Release_2022_09_3 \
-    CXX=g++
+    CXX=g++ \
+    DEBIAN_FRONTEND=noninteractive
 
 RUN curl -OL --silent https://github.com/rdkit/rdkit/archive/refs/tags/$RELEASE.tar.gz; tar xzf $RELEASE.tar.gz
 RUN cd rdkit-$RELEASE; mkdir -p build && cd build && \

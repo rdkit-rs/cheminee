@@ -6,7 +6,8 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/*
 
 ENV RDKIT_RELEASE=Release_2022_09_3 \
-    CXX=g++
+    CXX=g++ \
+    DEBIAN_FRONTEND=noninteractive
 
 RUN curl -OL --silent https://github.com/rdkit/rdkit/archive/refs/tags/$RDKIT_RELEASE.tar.gz; tar xzf $RDKIT_RELEASE.tar.gz
 RUN cd rdkit-$RDKIT_RELEASE; mkdir -p build && cd build && \
