@@ -10,38 +10,8 @@ on:
 
 jobs:
 
-  build-x86_64-unknown-linux-gnu:
-    name: Publish x86_64-unknown-linux-gnu image
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
-    steps:
-      - name: Check out the repo
-        uses: actions/checkout@v3
-
-      - name: Log in to the Container registry
-        uses: docker/login-action@f054a8b539a109f9f41c372932f1ae047eff08c9
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Extract metadata (tags, labels) for Docker
-        id: meta
-        uses: docker/metadata-action@v4.1.1
-        with:
-          images: |
-            ghcr.io/${{ github.repository }}
-
-      - name: Build and push cross images
-        run: |
-          TAG=x86_64-unknown-linux-gnu; \
-          docker build --tag ghcr.io/${{ github.repository }}:build-$TAG --file ./build/cross-images/$TAG.dockerfile ./build/cross-images; \
-          docker push ghcr.io/${{ github.repository }}:build-$TAG
-
-  build-aarch64-unknown-linux-gnu:
-    name: Publish aarch64-unknown-linux-gnu image
+  build:
+    name: Build images for x86_64 and aarch64
     runs-on: ubuntu-latest
     permissions:
       contents: read
