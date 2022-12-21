@@ -17,7 +17,7 @@ RUN dpkg --add-architecture arm64 && \
     apt-get install -y \
         binutils-aarch64-linux-gnu \
         curl cmake git \
-        libboost-all-dev:arm64 libeigen3-dev:arm64 libssl-dev:arm64 && \
+        libboost-all-dev:arm64 libboost-mpi-dev:arm64 libboost-mpi-python-dev:arm64 libeigen3-dev:arm64 libssl-dev:arm64 && \
     rm -rf /var/lib/apt/lists/*
 
 RUN curl -vOL --silent https://github.com/rdkit/rdkit/archive/refs/tags/$RDKIT_RELEASE.tar.gz && \
