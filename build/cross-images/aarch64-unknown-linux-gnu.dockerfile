@@ -17,7 +17,7 @@ ENV RDKIT_RELEASE=Release_2022_09_3 \
 
 RUN curl -OL --silent https://github.com/rdkit/rdkit/archive/refs/tags/$RELEASE.tar.gz; tar xzf $RELEASE.tar.gz
 RUN cd rdkit-$RELEASE; mkdir -p build && cd build && \
-     cmake .. -D CMAKE_CXX_COMPILER=clang++-14 \
+     cmake .. -D CMAKE_CXX_COMPILER=$CXX \
               -D RDK_BUILD_PYTHON_WRAPPERS=OFF \
               -D RDK_OPTIMIZE_POPCNT=OFF \
               -D RDK_INSTALL_COMIC_FONTS=OFF \
