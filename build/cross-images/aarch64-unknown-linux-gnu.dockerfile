@@ -1,11 +1,5 @@
 FROM ghcr.io/assaydepot/aarch64-unknown-linux-gnu:0.3.0-assaydepot
 
-RUN apt-get update && \
-    apt-get install -y \
-        binutils-aarch64-linux-gnu \
-        curl cmake libboost-all-dev libeigen3-dev libssl-dev git && \
-    rm -rf /var/lib/apt/lists/*
-
 ENV LIBZ_SYS_STATIC=1 \
     PKG_CONFIG_ALLOW_CROSS=true \
     PKG_CONFIG_ALL_STATIC=true \
@@ -15,6 +9,12 @@ ENV LIBZ_SYS_STATIC=1 \
 ENV RDKIT_RELEASE=Release_2022_09_3 \
     CXX=g++ \
     DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update && \
+    apt-get install -y \
+        binutils-aarch64-linux-gnu \
+        curl cmake libboost-all-dev libeigen3-dev libssl-dev git && \
+    rm -rf /var/lib/apt/lists/*
 
 RUN curl -OL --silent https://github.com/rdkit/rdkit/archive/refs/tags/$RELEASE.tar.gz; tar xzf $RELEASE.tar.gz
 RUN cd rdkit-$RELEASE; mkdir -p build && cd build && \

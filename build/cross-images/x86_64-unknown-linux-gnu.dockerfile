@@ -1,13 +1,13 @@
 FROM ghcr.io/assaydepot/x86_64-unknown-linux-gnu:0.3.0-assaydepot
 
+ENV RDKIT_RELEASE=Release_2022_09_3 \
+    CXX=g++ \
+    DEBIAN_FRONTEND=noninteractive
+
 RUN apt-get update && \
     apt-get install -y \
         curl cmake libboost-all-dev libeigen3-dev libssl-dev git && \
     rm -rf /var/lib/apt/lists/*
-
-ENV RDKIT_RELEASE=Release_2022_09_3 \
-    CXX=g++ \
-    DEBIAN_FRONTEND=noninteractive
 
 RUN curl -OL --silent https://github.com/rdkit/rdkit/archive/refs/tags/$RDKIT_RELEASE.tar.gz; tar xzf $RDKIT_RELEASE.tar.gz
 RUN cd rdkit-$RDKIT_RELEASE; mkdir -p build && cd build && \
