@@ -1,12 +1,12 @@
 FROM ghcr.io/assaydepot/x86_64-unknown-linux-gnu:0.3.0-assaydepot
 
 RUN apt-get update && \
-    apt-get install -y clang-3.9 libclang-3.9-dev \
+    apt-get install -y \
         curl cmake libboost-all-dev libeigen3-dev libssl-dev git && \
     rm -rf /var/lib/apt/lists/*
 
 ENV RDKIT_RELEASE=Release_2022_09_3 \
-    CXX=clang++-3.9
+    CXX=g++
 
 RUN curl -OL --silent https://github.com/rdkit/rdkit/archive/refs/tags/$RDKIT_RELEASE.tar.gz; tar xzf $RDKIT_RELEASE.tar.gz
 RUN cd rdkit-$RDKIT_RELEASE; mkdir -p build && cd build && \

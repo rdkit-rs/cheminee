@@ -1,8 +1,7 @@
 FROM ghcr.io/assaydepot/aarch64-unknown-linux-gnu:0.3.0-assaydepot
 
 RUN apt-get update && \
-    apt-get install -y clang-3.9 \
-        libclang-3.9-dev \
+    apt-get install -y \
         binutils-aarch64-linux-gnu \
         curl cmake libboost-all-dev libeigen3-dev libssl-dev git && \
     rm -rf /var/lib/apt/lists/*
@@ -12,6 +11,9 @@ ENV LIBZ_SYS_STATIC=1 \
     PKG_CONFIG_ALL_STATIC=true \
     X86_64_UNKNOWN_LINUX_MUSL_OPENSSL_STATIC=1 \
     X86_64_UNKNOWN_LINUX_MUSL_OPENSSL_DIR=/usr/local/musl/
+
+ENV RDKIT_RELEASE=Release_2022_09_3 \
+    CXX=g++
 
 RUN curl -OL --silent https://github.com/rdkit/rdkit/archive/refs/tags/$RELEASE.tar.gz; tar xzf $RELEASE.tar.gz
 RUN cd rdkit-$RELEASE; mkdir -p build && cd build && \
