@@ -11,7 +11,7 @@ on:
 jobs:
 
   build-x86_64-unknown-linux-gnu:
-    name: Publish cross images
+    name: Publish x86_64-unknown-linux-gnu image
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -41,11 +41,14 @@ jobs:
           docker push ghcr.io/${{ github.repository }}:build-$TAG
 
   build-aarch64-unknown-linux-gnu:
-    name: Publish cross images
+    name: Publish aarch64-unknown-linux-gnu image
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
+    strategy:
+      matrix:
+        platform: [x86_64-unknown-linux-gnu, aarch64-unknown-linux-gnu]
     steps:
       - name: Check out the repo
         uses: actions/checkout@v3
@@ -64,8 +67,10 @@ jobs:
           images: |
             ghcr.io/${{ github.repository }}
 
-      - name: Build and push cross images
-        run: |
-          TAG=aarch64-unknown-linux-gnu; \
-          docker build --tag ghcr.io/${{ github.repository }}:build-$TAG --file ./build/cross-images/$TAG.dockerfile ./build/cross-images; \
-          docker push ghcr.io/${{ github.repository }}:build-$TAG
+      - name: Build and push
+        uses: docker/build-push-action@v3
+        with:
+          push: true
+          tags: ghcr.io/${{ github.repository }}:build-${{ matrix.version }}
+          context: build/cross-images
+          file: build/cross-images/${{ matrix.version }}.dockerfile
