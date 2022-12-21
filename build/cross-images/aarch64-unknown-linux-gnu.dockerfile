@@ -7,13 +7,17 @@ ENV LIBZ_SYS_STATIC=1 \
     X86_64_UNKNOWN_LINUX_MUSL_OPENSSL_DIR=/usr/local/musl/
 
 ENV RDKIT_RELEASE=Release_2022_09_3 \
-    CXX=g++ \
+    CXX=aarch64-linux-gnu-g++ \
+    CC=aarch64-linux-gnu-gcc \
+    AR=aarch64-linux-gnu-ar \
     DEBIAN_FRONTEND=noninteractive
 
-RUN apt-get update && \
+RUN dpkg --add-architecture arm64 && \
+    apt-get update && \
     apt-get install -y \
         binutils-aarch64-linux-gnu \
-        curl cmake libboost-all-dev libeigen3-dev libssl-dev git && \
+        curl cmake git \
+        libboost-all-dev:arm64 libeigen3-dev:arm64 libssl-dev:arm64 && \
     rm -rf /var/lib/apt/lists/*
 
 RUN curl -vOL --silent https://github.com/rdkit/rdkit/archive/refs/tags/$RDKIT_RELEASE.tar.gz && \

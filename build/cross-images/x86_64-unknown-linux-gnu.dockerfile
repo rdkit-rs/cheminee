@@ -6,11 +6,13 @@ ENV RDKIT_RELEASE=Release_2022_09_3 \
 
 RUN apt-get update && \
     apt-get install -y \
-        curl cmake libboost-all-dev libeigen3-dev libssl-dev git && \
+        curl cmake git \
+        libboost-all-dev libeigen3-dev libssl-dev && \
     rm -rf /var/lib/apt/lists/*
 
-RUN curl -vOL --silent https://github.com/rdkit/rdkit/archive/refs/tags/$RDKIT_RELEASE.tar.gz; tar xzf $RDKIT_RELEASE.tar.gz
-RUN cd rdkit-$RDKIT_RELEASE; mkdir -p build && cd build && \
+RUN curl -vOL --silent https://github.com/rdkit/rdkit/archive/refs/tags/$RDKIT_RELEASE.tar.gz && \
+    tar xzf $RDKIT_RELEASE.tar.gz && \
+    cd rdkit-$RDKIT_RELEASE; mkdir -p build && cd build && \
      cmake .. -D CMAKE_CXX_COMPILER=$CXX \
               -D RDK_BUILD_PYTHON_WRAPPERS=OFF \
               -D RDK_OPTIMIZE_POPCNT=OFF \
@@ -20,4 +22,5 @@ RUN cd rdkit-$RDKIT_RELEASE; mkdir -p build && cd build && \
               -D RDK_INSTALL_INTREE=OFF \
               -D RDK_BUILD_SWIG_JAVA_WRAPPER=OFF \
               -D RDK_BUILD_CPP_TESTS=OFF && \
-     make install -j 4
+     make install -j 4 && \
+     rm -rf rdkit-$RDKIT_RELEASE $RDKIT_RELEASE.tar.gz
