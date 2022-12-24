@@ -19,8 +19,16 @@ RUN dpkg --add-architecture arm64 && \
         curl cmake git \
         aptitude && \
     aptitude install -y \
-        libboost-all-dev:arm64 libeigen3-dev:arm64 libssl-dev:arm64 && \
+        libeigen3-dev:arm64 libssl-dev:arm64 && \
     rm -rf /var/lib/apt/lists/*
+
+RUN cd /tmp; mkdir -p /opt/lib/aarch64-linux-gnu && \
+    curl -LO https://boostorg.jfrog.io/artifactory/main/release/1.78.0/source/boost_1_78_0.tar.gz && \
+    tar xzf boost_1_78_0.tar.gz
+ADD aarch64-boost-user-config.jam /tmp/boost_1_78_0/user-config.jam
+RUN cd /tmp/boost_1_78_0 && \
+    ./bootstrap.sh --prefix=/usr/aarch64-linux-gnu &&  \
+    ./b2 target-os=linux toolset=gcc --user-config=./user-config.jam
 
 RUN curl -vOL --silent https://github.com/rdkit/rdkit/archive/refs/tags/$RDKIT_RELEASE.tar.gz && \
     tar xzf $RDKIT_RELEASE.tar.gz && \

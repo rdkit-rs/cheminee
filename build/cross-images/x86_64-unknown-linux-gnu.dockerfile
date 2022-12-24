@@ -7,8 +7,16 @@ ENV RDKIT_RELEASE=Release_2022_09_3 \
 RUN apt-get update && \
     apt-get install -y \
         curl cmake git \
-        libboost-all-dev libeigen3-dev libssl-dev && \
+        libeigen3-dev libssl-dev && \
     rm -rf /var/lib/apt/lists/*
+
+RUN cd /tmp; mkdir -p /opt/lib/aarch64-linux-gnu && \
+    curl -LO https://boostorg.jfrog.io/artifactory/main/release/1.78.0/source/boost_1_78_0.tar.gz && \
+    tar xzf boost_1_78_0.tar.gz
+ADD x86_64-boost-user-config.jam /tmp/boost_1_78_0/user-config.jam
+RUN cd /tmp/boost_1_78_0 && \
+    ./bootstrap.sh --prefix=/usr/aarch64-linux-gnu &&  \
+    ./b2 target-os=linux toolset=gcc --user-config=./user-config.jam
 
 RUN curl -vOL --silent https://github.com/rdkit/rdkit/archive/refs/tags/$RDKIT_RELEASE.tar.gz && \
     tar xzf $RDKIT_RELEASE.tar.gz && \
