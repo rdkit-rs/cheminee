@@ -27,8 +27,8 @@ RUN cd /tmp; mkdir -p /opt/lib/aarch64-linux-gnu && \
     tar xzf boost_1_78_0.tar.gz
 ADD aarch64-boost-user-config.jam /tmp/boost_1_78_0/user-config.jam
 RUN cd /tmp/boost_1_78_0 && \
-    ./bootstrap.sh --prefix=/usr/aarch64-linux-gnu &&  \
-    ./b2 target-os=linux toolset=gcc --user-config=./user-config.jam
+    ./bootstrap.sh &&  \
+    ./b2 target-os=linux toolset=gcc --user-config=./user-config.jam --prefix=/usr/aarch64-linux-gnu
 
 RUN curl -vOL --silent https://github.com/rdkit/rdkit/archive/refs/tags/$RDKIT_RELEASE.tar.gz && \
     tar xzf $RDKIT_RELEASE.tar.gz && \
@@ -41,6 +41,7 @@ RUN curl -vOL --silent https://github.com/rdkit/rdkit/archive/refs/tags/$RDKIT_R
               -D RDK_INSTALL_STATIC_LIBS=ON \
               -D RDK_INSTALL_INTREE=OFF \
               -D RDK_BUILD_SWIG_JAVA_WRAPPER=OFF \
-              -D RDK_BUILD_CPP_TESTS=OFF && \
+              -D RDK_BUILD_CPP_TESTS=OFF  \
+              -D Boost_INCLUDE_DIR=/usr/aarch64-linux-gnu/include && \
      make install -j 4 && \
      rm -rf rdkit-$RDKIT_RELEASE $RDKIT_RELEASE.tar.gz

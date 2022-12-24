@@ -10,11 +10,14 @@ RUN apt-get update && \
         libeigen3-dev libssl-dev && \
     rm -rf /var/lib/apt/lists/*
 
+ENV BOOST_VERSION_DOTS=1.81.0 \
+    BOOST_VERSION_UNDERLINES=1_81_0
+
 RUN cd /tmp; mkdir -p /opt/lib/aarch64-linux-gnu && \
-    curl -LO https://boostorg.jfrog.io/artifactory/main/release/1.78.0/source/boost_1_78_0.tar.gz && \
-    tar xzf boost_1_78_0.tar.gz
-ADD x86_64-boost-user-config.jam /tmp/boost_1_78_0/user-config.jam
-RUN cd /tmp/boost_1_78_0 && \
+    curl -LO https://boostorg.jfrog.io/artifactory/main/release/$BOOST_VERSION_DOTS/source/boost_$BOOST_VERSION_UNDERLINES.tar.gz && \
+    tar xzf boost_$BOOST_VERSION_UNDERLINES.tar.gz
+ADD x86_64-boost-user-config.jam /tmp/boost_$BOOST_VERSION_UNDERLINES/user-config.jam
+RUN cd /tmp/boost_$BOOST_VERSION_UNDERLINES && \
     ./bootstrap.sh --prefix=/usr/aarch64-linux-gnu &&  \
     ./b2 target-os=linux toolset=gcc --user-config=./user-config.jam
 
