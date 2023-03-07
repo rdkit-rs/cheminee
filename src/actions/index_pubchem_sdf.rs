@@ -1,5 +1,8 @@
 use super::prelude::*;
 use rdkit::{MolBlockIter, ROMol, RWMol};
+use serde_json::{Map, Value};
+use std::collections::{BTreeMap, HashMap};
+use tantivy::schema::Field;
 
 pub const NAME: &'static str = "index-pubchem-sdf";
 
@@ -50,6 +53,9 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<usize> {
 
     let mut counter = 0;
     for mol in mol_iter {
+        if counter % 100 == 0 {
+            log::debug!("wrote 100 docs");
+        }
         if mol.is_err() {
             continue;
         }
@@ -57,25 +63,51 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<usize> {
         let mol: ROMol = mol.to_ro_mol();
 
         let smile = schema.get_field("smile").unwrap();
-        let descriptors = schema.get_field("descriptors").unwrap();
         let fingerprint = schema.get_field("fingerprint").unwrap();
+
+        let descriptors_fields = KNOWN_DESCRIPTORS
+            .iter()
+            .map(|kd| (*kd, schema.get_field(kd).unwrap()))
+            .collect::<HashMap<&str, Field>>();
 
         let computed = properties.compute_properties(&mol);
         let json: serde_json::Value = serde_json::to_value(&computed)?;
+        let descriptions_map: Map<String, Value> = if let serde_json::Value::Object(map) = json {
+            map
+        } else {
+            panic!("not an object")
+        };
 
         let fp = mol.fingerprint();
 
         // todo!("we gotta map 64bits to 8 8bits");
-        let doc = doc!(
+        let mut doc = doc!(
             smile => mol.as_smile(),
-            descriptors => json,
             fingerprint => vec![] // fp.0.into_vec()
         );
+
+        // {"my_number": 123.0}
+
+        for field in KNOWN_DESCRIPTORS {
+            if let Some(&serde_json::Value::Number(ref val)) = descriptions_map.get(field) {
+                doc.add_field_value(
+                    descriptors_fields.get(field).unwrap().clone(),
+                    val.as_f64().unwrap(),
+                );
+                // panic!(
+                //     "doc: {:#?}\nval: {}, field: {}",
+                //     doc,
+                //     val.as_f64().unwrap(),
+                //     field
+                // );
+            }
+        }
 
         index_writer.add_document(doc)?;
         counter += 1;
     }
 
+    log::debug!("committing");
     index_writer.commit()?;
 
     Ok(counter)

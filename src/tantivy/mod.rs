@@ -5,11 +5,16 @@ use tantivy::{Index, IndexBuilder, TantivyError};
 
 pub use tantivy::doc;
 
+pub const KNOWN_DESCRIPTORS: [&str; 2] = ["CrippenClogP", "CrippenMR"];
+
 pub fn schema() -> Schema {
     let mut builder = SchemaBuilder::new();
     builder.add_text_field("smile", TEXT | STORED);
-    builder.add_json_field("descriptors", TEXT | STORED);
-    builder.add_bytes_field("fingerprint", FAST);
+    // builder.add_json_field("descriptors", TEXT | STORED);
+    for field in KNOWN_DESCRIPTORS {
+        builder.add_f64_field(field, FAST | STORED);
+    }
+    builder.add_bytes_field("fingerprint", FAST | STORED);
 
     builder.build()
 }
