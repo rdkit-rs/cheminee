@@ -34,7 +34,7 @@ jobs:
           components: rustfmt, clippy
 
       - name: Build cheminee
-        run: cargo build --release
+        run: RUST_WRAPPER=$SCCACHE_PATH cargo build --release
 
       - name: Build docker image
         run: docker build -t cheminee -f Dockerfile .
