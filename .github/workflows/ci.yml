@@ -35,3 +35,6 @@ jobs:
 
       - name: Build cheminee
         run: cargo build
+
+      - name: Build docker image
+        run: docker build -t cheminee -f Dockerfile .
