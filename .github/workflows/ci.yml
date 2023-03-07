@@ -1,0 +1,37 @@
+on:
+  push: {}
+
+jobs:
+  build-base-amd64:
+    runs-on: buildjet-16vcpu-ubuntu-2204
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Git checkout
+        uses: actions/checkout@v2
+
+      - name: Run sccache-cache
+        uses: mozilla/sccache-action@v0.0.1
+        with:
+          version: "v0.3.3"
+
+      - name: Run sccache stat for check
+        shell: bash
+        run: ${SCCACHE_PATH} --show-stats
+
+      - name: Install rdkit
+        run: |
+          echo 'deb [trusted=yes] https://rdkit-rs-debian.s3.amazonaws.com jammy main' > /etc/apt/sources.list.d/rdkit-rs.list
+          apt-get update
+          apt-get install -y build-essential librdkit-dev libssl-dev libboost1.74-dev libboost-serialization1.74-dev pkg-config
+
+      - name: Install latest stable
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+          components: rustfmt, clippy
+
+      - name: Build cheminee
+        run: cargo build
