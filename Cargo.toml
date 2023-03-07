@@ -17,7 +17,7 @@ poem =  { version="1.3.5", features=["test"] }
 poem-openapi = { version="2", features=["swagger-ui"] }
 poem-openapi-derive = "2"
 rayon = "1.0"
-rdkit = "0.2.15"
+rdkit = "0.3.0"
 #rdkit = {path="../rdkit"}
 regex = "1"
 reqwest = "0"
