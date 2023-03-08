@@ -1,6 +1,9 @@
 on:
   push: {}
 
+env:
+  REGISTRY: ghcr.io
+
 jobs:
   build-base-amd64:
     runs-on: buildjet-16vcpu-ubuntu-2204
@@ -36,5 +39,35 @@ jobs:
       - name: Build cheminee
         run: RUST_WRAPPER=$SCCACHE_PATH cargo build --release
 
-      - name: Build docker image
-        run: docker build -t cheminee -f Dockerfile .
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Retag action for Docker image
+        id: meta-docker-image
+        uses: docker/metadata-action@v4.1.1
+        with:
+          images: |
+            name=${{ env.REGISTRY }}/${{ env.REPO_LOWER }}
+          tags: |
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v3
+        with:
+          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.REPO_LOWER }}:${{ env.TAG }}
+          context: .
+          push: true
+          tags: |
+            ${{ steps.meta-docker-image.outputs.tags }}
+            ${{ env.REGISTRY }}/${{ env.REPO_LOWER }}:${{ env.TAG }}
+
+      - name: Docker image size
+        run: docker history cheminee
+
+      - name: Run sccache stat for check
+        shell: bash
+        run: ${SCCACHE_PATH} --show-stats
