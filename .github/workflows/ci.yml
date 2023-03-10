@@ -47,27 +47,22 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Retag action for Docker image
-        id: meta-docker-image
-        uses: docker/metadata-action@v4.1.1
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@98669ae865ea3cffbcbaa878cf57c20bbf1c6c38
         with:
-          images: |
-            name=${{ env.REGISTRY }}/${{ env.REPO_LOWER }}
-          tags: |
-            type=raw,value=latest,enable={{is_default_branch}}
+          images: ${{ env.REGISTRY }}/${{ env.REPO_LOWER }}
 
       - name: Build and push Docker image
-        uses: docker/build-push-action@v3
+        uses: docker/build-push-action@ad44023a93711e3deb337508980b4b5e9bcdc5dc
         with:
-          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.REPO_LOWER }}:${{ env.TAG }}
           context: .
           push: true
-          tags: |
-            ${{ steps.meta-docker-image.outputs.tags }}
-            ${{ env.REGISTRY }}/${{ env.REPO_LOWER }}:${{ env.TAG }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
 
-      - name: Docker image size
-        run: docker history cheminee
+#      - name: Docker image size
+#        run: docker history cheminee
 
       - name: Run sccache stat for check
         shell: bash
