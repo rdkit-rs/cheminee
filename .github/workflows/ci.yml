@@ -14,7 +14,7 @@ jobs:
       contents: read
       packages: write
     outputs:
-      imageid: ${{ steps.build.outputs.imageid }}
+      imageid: 6578
     steps:
       - name: Git checkout
         uses: actions/checkout@v2
@@ -53,7 +53,7 @@ jobs:
 
       - name: Extract metadata (tags, labels) for Docker
         id: meta
-        uses: docker/metadata-action@98669ae865ea3cffbcbaa878cf57c20bbf1c6c38
+        uses: docker/metadata-action@v4.3.0
         with:
           images: ${{ env.REGISTRY }}/${{ env.REPO_LOWER }}
 
@@ -82,7 +82,7 @@ jobs:
       contents: read
       packages: write
     outputs:
-      imageid: ${{ steps.build.outputs.imageid }}
+      imageid: 1234
     steps:
       - name: Git checkout
         uses: actions/checkout@v2
@@ -121,7 +121,7 @@ jobs:
 
       - name: Extract metadata (tags, labels) for Docker
         id: meta
-        uses: docker/metadata-action@98669ae865ea3cffbcbaa878cf57c20bbf1c6c38
+        uses: docker/metadata-action@v4.3.0
         with:
           images: ${{ env.REGISTRY }}/${{ env.REPO_LOWER }}
 
@@ -152,7 +152,7 @@ jobs:
      steps:
       - name: Extract metadata (tags, labels) for Docker
         id: meta
-        uses: docker/metadata-action@98669ae865ea3cffbcbaa878cf57c20bbf1c6c38
+        uses: docker/metadata-action@v4.3.0
         with:
           images: ${{ env.REGISTRY }}/${{ env.REPO_LOWER }}
       - name: Build manifest
