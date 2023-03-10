@@ -156,4 +156,6 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ env.REPO_LOWER }}
       - name: Build manifest
-        run: docker manifest create ${{ steps.meta.outputs.tags }} ${{ needs.build-amd64.outputs.imageid }} ${{ needs.build-arm64.outputs.imageid }}
+        run: |
+          docker manifest create ${{ steps.meta.outputs.tags }} ${{ needs.build-amd64.outputs.imageid }} ${{ needs.build-arm64.outputs.imageid }}
+          docker push ${{ steps.meta.outputs.tags }}
