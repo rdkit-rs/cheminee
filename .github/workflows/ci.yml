@@ -7,6 +7,8 @@ env:
 
 jobs:
   build-base-amd64:
+    env:
+      ARCH: amd64
     runs-on: buildjet-16vcpu-ubuntu-2204
     permissions:
       contents: read
@@ -58,11 +60,11 @@ jobs:
         with:
           context: .
           push: true
-          tags: ${{ steps.meta.outputs.tags }}
+          tags: ${{ steps.meta.outputs.tags }}-${{ env.ARCH }}
           labels: ${{ steps.meta.outputs.labels }}
 
-#      - name: Docker image size
-#        run: docker history cheminee
+      - name: Docker image size
+        run: docker history ${{ steps.meta.outputs.tags }}-${{ env.ARCH }}
 
       - name: Run sccache stat for check
         shell: bash
