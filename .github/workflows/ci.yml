@@ -13,6 +13,8 @@ jobs:
     permissions:
       contents: read
       packages: write
+    outputs:
+      imageid: ${{ steps.build.outputs.imageid }}
     steps:
       - name: Git checkout
         uses: actions/checkout@v2
@@ -55,7 +57,8 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ env.REPO_LOWER }}
 
-      - name: Build and push Docker image
+      - name: Build and push
+        id: build
         uses: docker/build-push-action@ad44023a93711e3deb337508980b4b5e9bcdc5dc
         with:
           context: .
@@ -69,3 +72,85 @@ jobs:
       - name: Run sccache stat for check
         shell: bash
         run: ${SCCACHE_PATH} --show-stats
+
+
+  build-base-arm64:
+    env:
+      ARCH: arm64
+    runs-on: buildjet-16vcpu-ubuntu-2204-arm
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      imageid: ${{ steps.build.outputs.imageid }}
+    steps:
+      - name: Git checkout
+        uses: actions/checkout@v2
+
+      - name: Run sccache-cache
+        uses: mozilla/sccache-action@eaed7fb9f8fb32adea8bd40d7f276f312de9beaf
+        with:
+          version: "v0.3.3"
+
+      - name: Run sccache stat for check
+        shell: bash
+        run: ${SCCACHE_PATH} --show-stats
+
+      - name: Install rdkit
+        run: |
+          sudo bash -c "echo 'deb [trusted=yes] https://rdkit-rs-debian.s3.amazonaws.com jammy main' > /etc/apt/sources.list.d/rdkit-rs.list"
+          sudo apt-get update
+          sudo apt-get install -y build-essential librdkit-dev libssl-dev libboost1.74-dev libboost-serialization1.74-dev pkg-config
+
+      - name: Install latest stable
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+          components: rustfmt, clippy
+
+      - name: Build cheminee
+        run: RUST_WRAPPER=$SCCACHE_PATH cargo build --release
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@98669ae865ea3cffbcbaa878cf57c20bbf1c6c38
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.REPO_LOWER }}
+
+      - name: Build and push
+        id: build
+        uses: docker/build-push-action@ad44023a93711e3deb337508980b4b5e9bcdc5dc
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}-${{ env.ARCH }}
+          labels: ${{ steps.meta.outputs.labels }}
+
+      - name: Docker image size
+        run: docker history ${{ steps.meta.outputs.tags }}-${{ env.ARCH }}
+
+      - name: Run sccache stat for check
+        shell: bash
+        run: ${SCCACHE_PATH} --show-stats
+
+  push-multi-arch-manifest:
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@98669ae865ea3cffbcbaa878cf57c20bbf1c6c38
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.REPO_LOWER }}
+
+      - name: Build manifest
+        run: docker manifest create ${{ steps.meta.outputs.tags }} ${{ needs.build-base-amd64.outputs.imageid }} ${{ needs.build-base-arm64.outputs.imageid }}
