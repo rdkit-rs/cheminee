@@ -156,17 +156,4 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ env.REPO_LOWER }}
       - name: Build manifest
-        run: docker manifest create ${{ steps.meta.outputs.tags }} ${{ needs. build-amd64.outputs.imageid }} ${{ needs. build-arm64.outputs.imageid }}
-#    runs-on: buildjet-2vcpu-ubuntu-2204
-#    permissions:
-#      contents: read
-#      packages: write
-#    needs: [ build-amd64,  build-arm64]
-#    steps:
-#      - name: Extract metadata (tags, labels) for Docker
-#        id: meta
-#        uses: docker/metadata-action@98669ae865ea3cffbcbaa878cf57c20bbf1c6c38
-#        with:
-#          images: ${{ env.REGISTRY }}/${{ env.REPO_LOWER }}
-#      - name: Build manifest
-#        run: docker manifest create ${{ steps.meta.outputs.tags }} ${{ needs. build-amd64.outputs.imageid }} ${{ needs. build-arm64.outputs.imageid }}
+        run: docker manifest create ${{ steps.meta.outputs.tags }} ${{ needs.build-amd64.outputs.imageid }} ${{ needs.build-arm64.outputs.imageid }}
