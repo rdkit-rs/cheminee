@@ -22,7 +22,7 @@ jobs:
       - name: Run sccache-cache
         uses: mozilla/sccache-action@eaed7fb9f8fb32adea8bd40d7f276f312de9beaf
         with:
-          version: "v0.3.3"
+          version: "v0.4.0-pre.10"
 
       - name: Run sccache stat for check
         shell: bash
@@ -90,7 +90,7 @@ jobs:
       - name: Run sccache-cache
         uses: mozilla/sccache-action@eaed7fb9f8fb32adea8bd40d7f276f312de9beaf
         with:
-          version: "v0.3.3"
+          version: "v0.4.0-pre.10"
 
       - name: Run sccache stat for check
         shell: bash
