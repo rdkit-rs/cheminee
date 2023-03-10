@@ -158,4 +158,4 @@ jobs:
       - name: Build manifest
         run: |
           docker manifest create ${{ steps.meta.outputs.tags }} ${{ needs.build-amd64.outputs.imageid }} ${{ needs.build-arm64.outputs.imageid }}
-          docker push ${{ steps.meta.outputs.tags }}
+          docker manifest push ${{ steps.meta.outputs.tags }}
