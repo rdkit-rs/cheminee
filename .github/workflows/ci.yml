@@ -146,6 +146,7 @@ jobs:
     permissions:
       contents: read
       packages: write
+    needs: [build-base-amd64, build-base-arm64]
     steps:
       - name: Extract metadata (tags, labels) for Docker
         id: meta
