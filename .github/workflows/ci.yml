@@ -142,6 +142,7 @@ jobs:
         run: ${SCCACHE_PATH} --show-stats
 
   push-multi-arch-manifest:
+    runs-on: ubuntu-2204
     permissions:
       contents: read
       packages: write
