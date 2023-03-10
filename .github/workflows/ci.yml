@@ -143,6 +143,9 @@ jobs:
 
    push-manifest:
      runs-on: buildjet-2vcpu-ubuntu-2204
+     needs:
+       - build-amd64
+       - build-arm64
      permissions:
        contents: read
        packages: write
