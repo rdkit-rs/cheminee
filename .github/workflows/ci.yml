@@ -13,8 +13,6 @@ jobs:
     permissions:
       contents: read
       packages: write
-    outputs:
-      imageid: 6578
     steps:
       - name: Git checkout
         uses: actions/checkout@v2
@@ -81,8 +79,6 @@ jobs:
     permissions:
       contents: read
       packages: write
-    outputs:
-      imageid: 1234
     steps:
       - name: Git checkout
         uses: actions/checkout@v2
@@ -157,5 +153,5 @@ jobs:
           images: ${{ env.REGISTRY }}/${{ env.REPO_LOWER }}
       - name: Build manifest
         run: |
-          docker manifest create ${{ steps.meta.outputs.tags }} ${{ needs.build-amd64.outputs.imageid }} ${{ needs.build-arm64.outputs.imageid }}
+          docker manifest create ${{ steps.meta.outputs.tags }} ${{ steps.meta.outputs.tags }}-amd64 ${{ steps.meta.outputs.tags }}-arm64
           docker manifest push ${{ steps.meta.outputs.tags }}
