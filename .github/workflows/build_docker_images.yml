@@ -28,9 +28,7 @@ jobs:
         run: env; echo ARCH=$(uname -m) >> $GITHUB_ENV
 
       - name: Run sccache-cache
-        uses: mozilla/sccache-action@eaed7fb9f8fb32adea8bd40d7f276f312de9beaf
-        with:
-          version: "v0.4.0-pre.10"
+        uses: mozilla-actions/sccache-action@v0.0.3
 
       - name: Run sccache stat for check
         shell: bash
