@@ -8,16 +8,160 @@ env:
   REPO_LOWER: rdkit-rs/cheminee
 
 jobs:
-   build-amd64:
+#   build-amd64:
+#    env:
+#      ARCH: amd64
+#    runs-on: buildjet-16vcpu-ubuntu-2204
+#    permissions:
+#      contents: read
+#      packages: write
+#    strategy:
+#      matrix:
+#        buildjet: [buildjet-16vcpu-ubuntu-2204, arm64]
+#    steps:
+#      - name: Git checkout
+#        uses: actions/checkout@v2
+#
+#      - name: Run sccache-cache
+#        uses: mozilla/sccache-action@eaed7fb9f8fb32adea8bd40d7f276f312de9beaf
+#        with:
+#          version: "v0.4.0-pre.10"
+#
+#      - name: Run sccache stat for check
+#        shell: bash
+#        run: ${SCCACHE_PATH} --show-stats
+#
+#      - name: Install rdkit
+#        run: |
+#          sudo bash -c "echo 'deb [trusted=yes] https://rdkit-rs-debian.s3.amazonaws.com jammy main' > /etc/apt/sources.list.d/rdkit-rs.list"
+#          sudo apt-get update
+#          sudo apt-get install -y build-essential librdkit-dev libssl-dev libboost1.74-dev libboost-serialization1.74-dev pkg-config
+#
+#      - name: Install latest stable
+#        uses: actions-rs/toolchain@v1
+#        with:
+#          toolchain: stable
+#          override: true
+#          components: rustfmt, clippy
+#
+#      - name: Build cheminee
+#        run: RUST_WRAPPER=$SCCACHE_PATH cargo build --release
+#
+#      - name: Login to GitHub Container Registry
+#        uses: docker/login-action@v2
+#        with:
+#          registry: ${{ env.REGISTRY }}
+#          username: ${{ github.actor }}
+#          password: ${{ secrets.GITHUB_TOKEN }}
+#
+#      - name: Extract metadata (tags, labels) for Docker
+#        id: meta
+#        uses: docker/metadata-action@v4.3.0
+#        with:
+#          images: ${{ env.REGISTRY }}/${{ env.REPO_LOWER }}
+#          tags: |
+#            type=semver,pattern={{version}}-${{ env.ARCH }}
+#
+#      - name: Build and push
+#        id: build
+#        uses: docker/build-push-action@ad44023a93711e3deb337508980b4b5e9bcdc5dc
+#        with:
+#          context: .
+#          push: true
+#          tags: ${{ steps.meta.outputs.tags }}
+#          labels: ${{ steps.meta.outputs.labels }}
+#
+#      - name: Docker image size
+#        run: docker history ${{ steps.meta.outputs.tags }}-${{ env.ARCH }}
+#
+#      - name: Run sccache stat for check
+#        shell: bash
+#        run: ${SCCACHE_PATH} --show-stats
+
+
+#   build-arm64:
+#    env:
+#      ARCH: arm64
+#    runs-on: buildjet-16vcpu-ubuntu-2204-arm
+#    permissions:
+#      contents: read
+#      packages: write
+#    steps:
+#      - name: Git checkout
+#        uses: actions/checkout@v2
+#
+#      - name: Run sccache-cache
+#        uses: mozilla/sccache-action@eaed7fb9f8fb32adea8bd40d7f276f312de9beaf
+#        with:
+#          version: "v0.4.0-pre.10"
+#
+#      - name: Run sccache stat for check
+#        shell: bash
+#        run: ${SCCACHE_PATH} --show-stats
+#
+#      - name: Install rdkit
+#        run: |
+#          sudo bash -c "echo 'deb [trusted=yes] https://rdkit-rs-debian.s3.amazonaws.com jammy main' > /etc/apt/sources.list.d/rdkit-rs.list"
+#          sudo apt-get update
+#          sudo apt-get install -y build-essential librdkit-dev libssl-dev libboost1.74-dev libboost-serialization1.74-dev pkg-config
+#
+#      - name: Install latest stable
+#        uses: actions-rs/toolchain@v1
+#        with:
+#          toolchain: stable
+#          override: true
+#          components: rustfmt, clippy
+#
+#      - name: Build cheminee
+#        run: RUST_WRAPPER=$SCCACHE_PATH cargo build --release
+#
+#      - name: Login to GitHub Container Registry
+#        uses: docker/login-action@v2
+#        with:
+#          registry: ${{ env.REGISTRY }}
+#          username: ${{ github.actor }}
+#          password: ${{ secrets.GITHUB_TOKEN }}
+#
+#      - name: Extract metadata (tags, labels) for Docker
+#        id: meta
+#        uses: docker/metadata-action@v4.3.0
+#        with:
+#          images: ${{ env.REGISTRY }}/${{ env.REPO_LOWER }}
+#          tags: |
+#            type=semver,pattern={{version}}-${{ env.ARCH }}
+#
+#      - name: Build and push
+#        id: build
+#        uses: docker/build-push-action@ad44023a93711e3deb337508980b4b5e9bcdc5dc
+#        with:
+#          context: .
+#          push: true
+#          tags: ${{ steps.meta.outputs.tags }}
+#          labels: ${{ steps.meta.outputs.labels }}
+#
+#      - name: Docker image size
+#        run: docker history ${{ steps.meta.outputs.tags }}-${{ env.ARCH }}
+#
+#      - name: Run sccache stat for check
+#        shell: bash
+#        run: ${SCCACHE_PATH} --show-stats
+
+  build:
     env:
       ARCH: amd64
-    runs-on: buildjet-16vcpu-ubuntu-2204
+    runs-on: ${{ matrix.buildjet }}
     permissions:
       contents: read
       packages: write
+    strategy:
+      matrix:
+        buildjet: [buildjet-16vcpu-ubuntu-2204, buildjet-16vcpu-ubuntu-2204-arm]
     steps:
       - name: Git checkout
         uses: actions/checkout@v2
+
+      - name: Set architecture variable
+        run: env; echo ARCH=$(uname -m) >> $GITHUB_ENV
 
       - name: Run sccache-cache
         uses: mozilla/sccache-action@eaed7fb9f8fb32adea8bd40d7f276f312de9beaf
@@ -56,6 +200,8 @@ jobs:
         uses: docker/metadata-action@v4.3.0
         with:
           images: ${{ env.REGISTRY }}/${{ env.REPO_LOWER }}
+          flavor: |
+            latest=false
           tags: |
             type=semver,pattern={{version}}-${{ env.ARCH }}
 
@@ -75,95 +221,31 @@ jobs:
         shell: bash
         run: ${SCCACHE_PATH} --show-stats
 
-
-   build-arm64:
-    env:
-      ARCH: arm64
-    runs-on: buildjet-16vcpu-ubuntu-2204-arm
-    permissions:
-      contents: read
-      packages: write
-    steps:
-      - name: Git checkout
-        uses: actions/checkout@v2
-
-      - name: Run sccache-cache
-        uses: mozilla/sccache-action@eaed7fb9f8fb32adea8bd40d7f276f312de9beaf
-        with:
-          version: "v0.4.0-pre.10"
-
-      - name: Run sccache stat for check
-        shell: bash
-        run: ${SCCACHE_PATH} --show-stats
-
-      - name: Install rdkit
-        run: |
-          sudo bash -c "echo 'deb [trusted=yes] https://rdkit-rs-debian.s3.amazonaws.com jammy main' > /etc/apt/sources.list.d/rdkit-rs.list"
-          sudo apt-get update
-          sudo apt-get install -y build-essential librdkit-dev libssl-dev libboost1.74-dev libboost-serialization1.74-dev pkg-config
-
-      - name: Install latest stable
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          override: true
-          components: rustfmt, clippy
-
-      - name: Build cheminee
-        run: RUST_WRAPPER=$SCCACHE_PATH cargo build --release
-
-      - name: Login to GitHub Container Registry
-        uses: docker/login-action@v2
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Extract metadata (tags, labels) for Docker
-        id: meta
-        uses: docker/metadata-action@v4.3.0
-        with:
-          images: ${{ env.REGISTRY }}/${{ env.REPO_LOWER }}
-          tags: |
-            type=semver,pattern={{version}}-${{ env.ARCH }}
-
-      - name: Build and push
-        id: build
-        uses: docker/build-push-action@ad44023a93711e3deb337508980b4b5e9bcdc5dc
-        with:
-          context: .
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-
-      - name: Docker image size
-        run: docker history ${{ steps.meta.outputs.tags }}-${{ env.ARCH }}
-
-      - name: Run sccache stat for check
-        shell: bash
-        run: ${SCCACHE_PATH} --show-stats
-
-   push-manifest:
-     runs-on: buildjet-2vcpu-ubuntu-2204
-     needs:
-       - build-amd64
-       - build-arm64
-     permissions:
-       contents: read
-       packages: write
-     steps:
-      - name: Login to GitHub Container Registry
-        uses: docker/login-action@v2
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Extract metadata (tags, labels) for Docker
-        id: meta
-        uses: docker/metadata-action@v4.3.0
-        with:
-          images: ${{ env.REGISTRY }}/${{ env.REPO_LOWER }}
-      - name: Build manifest
-        run: |
-          docker manifest create ${{ steps.meta.outputs.tags }} ${{ steps.meta.outputs.tags }}-amd64 ${{ steps.meta.outputs.tags }}-arm64
-          docker manifest push ${{ steps.meta.outputs.tags }}
+    push:
+      runs-on: buildjet-2vcpu-ubuntu-2204
+      needs:
+        - build-amd64
+        - build-arm64
+      permissions:
+        contents: read
+        packages: write
+      steps:
+       - name: Login to GitHub Container Registry
+         uses: docker/login-action@v2
+         with:
+           registry: ${{ env.REGISTRY }}
+           username: ${{ github.actor }}
+           password: ${{ secrets.GITHUB_TOKEN }}
+       - name: Extract metadata (tags, labels) for Docker
+         id: meta
+         uses: docker/metadata-action@v4.3.0
+         with:
+           images: ${{ env.REGISTRY }}/${{ env.REPO_LOWER }}
+           flavor: |
+             latest=false
+           tags: |
+             type=semver,pattern={{version}}
+       - name: Build manifest
+         run: |
+           docker manifest create ${{ steps.meta.outputs.tags }} ${{ steps.meta.outputs.tags }}-amd64 ${{ steps.meta.outputs.tags }}-arm64
+           docker manifest push ${{ steps.meta.outputs.tags }}
