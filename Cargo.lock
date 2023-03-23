@@ -1727,9 +1727,9 @@ dependencies = [
 
 [[package]]
 name = "rdkit"
-version = "0.3.0"
+version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f085fc8f4bd2a2b1ecb93ab22faebbecfdd795242cde0926dfefac1686251086"
+checksum = "2dfb07dd778e91f69fdc52545195cf2d50037067c366ee0f3e1fdd03251bdeb2"
 dependencies = [
  "bitvec",
  "byteorder",
