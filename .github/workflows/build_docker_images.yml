@@ -56,6 +56,8 @@ jobs:
         uses: docker/metadata-action@v4.3.0
         with:
           images: ${{ env.REGISTRY }}/${{ env.REPO_LOWER }}
+          tags: |
+            type=semver,pattern={{version}}-${{ env.ARCH }}
 
       - name: Build and push
         id: build
@@ -63,7 +65,7 @@ jobs:
         with:
           context: .
           push: true
-          tags: ${{ steps.meta.outputs.tags }}-${{ env.ARCH }}
+          tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
 
       - name: Docker image size
@@ -122,6 +124,8 @@ jobs:
         uses: docker/metadata-action@v4.3.0
         with:
           images: ${{ env.REGISTRY }}/${{ env.REPO_LOWER }}
+          tags: |
+            type=semver,pattern={{version}}-${{ env.ARCH }}
 
       - name: Build and push
         id: build
@@ -129,7 +133,7 @@ jobs:
         with:
           context: .
           push: true
-          tags: ${{ steps.meta.outputs.tags }}-${{ env.ARCH }}
+          tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
 
       - name: Docker image size
