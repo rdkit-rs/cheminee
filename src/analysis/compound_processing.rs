@@ -30,14 +30,13 @@ pub fn get_tautomers(romol: &ROMol) -> Vec<ROMol> {
     ts
 }
 
-#[allow(unreachable_code)]
-pub fn process_cpd(smi: &str) -> eyre::Result<(&str, BitVec<u8>, HashMap<String, f64>)> {
+pub fn process_cpd(smi: &str) -> eyre::Result<(&str, Fingerprint, HashMap<String, f64>)> {
     let canon_taut = standardize_smiles(smi)?;
     let properties = Properties::new();
     let computed = properties.compute_properties(&canon_taut);
     let rdkit_fp = canon_taut.fingerprint();
 
-    Ok((smi, rdkit_fp.0, computed))
+    Ok((smi, rdkit_fp, computed))
 }
 
 lazy_static::lazy_static! {
