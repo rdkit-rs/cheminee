@@ -221,11 +221,9 @@ jobs:
         shell: bash
         run: ${SCCACHE_PATH} --show-stats
 
-    push:
+  push:
       runs-on: buildjet-2vcpu-ubuntu-2204
-      needs:
-        - build-amd64
-        - build-arm64
+      needs: [build]
       permissions:
         contents: read
         packages: write
