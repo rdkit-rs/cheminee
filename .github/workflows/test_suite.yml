@@ -39,5 +39,5 @@ jobs:
           override: true
           components: rustfmt, clippy
 
-      - name: Build cheminee
+      - name: Cargo Test
         run: RUST_WRAPPER=$SCCACHE_PATH cargo test
