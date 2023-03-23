@@ -79,10 +79,6 @@ jobs:
       - name: Docker image size
         run: docker history ${{ steps.meta.outputs.tags }}
 
-      - name: Run sccache stat for check
-        shell: bash
-        run: ${SCCACHE_PATH} --show-stats
-
   push:
       runs-on: buildjet-2vcpu-ubuntu-2204
       needs: [build]
