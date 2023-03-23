@@ -6,6 +6,8 @@ on:
 env:
   REGISTRY: ghcr.io
   REPO_LOWER: rdkit-rs/cheminee
+  SCCACHE_GHA_ENABLED: "true"
+  RUSTC_WRAPPER: "sccache"
 
 jobs:
    build-amd64:
