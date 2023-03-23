@@ -1,8 +1,7 @@
 use crate::analysis::compound_processing::standardize_smiles;
-use poem::{handler, listener::TcpListener, post, test::TestClient, Route, Server};
+use poem::{handler, listener::TcpListener, Route, Server};
 use poem_openapi::{payload::Json, ApiResponse, Object, OpenApi, OpenApiService};
 use rayon::prelude::*;
-use rdkit::ROMol;
 
 pub const NAME: &'static str = "rest-api-server";
 pub fn command() -> clap::Command<'static> {
@@ -128,8 +127,8 @@ async fn index() -> StandardizeResponse {
 
 #[tokio::test]
 async fn test_poem() {
-    let app = Route::new().at("/", post(index));
-    let client = TestClient::new(app);
+    let app = Route::new().at("/", poem::post(index));
+    let client = poem::test::TestClient::new(app);
 
     let resp = client.post("/").send().await;
 

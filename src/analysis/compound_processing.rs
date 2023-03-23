@@ -35,9 +35,9 @@ pub fn process_cpd(smi: &str) -> eyre::Result<(&str, BitVec<u8>, HashMap<String,
     let canon_taut = standardize_smiles(smi)?;
     let properties = Properties::new();
     let computed = properties.compute_properties(&canon_taut);
-    let rdkit_fp = canon_taut.fingerprint().0;
-    todo!("map u64 to vec u8");
-    Ok((smi, BitVec::from_vec(vec![]), computed))
+    let rdkit_fp = canon_taut.fingerprint();
+
+    Ok((smi, rdkit_fp.0, computed))
 }
 
 lazy_static::lazy_static! {

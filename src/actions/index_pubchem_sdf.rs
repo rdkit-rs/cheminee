@@ -1,7 +1,7 @@
 use super::prelude::*;
 use rdkit::{MolBlockIter, ROMol, RWMol};
 use serde_json::{Map, Value};
-use std::collections::{BTreeMap, HashMap};
+use std::collections::HashMap;
 use tantivy::schema::Field;
 
 pub const NAME: &'static str = "index-pubchem-sdf";
@@ -80,13 +80,10 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<usize> {
 
         let fp = mol.fingerprint();
 
-        // todo!("we gotta map 64bits to 8 8bits");
         let mut doc = doc!(
             smile => mol.as_smile(),
-            fingerprint => vec![] // fp.0.into_vec()
+            fingerprint => fp.0.into_vec()
         );
-
-        // {"my_number": 123.0}
 
         for field in KNOWN_DESCRIPTORS {
             if let Some(&serde_json::Value::Number(ref val)) = descriptions_map.get(field) {
