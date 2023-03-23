@@ -2,7 +2,7 @@ use bitvec::prelude::*;
 use rdkit::*;
 use std::collections::HashMap;
 
-pub fn standardize_mol(romol: &ROMol) -> ROMol {
+pub fn standardize_mol(romol: &ROMol) -> eyre::Result<ROMol> {
     let rwmol = romol.as_rw_mol(false, 1);
     let cleanup_params = CleanupParameters::default();
     let parent_rwmol = fragment_parent(&rwmol, &cleanup_params, false);
@@ -12,13 +12,15 @@ pub fn standardize_mol(romol: &ROMol) -> ROMol {
 
     let te = TautomerEnumerator::new();
     let canon_taut = te.canonicalize(&uncharged_mol);
-    canon_taut
+    Ok(canon_taut)
 }
 
-pub fn standardize_smiles(smi: &str) -> ROMol {
-    let romol = ROMol::from_smile(smi).unwrap();
-    let canon_taut = standardize_mol(&romol);
-    canon_taut
+pub fn standardize_smiles(smi: &str) -> eyre::Result<ROMol> {
+    let romol = ROMol::from_smile(smi)?;
+    log::info!("gonna standardize");
+    let canon_taut = standardize_mol(&romol)?;
+    log::info!("done standardizing");
+    Ok(canon_taut)
 }
 
 pub fn get_tautomers(romol: &ROMol) -> Vec<ROMol> {
@@ -28,13 +30,14 @@ pub fn get_tautomers(romol: &ROMol) -> Vec<ROMol> {
     ts
 }
 
-pub fn process_cpd(smi: &str) -> (&str, BitVec<u8>, HashMap<String, f64>) {
-    let canon_taut = standardize_smiles(smi);
+#[allow(unreachable_code)]
+pub fn process_cpd(smi: &str) -> eyre::Result<(&str, BitVec<u8>, HashMap<String, f64>)> {
+    let canon_taut = standardize_smiles(smi)?;
     let properties = Properties::new();
     let computed = properties.compute_properties(&canon_taut);
-    let rdkit_fp = canon_taut.fingerprint().0;
-    todo!("map u64 to vec u8");
-    (smi, BitVec::from_vec(vec![]), computed)
+    let rdkit_fp = canon_taut.fingerprint();
+
+    Ok((smi, rdkit_fp.0, computed))
 }
 
 lazy_static::lazy_static! {
