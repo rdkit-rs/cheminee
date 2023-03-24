@@ -64,7 +64,7 @@ fn test_process_cpd() {
     ]);
 
     assert_eq!(proc_smiles, "Oc1c(cccc3)c3nc2ccncc12");
-    assert_eq!(fingerprint, expected_fp);
+    assert_eq!(fingerprint.0, expected_fp);
     assert_eq!(*descriptors.get("exactmw").unwrap(), 196.063662876);
 }
 
