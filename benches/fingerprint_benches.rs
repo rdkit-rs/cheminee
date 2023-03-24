@@ -21,3 +21,14 @@ fn bench_tanimoto_distance(b: &mut Bencher) {
 // running 1 test
 // Before: test bench_tanimoto_similarity ... bench:     132,690 ns/iter (+/- 2,681)
 // Now: test bench_tanimoto_distance ... bench:       2,653 ns/iter (+/- 790)
+
+#[bench]
+fn bench_fingerprint_generation(b: &mut Bencher) {
+    let smiles = "[N]Cc1cncc2c(=O)c3cccc(CCC(=O)O)c3[nH]c12";
+    let romol = ROMol::from_smile(smiles).unwrap();
+
+    b.iter(|| romol.fingerprint());
+}
+
+// running 1 test
+// test bench_fingerprint_generation ... bench:   1,161,160 ns/iter (+/- 274,184)
