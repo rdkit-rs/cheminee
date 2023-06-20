@@ -4,27 +4,27 @@ use tantivy::query::QueryParser;
 
 pub const NAME: &'static str = "search";
 
-pub fn command() -> Command<'static> {
+pub fn command() -> Command {
     Command::new(NAME)
         .arg(
             Arg::new("index")
                 .required(true)
                 .long("index")
                 .short('i')
-                .takes_value(true),
+                .num_args(1),
         )
         .arg(
             Arg::new("query")
                 .required(true)
                 .long("query")
                 .short('q')
-                .takes_value(true),
+                .num_args(1),
         )
 }
 
 pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
-    let index_path = matches.value_of("index").unwrap();
-    let query = matches.value_of("query").unwrap();
+    let index_path = matches.get_one::<String>("index").unwrap();
+    let query = matches.get_one::<String>("query").unwrap();
 
     let index = open_index(index_path)?;
     let schema = index.schema();

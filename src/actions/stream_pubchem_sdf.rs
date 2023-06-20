@@ -3,20 +3,15 @@ use rdkit::MolBlockIter;
 
 pub const NAME: &'static str = "stream-pubchem-sdf";
 
-pub fn command() -> Command<'static> {
+pub fn command() -> Command {
     Command::new(NAME)
-        .arg(Arg::new("sdf").required(true).long("sdf").takes_value(true))
-        .arg(
-            Arg::new("limit")
-                .required(false)
-                .long("limit")
-                .takes_value(true),
-        )
+        .arg(Arg::new("sdf").required(true).long("sdf").num_args(1))
+        .arg(Arg::new("limit").required(false).long("limit").num_args(1))
 }
 
 pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
-    let path = matches.value_of("sdf").unwrap();
-    let limit = matches.value_of("limit");
+    let path = matches.get_one::<String>("sdf").unwrap();
+    let limit = matches.get_one::<String>("limit");
 
     let mol_iter = MolBlockIter::from_gz_file(path, true, false, false)
         .map_err(|e| eyre::eyre!("could not read gz file: {:?}", e))?;

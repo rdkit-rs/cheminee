@@ -3,18 +3,17 @@ use crate::pubchem::down_all_current_sdf;
 
 pub const NAME: &'static str = "fetch-pubchem";
 
-pub fn command() -> Command<'static> {
+pub fn command() -> Command {
     Command::new(NAME).arg(
         Arg::new("output-directory")
             .required(true)
             .long("output-directory")
             .short('d')
-            .takes_value(true),
+            .num_args(1),
     )
 }
 
 pub async fn action(matches: &ArgMatches) -> eyre::Result<()> {
-    let output_dir = matches.value_of("output-directory").unwrap();
-
+    let output_dir = matches.get_one::<String>("output-directory").unwrap();
     down_all_current_sdf(output_dir).await
 }

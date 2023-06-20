@@ -4,14 +4,14 @@ use poem_openapi::{payload::Json, ApiResponse, Object, OpenApi, OpenApiService};
 use rayon::prelude::*;
 
 pub const NAME: &'static str = "rest-api-server";
-pub fn command() -> clap::Command<'static> {
+pub fn command() -> clap::Command {
     clap::Command::new("rest-api-server").subcommand(
         clap::Command::new("spec").arg(
             clap::Arg::new("output")
                 .required(true)
                 .short('d')
                 .long("output")
-                .takes_value(true),
+                .num_args(1),
         ),
     )
 }
@@ -91,7 +91,7 @@ async fn run_api_service() -> eyre::Result<()> {
     Ok(())
 }
 
-fn output_spec(dest: String) -> eyre::Result<()> {
+fn output_spec(dest: &String) -> eyre::Result<()> {
     let api_service = api_service("127.0.0.1", 3000);
 
     let spec = api_service.spec();
@@ -104,7 +104,7 @@ fn output_spec(dest: String) -> eyre::Result<()> {
 pub async fn action(matches: &clap::ArgMatches) -> eyre::Result<()> {
     match matches.subcommand() {
         None => run_api_service().await?,
-        Some(("spec", args)) => output_spec(args.value_of_t_or_exit("output"))?,
+        Some(("spec", args)) => output_spec(args.get_one::<String>("output").unwrap())?,
         Some((other, _args)) => Err(eyre::eyre!("can't handle {}", other))?,
     }
 
