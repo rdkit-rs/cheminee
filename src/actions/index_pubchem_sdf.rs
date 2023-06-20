@@ -6,28 +6,23 @@ use tantivy::schema::Field;
 
 pub const NAME: &'static str = "index-pubchem-sdf";
 
-pub fn command() -> Command<'static> {
+pub fn command() -> Command {
     Command::new(NAME)
-        .arg(Arg::new("sdf").required(true).long("sdf").takes_value(true))
+        .arg(Arg::new("sdf").required(true).long("sdf").num_args(1))
         .arg(
             Arg::new("index")
                 .required(true)
                 .long("index")
                 .short('i')
-                .takes_value(true),
+                .num_args(1),
         )
-        .arg(
-            Arg::new("limit")
-                .required(false)
-                .long("limit")
-                .takes_value(true),
-        )
+        .arg(Arg::new("limit").required(false).long("limit").num_args(1))
 }
 
 pub fn action(matches: &ArgMatches) -> eyre::Result<usize> {
-    let sdf_path = matches.value_of("sdf").unwrap();
-    let index_dir = matches.value_of("index").unwrap();
-    let limit = matches.value_of("limit");
+    let sdf_path = matches.get_one::<String>("sdf").unwrap();
+    let index_dir = matches.get_one::<String>("index").unwrap();
+    let limit = matches.get_one::<String>("limit");
 
     log::info!(
         "indexing path={}, index_dir={}, limit={:?}",

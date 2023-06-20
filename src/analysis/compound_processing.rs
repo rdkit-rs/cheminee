@@ -1,4 +1,3 @@
-use bitvec::prelude::*;
 use rdkit::*;
 use std::collections::HashMap;
 
