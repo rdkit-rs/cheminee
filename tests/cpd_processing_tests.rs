@@ -63,6 +63,10 @@ fn test_process_cpd() {
         212, 65, 136, 9, 8, 0, 0, 67, 1, 130,
     ]);
 
+    let mut chem_descriptors = Vec::from_iter(descriptors.keys());
+    chem_descriptors.sort();
+    println!("{:?}", chem_descriptors);
+    // println!("{:?}", descriptors);
     assert_eq!(proc_smiles, "Oc1c(cccc3)c3nc2ccncc12");
     assert_eq!(fingerprint.0, expected_fp);
     assert_eq!(*descriptors.get("exactmw").unwrap(), 196.063662876);

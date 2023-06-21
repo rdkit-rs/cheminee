@@ -82,9 +82,16 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<usize> {
 
         for field in KNOWN_DESCRIPTORS {
             if let Some(&serde_json::Value::Number(ref val)) = descriptions_map.get(field) {
+
+                if field.contains("Num") | field.contains("lipinski") {
+                    let value = val.as_i64.unwrap();
+                } else {
+                    let value = val.as_f64().unwrap();
+                }
+
                 doc.add_field_value(
                     descriptors_fields.get(field).unwrap().clone(),
-                    val.as_f64().unwrap(),
+                    value
                 );
                 // panic!(
                 //     "doc: {:#?}\nval: {}, field: {}",
