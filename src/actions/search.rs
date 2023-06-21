@@ -1,4 +1,5 @@
 pub use super::prelude::*;
+use std::collections::HashMap;
 use tantivy::collector::TopDocs;
 use tantivy::query::QueryParser;
 
@@ -27,6 +28,7 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
     let query = matches.get_one::<String>("query").unwrap();
 
     let index = open_index(index_path)?;
+    let schema = index.schema();
 
     let reader = index.reader()?;
     let searcher = reader.searcher();
@@ -36,7 +38,26 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
 
     let top_docs = searcher.search(&query, &TopDocs::with_limit(10))?;
 
-    println!("{:#?}", top_docs);
+    let docs = top_docs
+        .into_iter()
+        .map(|(_score, doc_addr)| {
+            let doc = searcher.doc(doc_addr).unwrap();
+            let field_values = doc.field_values();
+            let reconstituted_doc = field_values
+                .iter()
+                .map(|field_value| {
+                    let field_name = schema.get_field_name(field_value.field);
+                    (field_name, field_value.value.clone())
+                })
+                .collect::<HashMap<_, _>>();
+
+            (doc_addr, reconstituted_doc)
+        })
+        .collect::<Vec<_>>();
+
+    for doc in docs {
+        println!("{:?}", doc);
+    }
 
     Ok(())
 }
