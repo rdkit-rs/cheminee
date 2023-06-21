@@ -31,6 +31,14 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<usize> {
         limit
     );
 
+    let index_dir_metadata = std::fs::metadata(index_dir);
+    if let Ok(metadata) = index_dir_metadata {
+        if metadata.is_dir() {
+            std::fs::remove_dir_all(index_dir)?;
+        }
+    }
+    std::fs::create_dir(index_dir)?;
+
     let mol_iter = MolBlockIter::from_gz_file(sdf_path, true, false, false)
         .map_err(|e| eyre::eyre!("could not read gz file: {:?}", e))?;
 
@@ -82,27 +90,24 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<usize> {
 
         for field in KNOWN_DESCRIPTORS {
             if let Some(&serde_json::Value::Number(ref val)) = descriptions_map.get(field) {
-
-                if field.contains("Num") | field.contains("lipinski") {
-                    let value = val.as_i64.unwrap();
+                if field.starts_with("Num") || field.starts_with("lipinski") {
+                    let int = val.as_f64().unwrap() as i64;
+                    doc.add_field_value(descriptors_fields.get(field).unwrap().clone(), int);
                 } else {
-                    let value = val.as_f64().unwrap();
-                }
-
-                doc.add_field_value(
-                    descriptors_fields.get(field).unwrap().clone(),
-                    value
-                );
-                // panic!(
-                //     "doc: {:#?}\nval: {}, field: {}",
-                //     doc,
-                //     val.as_f64().unwrap(),
-                //     field
-                // );
+                    doc.add_field_value(
+                        descriptors_fields.get(field).unwrap().clone(),
+                        val.as_f64().unwrap(),
+                    );
+                };
             }
         }
 
         index_writer.add_document(doc)?;
+
+        if counter % 20_000 == 0 {
+            index_writer.commit()?;
+        }
+
         counter += 1;
     }
 

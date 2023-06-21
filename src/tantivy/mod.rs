@@ -49,20 +49,15 @@ pub const KNOWN_DESCRIPTORS: [&str; 43] = [
     "labuteASA",
     "lipinskiHBA",
     "lipinskiHBD",
-    "tpsa"
+    "tpsa",
 ];
-
-
-
-
-
 
 pub fn schema() -> Schema {
     let mut builder = SchemaBuilder::new();
     builder.add_text_field("smile", TEXT | STORED);
     // builder.add_json_field("descriptors", TEXT | STORED);
     for field in KNOWN_DESCRIPTORS {
-        if field.contains("Num") | field.contains("lipinski") {
+        if field.starts_with("Num") || field.starts_with("lipinski") {
             builder.add_i64_field(field, FAST | STORED);
         } else {
             builder.add_f64_field(field, FAST | STORED);
