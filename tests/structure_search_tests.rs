@@ -15,6 +15,7 @@ fn test_exact_match() {
 
 #[test]
 fn test_exact_match_fp() {
+    // Note these two molecules have the same fingerprint
     let smiles1 = "CCC";
     let smiles2 = "CCCC";
 
@@ -22,4 +23,5 @@ fn test_exact_match_fp() {
     let romol2 = ROMol::from_smile(smiles2).unwrap();
 
     assert_eq!(exact_match_fp(&romol1, &romol1.clone()), true);
+    assert_eq!(exact_match_fp(&romol1, &romol2), true);
 }

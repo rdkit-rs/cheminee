@@ -3,6 +3,7 @@ use rdkit::{MolBlockIter, ROMol, RWMol};
 use serde_json::{Map, Value};
 use std::collections::HashMap;
 use tantivy::schema::Field;
+use crate::analysis::compound_processing::process_cpd;
 
 pub const NAME: &'static str = "index-pubchem-sdf";
 
@@ -52,8 +53,6 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<usize> {
 
     let mut index_writer = index.writer_with_num_threads(1, 50 * 1024 * 1024)?;
 
-    let properties = rdkit::Properties::new();
-
     let mut counter = 0;
     for mol in mol_iter {
         if counter % 100 == 0 {
@@ -73,7 +72,8 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<usize> {
             .map(|kd| (*kd, schema.get_field(kd).unwrap()))
             .collect::<HashMap<&str, Field>>();
 
-        let computed = properties.compute_properties(&mol);
+        let (proc_smile, fp, computed) = process_cpd(&mol.as_smile()[..]).unwrap();
+
         let json: serde_json::Value = serde_json::to_value(&computed)?;
         let descriptions_map: Map<String, Value> = if let serde_json::Value::Object(map) = json {
             map
@@ -81,10 +81,8 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<usize> {
             panic!("not an object")
         };
 
-        let fp = mol.fingerprint();
-
         let mut doc = doc!(
-            smile => mol.as_smile(),
+            smile => proc_smile,
             fingerprint => fp.0.into_vec()
         );
 
