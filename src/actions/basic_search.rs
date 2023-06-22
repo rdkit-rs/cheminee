@@ -34,30 +34,16 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
     let searcher = reader.searcher();
 
     let query_parser = QueryParser::for_index(&index, vec![]);
-    let query = query_parser.parse_query(query)?;
 
-    let top_docs = searcher.search(&query, &TopDocs::with_limit(10))?;
+    let index = open_index(index_path)?;
+    let schema = index.schema();
 
-    let docs = top_docs
-        .into_iter()
-        .map(|(_score, doc_addr)| {
-            let doc = searcher.doc(doc_addr).unwrap();
-            let field_values = doc.field_values();
-            let reconstituted_doc = field_values
-                .iter()
-                .map(|field_value| {
-                    let field_name = schema.get_field_name(field_value.field);
-                    (field_name, field_value.value.clone())
-                })
-                .collect::<HashMap<_, _>>();
+    let reader = index.reader()?;
+    let searcher = reader.searcher();
 
-            (doc_addr, reconstituted_doc)
-        })
-        .collect::<Vec<_>>();
+    let query_parser = QueryParser::for_index(&index, vec![]);
 
-    for doc in docs {
-        println!("{:?}", doc);
-    }
+    let _result = basic_search(&query_parser, &searcher, &schema, query);
 
     Ok(())
 }
