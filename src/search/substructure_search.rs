@@ -4,7 +4,28 @@ use tantivy::collector::TopDocs;
 use tantivy::query::QueryParser;
 use tantivy::Searcher;
 
-const DESCRIPTOR_ALLOW_LIST: [&'static str; 2] = ["meep", "boop"];
+const DESCRIPTOR_ALLOW_LIST: [&'static str; 20] = [
+    "NumAliphaticHeterocycles",
+    "NumAliphaticRings",
+    "NumAmideBonds",
+    "NumAromaticHeterocycles",
+    "NumAromaticRings",
+    "NumAtomStereoCenters",
+    "NumAtoms",
+    "NumBridgeheadAtoms",
+    "NumHBA",
+    "NumHeavyAtoms",
+    "NumHeteroatoms",
+    "NumHeterocycles",
+    "NumRings",
+    "NumRotatableBonds",
+    "NumSaturatedHeterocycles",
+    "NumSaturatedRings",
+    "NumSpiroAtoms",
+    "NumUnspecifiedAtomStereoCenters",
+    "exactmw",
+    "lipinskiHBA"
+];
 
 pub fn substructure_search(searcher: &Searcher, smile: &str) -> eyre::Result<()> {
     let schema = searcher.schema();
@@ -52,24 +73,48 @@ mod tests {
     use std::collections::HashMap;
     use tantivy::schema::{SchemaBuilder, FAST, STORED, TEXT};
     use tantivy::{doc, IndexBuilder};
+    use crate::tantivy::KNOWN_DESCRIPTORS;
 
     #[test]
     fn test_build_query() {
-        let fake_descriptors: HashMap<_, _> =
-            [("beep".to_string(), 1.0), ("boop".to_string(), 10.0)]
+        let descriptors: HashMap<_, _> =
+            [("exactmw".to_string(), 136.2), ("NumAtoms".to_string(), 10.0)]
                 .into_iter()
                 .collect();
-        let query = super::build_query(&fake_descriptors);
-        assert_eq!(query, "boop: [10 TO 10000]");
+        let query = super::build_query(&descriptors);
+        assert_eq!(query, "exactmw: [136.2 TO 10000] AND NumAtoms: [10 TO 10000]");
     }
 
     #[test]
     fn test_fake_index() {
+        let ccc_mol = ROMol::from_smile("CCC").unwrap();
+        let ccc_fingerprint = ccc_mol.fingerprint();
+
         let mut builder = SchemaBuilder::new();
+
         let smile_field = builder.add_text_field("smile", TEXT | STORED);
         let fingerprint_field = builder.add_bytes_field("fingerprint", FAST | STORED);
-        // TODO: 3. change to be a real descriptor that rkdit would emit
-        let beep_field = builder.add_i64_field("beep", FAST | STORED);
+
+        let mut doc = doc!(
+            smile_field => "CCC",
+            fingerprint_field => ccc_fingerprint.0.into_vec()
+        );
+
+        for field in KNOWN_DESCRIPTORS {
+            if field.starts_with("Num") || field.starts_with("lipinski") {
+                let current_field = builder.add_i64_field(field, FAST | STORED);
+
+                let int = 10 as i64;
+                doc.add_field_value(current_field, int);
+            } else {
+                let current_field = builder.add_f64_field(field, FAST | STORED);
+
+                doc.add_field_value(
+                    current_field,
+                    100.0 as f64
+                );
+            }
+        }
 
         let schema = builder.build();
 
@@ -78,14 +123,8 @@ mod tests {
 
         let mut index_writer = index.writer_with_num_threads(1, 50 * 1024 * 1024).unwrap();
 
-        let ccc_mol = ROMol::from_smile("CCC").unwrap();
-        let ccc_fingerprint = ccc_mol.fingerprint();
         index_writer
-            .add_document(doc!(
-                smile_field => "CCC",
-                fingerprint_field => ccc_fingerprint.0.into_vec(),
-                beep_field => 10 as i64
-            ))
+            .add_document(doc)
             .unwrap();
         index_writer.commit().unwrap();
 

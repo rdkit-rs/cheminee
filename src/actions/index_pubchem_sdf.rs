@@ -94,7 +94,7 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<usize> {
                 } else {
                     doc.add_field_value(
                         descriptors_fields.get(field).unwrap().clone(),
-                        val.as_f64().unwrap(),
+                        val.as_f64().unwrap()
                     );
                 };
             }

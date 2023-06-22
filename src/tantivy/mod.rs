@@ -52,7 +52,7 @@ pub const KNOWN_DESCRIPTORS: [&str; 43] = [
     "labuteASA",
     "lipinskiHBA",
     "lipinskiHBD",
-    "tpsa",
+    "tpsa"
 ];
 
 pub fn schema() -> Schema {
