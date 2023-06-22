@@ -27,7 +27,7 @@ const DESCRIPTOR_ALLOW_LIST: [&'static str; 20] = [
     "lipinskiHBA"
 ];
 
-pub fn substructure_search(searcher: &Searcher, smile: &str) -> eyre::Result<()> {
+pub fn substructure_search(searcher: &Searcher, smile: &str, limit: usize) -> eyre::Result<()> {
     let schema = searcher.schema();
     let index = searcher.index();
 
@@ -39,7 +39,7 @@ pub fn substructure_search(searcher: &Searcher, smile: &str) -> eyre::Result<()>
     let query_parser = QueryParser::for_index(index, vec![]);
     let parsed_query = query_parser.parse_query(&query)?;
 
-    let top_docs = searcher.search(&parsed_query, &TopDocs::with_limit(1000))?;
+    let top_docs = searcher.search(&parsed_query, &TopDocs::with_limit(limit))?;
 
     // (DocId, Smile, Fingerprint, DescriptorsHashMap)
     let smile_field = schema.get_field("smile")?;
