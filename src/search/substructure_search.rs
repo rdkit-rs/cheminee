@@ -49,7 +49,8 @@ pub fn substructure_search(searcher: &Searcher, smile: &str, limit: usize) -> ey
         let smile = doc.get_first(smile_field);
         let fingerprint = doc.get_first(fingerprint_field);
 
-        println!("{:?}/{:?}", smile, fingerprint);
+        // println!("{:?}/{:?}", smile, fingerprint);
+        println!("{:?}", smile);
     }
 
     Ok(())
