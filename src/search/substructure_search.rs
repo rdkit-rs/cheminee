@@ -1,9 +1,9 @@
-use rdkit::{Fingerprint, ROMol};
+use rdkit::{Fingerprint, ROMol, substruct_match};
 use std::collections::HashMap;
 use bitvec::prelude::{BitVec, Lsb0};
 use tantivy::collector::TopDocs;
 use tantivy::query::QueryParser;
-use tantivy::Searcher;
+use tantivy::{DocAddress, Searcher};
 use crate::analysis::structure_matching::substructure_match_fp;
 
 const DESCRIPTOR_ALLOW_LIST: [&'static str; 20] = [
@@ -45,16 +45,22 @@ pub fn substructure_search(searcher: &Searcher, query_mol: &ROMol, query_fingerp
     let query_smile = query_mol.as_smile();
     let smile_field = schema.get_field("smile")?;
     let fingerprint_field = schema.get_field("fingerprint")?;
+
+    let mut filtered_results2: Vec<DocAddress> = Vec::new();
+
     for (score, docaddr) in filtered_results1 {
         let doc = searcher.doc(docaddr)?;
-        let smile = doc.get_first(smile_field);
+        let smile = doc.get_first(smile_field).unwrap().as_text().unwrap();
         let fingerprint = doc.get_first(fingerprint_field).unwrap().as_bytes().unwrap();
         let fingerprint_bits = BitVec::<u8, Lsb0>::from_vec(fingerprint.to_vec());
 
         let fp_match = substructure_match_fp(query_fingerprint.0.clone(), fingerprint_bits);
 
-        // println!("{:?}/{:?}", smile, BitVec::<u8, Lsb0>::from_vec(fingerprint.to_vec()));
-        println!("{:?}/{:?}", smile, fp_match);
+        if fp_match {
+            let mol_substruct_match =  substruct_match(&ROMol::from_smile(smile).unwrap(), query_mol);
+            println!("{:?}/{:?}", smile, mol_substruct_match);
+        }
+
     }
 
     Ok(())
