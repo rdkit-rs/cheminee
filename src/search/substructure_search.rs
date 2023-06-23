@@ -1,6 +1,6 @@
 use rdkit::{Fingerprint, ROMol, substruct_match};
 use std::collections::HashMap;
-use bitvec::prelude::{BitVec, Lsb0};
+use bitvec::prelude::{BitSlice, BitVec, Lsb0};
 use tantivy::collector::TopDocs;
 use tantivy::query::QueryParser;
 use tantivy::{DocAddress, Searcher};
@@ -29,7 +29,7 @@ const DESCRIPTOR_ALLOW_LIST: [&'static str; 20] = [
     "lipinskiHBA"
 ];
 
-pub fn substructure_search(searcher: &Searcher, query_mol: &ROMol, query_fingerprint: Fingerprint, query_descriptors: &HashMap<String, f64>, limit: usize) -> eyre::Result<()> {
+pub fn substructure_search(searcher: &Searcher, query_mol: &ROMol, query_fingerprint: &BitSlice<u8, Lsb0>, query_descriptors: &HashMap<String, f64>, limit: usize) -> eyre::Result<()> {
     let schema = searcher.schema();
     let index = searcher.index();
 
@@ -38,6 +38,7 @@ pub fn substructure_search(searcher: &Searcher, query_mol: &ROMol, query_fingerp
     let query_parser = QueryParser::for_index(index, vec![]);
     let parsed_query = query_parser.parse_query(&query)?;
 
+    // Note: in the end, we want a limit for the FINAL number of matches to return
     let filtered_results1 = searcher.search(&parsed_query, &TopDocs::with_limit(limit))?;
 
     // (DocId, Smile, Fingerprint, DescriptorsHashMap)
@@ -51,13 +52,19 @@ pub fn substructure_search(searcher: &Searcher, query_mol: &ROMol, query_fingerp
     for (score, docaddr) in filtered_results1 {
         let doc = searcher.doc(docaddr)?;
         let smile = doc.get_first(smile_field).unwrap().as_text().unwrap();
-        let fingerprint = doc.get_first(fingerprint_field).unwrap().as_bytes().unwrap();
-        let fingerprint_bits = BitVec::<u8, Lsb0>::from_vec(fingerprint.to_vec());
 
-        let fp_match = substructure_match_fp(query_fingerprint.0.clone(), fingerprint_bits);
+
+        // TO-DO: find a zero-copy bitvec container
+        let fingerprint = doc.get_first(fingerprint_field).unwrap().as_bytes().unwrap();
+        // let fingerprint_bits = BitVec::<u8, Lsb0>::from_slice(fingerprint);
+        let fingerprint_bits = BitSlice::<u8, Lsb0>::from_slice(fingerprint);
+
+        let fp_match = substructure_match_fp(query_fingerprint, fingerprint_bits);
 
         if fp_match {
             let mol_substruct_match =  substruct_match(&ROMol::from_smile(smile).unwrap(), query_mol);
+
+            filtered_results2.push(docaddr);
             println!("{:?}/{:?}", smile, mol_substruct_match);
         }
 

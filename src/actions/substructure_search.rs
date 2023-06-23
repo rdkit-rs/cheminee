@@ -61,7 +61,7 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
         usize::try_from(1000).unwrap()
     };
 
-    let _result = substructure_search(&searcher, &canon_taut, fingerprint, &descriptors, limit);
+    let _result = substructure_search(&searcher, &canon_taut, fingerprint.0.as_bitslice(), &descriptors, limit);
 
     Ok(())
 }
