@@ -1,8 +1,10 @@
-use rdkit::ROMol;
+use rdkit::{Fingerprint, ROMol};
 use std::collections::HashMap;
+use bitvec::prelude::{BitVec, Lsb0};
 use tantivy::collector::TopDocs;
 use tantivy::query::QueryParser;
 use tantivy::Searcher;
+use crate::analysis::structure_matching::substructure_match_fp;
 
 const DESCRIPTOR_ALLOW_LIST: [&'static str; 20] = [
     "NumAliphaticHeterocycles",
@@ -27,30 +29,32 @@ const DESCRIPTOR_ALLOW_LIST: [&'static str; 20] = [
     "lipinskiHBA"
 ];
 
-pub fn substructure_search(searcher: &Searcher, smile: &str, limit: usize) -> eyre::Result<()> {
+pub fn substructure_search(searcher: &Searcher, query_mol: &ROMol, query_fingerprint: Fingerprint, query_descriptors: &HashMap<String, f64>, limit: usize) -> eyre::Result<()> {
     let schema = searcher.schema();
     let index = searcher.index();
 
-    let (_canonical_tautomer, _fingerprint, descriptors) =
-        crate::analysis::compound_processing::process_cpd(smile)?;
-
-    let query = build_query(&descriptors);
+    let query = build_query(query_descriptors);
 
     let query_parser = QueryParser::for_index(index, vec![]);
     let parsed_query = query_parser.parse_query(&query)?;
 
-    let top_docs = searcher.search(&parsed_query, &TopDocs::with_limit(limit))?;
+    let filtered_results1 = searcher.search(&parsed_query, &TopDocs::with_limit(limit))?;
 
     // (DocId, Smile, Fingerprint, DescriptorsHashMap)
+
+    let query_smile = query_mol.as_smile();
     let smile_field = schema.get_field("smile")?;
     let fingerprint_field = schema.get_field("fingerprint")?;
-    for (score, docaddr) in top_docs {
+    for (score, docaddr) in filtered_results1 {
         let doc = searcher.doc(docaddr)?;
         let smile = doc.get_first(smile_field);
-        let fingerprint = doc.get_first(fingerprint_field);
+        let fingerprint = doc.get_first(fingerprint_field).unwrap().as_bytes().unwrap();
+        let fingerprint_bits = BitVec::<u8, Lsb0>::from_vec(fingerprint.to_vec());
 
-        // println!("{:?}/{:?}", smile, fingerprint);
-        println!("{:?}", smile);
+        let fp_match = substructure_match_fp(query_fingerprint.0.clone(), fingerprint_bits);
+
+        // println!("{:?}/{:?}", smile, BitVec::<u8, Lsb0>::from_vec(fingerprint.to_vec()));
+        println!("{:?}/{:?}", smile, fp_match);
     }
 
     Ok(())

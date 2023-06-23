@@ -45,6 +45,7 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
         panic!("Need to do something here to either correct the smiles query or return an error message");
     }
 
+    // Need to process cpd ahead of time as we may need to iterate through tautomers later
     let (canon_taut, fingerprint, descriptors) = process_cpd(smiles).unwrap();
 
     // let tautomers = get_tautomers(&canon_taut);
@@ -60,7 +61,7 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
         usize::try_from(1000).unwrap()
     };
 
-    let _result = substructure_search(&searcher, smiles, limit);
+    let _result = substructure_search(&searcher, &canon_taut, fingerprint, &descriptors, limit);
 
     Ok(())
 }

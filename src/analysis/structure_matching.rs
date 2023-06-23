@@ -13,7 +13,7 @@ pub fn exact_match_fp(romol1: &ROMol, romol2: &ROMol) -> bool {
     fp1 == fp2
 }
 
-pub fn substructure_match_fp(substructure_fp: Fingerprint, superstructure_fp: Fingerprint) -> bool {
-    let and_match = superstructure_fp.0 & substructure_fp.0.clone();
-    and_match == substructure_fp.0
+pub fn substructure_match_fp(substructure_fp: BitVec<u8>, superstructure_fp: BitVec<u8>) -> bool {
+    let and_match = superstructure_fp & substructure_fp.clone();
+    and_match == substructure_fp
 }

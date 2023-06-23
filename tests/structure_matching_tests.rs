@@ -33,8 +33,8 @@ fn test_substructure_match_fp() {
     let sub_romol = ROMol::from_smile(substructure_smiles).unwrap();
     let super_romol = ROMol::from_smile(superstructure_smiles).unwrap();
 
-    let sub_fp = sub_romol.fingerprint();
-    let super_fp = super_romol.fingerprint();
+    let sub_fp = sub_romol.fingerprint().0;
+    let super_fp = super_romol.fingerprint().0;
 
     assert_eq!(substructure_match_fp(sub_fp.clone(), super_fp.clone()), true);
     assert_eq!(substructure_match_fp(super_fp, sub_fp), false);
