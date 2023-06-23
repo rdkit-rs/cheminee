@@ -91,6 +91,7 @@ mod tests {
     use std::collections::HashMap;
     use tantivy::schema::{SchemaBuilder, FAST, STORED, TEXT};
     use tantivy::{doc, IndexBuilder};
+    use crate::analysis::compound_processing::process_cpd;
     use crate::tantivy::KNOWN_DESCRIPTORS;
 
     #[test]
@@ -105,8 +106,9 @@ mod tests {
 
     #[test]
     fn test_fake_index() {
-        let ccc_mol = ROMol::from_smile("CCC").unwrap();
-        let ccc_fingerprint = ccc_mol.fingerprint();
+        let ccc_smile = "CCC";
+
+        let (query_mol, query_fingerprint, query_descriptors) = process_cpd(ccc_smile).unwrap();
 
         let mut builder = SchemaBuilder::new();
 
@@ -114,8 +116,8 @@ mod tests {
         let fingerprint_field = builder.add_bytes_field("fingerprint", FAST | STORED);
 
         let mut doc = doc!(
-            smile_field => "CCC",
-            fingerprint_field => ccc_fingerprint.0.into_vec()
+            smile_field => ccc_smile,
+            fingerprint_field => query_fingerprint.0.clone().into_vec()
         );
 
         for field in KNOWN_DESCRIPTORS {
@@ -150,7 +152,7 @@ mod tests {
         let searcher = reader.searcher();
 
         // TODO: 1. change signature to return a list of some kind?
-        super::substructure_search(&searcher, "CCCC").unwrap();
+        super::substructure_search(&searcher, &query_mol, query_fingerprint.0.as_slice(), &query_descriptors, 10).unwrap();
 
         // TODO 2. use `assert_eq` to set expectations
     }
