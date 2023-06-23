@@ -4,6 +4,7 @@ use tantivy::collector::TopDocs;
 use tantivy::query::QueryParser;
 use crate::analysis::compound_processing::*;
 use crate::search::substructure_search::substructure_search;
+use crate::search::validate_structure;
 
 pub const NAME: &'static str = "substructure-search";
 
@@ -37,6 +38,12 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
     let index_path = matches.get_one::<String>("index").unwrap();
     let smiles = matches.get_one::<String>("smiles").unwrap();
     let limit = matches.get_one::<String>("limit");
+
+    // Validate structure
+    let problems = validate_structure(smiles);
+    if problems.len() > 0 {
+        panic!("Need to do something here to either correct the smiles query or return an error message");
+    }
 
     let (canon_taut, fingerprint, descriptors) = process_cpd(smiles).unwrap();
 
