@@ -58,7 +58,9 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
         usize::try_from(1000).unwrap()
     };
 
-    let mut results = substructure_search(&searcher, &canon_taut, fingerprint.0.as_bitslice(), &descriptors, limit)?;
+    let tantivy_result_limit = limit * 10;
+
+    let mut results = substructure_search(&searcher, &canon_taut, fingerprint.0.as_bitslice(), &descriptors, tantivy_result_limit)?;
 
     if results.len() < limit {
         let tautomers = get_tautomers(&canon_taut);
@@ -73,7 +75,7 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
             for idx in &idx_vec[0..max_tauts] {
                 let test_taut = &tautomers[*idx];
                 let (taut_fingerprint, taut_descriptors) = get_cpd_properties(&test_taut)?;
-                let mut taut_results = substructure_search(&searcher, &test_taut, taut_fingerprint.0.as_bitslice(), &taut_descriptors, limit)?;
+                let mut taut_results = substructure_search(&searcher, &test_taut, taut_fingerprint.0.as_bitslice(), &taut_descriptors, tantivy_result_limit)?;
                 results.append(&mut taut_results);
 
                 if results.len() > limit {
@@ -85,7 +87,12 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
 
     }
 
-    println!("{:#?}", results);
+
+    if results.len() > limit {
+        results = results[0..limit].to_vec();
+    }
+
+    println!("{:#?}", &results);
 
     Ok(())
 }
