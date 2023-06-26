@@ -66,25 +66,29 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
         let tautomers = get_tautomers(&canon_taut);
 
         let max_tauts = 10;
+        let mut idx_vec = Vec::new();
+
         if tautomers.len() > max_tauts {
             println!("Whoa! Lots of tautomers!");
 
-            let mut idx_vec: Vec<usize> = (0..tautomers.len()).collect();
+            idx_vec = (0..tautomers.len()).collect();
             idx_vec.shuffle(&mut thread_rng());
+            idx_vec = idx_vec[0..max_tauts].to_vec();
+        } else {
+            idx_vec = (0..tautomers.len()).collect();
+        }
 
-            for idx in &idx_vec[0..max_tauts] {
-                let test_taut = &tautomers[*idx];
-                let (taut_fingerprint, taut_descriptors) = get_cpd_properties(&test_taut)?;
-                let mut taut_results = substructure_search(&searcher, &test_taut, taut_fingerprint.0.as_bitslice(), &taut_descriptors, tantivy_result_limit)?;
-                results.append(&mut taut_results);
+        for idx in idx_vec {
+            let test_taut = &tautomers[idx];
 
-                if results.len() > limit {
-                    break
-                }
+            let (taut_fingerprint, taut_descriptors) = get_cpd_properties(test_taut)?;
+            let mut taut_results = substructure_search(&searcher, test_taut, taut_fingerprint.0.as_bitslice(), &taut_descriptors, tantivy_result_limit)?;
+            results.append(&mut taut_results);
+
+            if results.len() > limit {
+                break
             }
-
-        };
-
+        }
     }
 
 
