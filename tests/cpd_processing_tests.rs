@@ -46,7 +46,7 @@ fn test_get_tautomers() {
 #[test]
 fn test_process_cpd() {
     let smiles = "Oc1c(cccc3)c3nc2ccncc12";
-    let (proc_smiles, fingerprint, descriptors) = process_cpd(smiles).unwrap();
+    let (canon_taut, fingerprint, descriptors) = process_cpd(smiles).unwrap();
 
     // Sorry this is ugly but it's faster than the bitvec! macro
     let expected_fp: BitVec<u8, Lsb0> = bitvec::vec::BitVec::from_slice(&[
@@ -63,7 +63,8 @@ fn test_process_cpd() {
         212, 65, 136, 9, 8, 0, 0, 67, 1, 130,
     ]);
 
-    assert_eq!(proc_smiles, "Oc1c(cccc3)c3nc2ccncc12");
+    println!("{:?}", descriptors);
+    assert_eq!(&(canon_taut.as_smile())[..], "O=c1c2ccccc2[nH]c2ccncc12");
     assert_eq!(fingerprint.0, expected_fp);
     assert_eq!(*descriptors.get("exactmw").unwrap(), 196.063662876);
 }
@@ -73,7 +74,6 @@ fn bad_mol_test() {
     let smiles = "F(C)(C)(C)(C)(C)";
     let romol = ROMol::from_smile(smiles);
     assert!(romol.is_err());
-    // let stdz_mol = mol_stdz(&romol);
 }
 
 #[test]

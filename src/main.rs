@@ -5,7 +5,7 @@ use cheminee::actions;
 #[tokio::main]
 async fn main() -> eyre::Result<()> {
     if std::env::var_os("RUST_LOG").is_none() {
-        std::env::set_var("RUST_LOG", "poem=debug");
+        std::env::set_var("RUST_LOG", "info,poem=debug");
     }
     tracing_subscriber::fmt::init();
 
@@ -14,8 +14,9 @@ async fn main() -> eyre::Result<()> {
         .subcommand(actions::fetch_pubchem::command())
         .subcommand(actions::index_pubchem_sdf::command())
         .subcommand(actions::stream_pubchem_sdf::command())
-        .subcommand(actions::search::command())
-        .subcommand(actions::rest_api_server::command());
+        .subcommand(actions::basic_search::command())
+        .subcommand(actions::rest_api_server::command())
+        .subcommand(actions::substructure_search::command());
 
     let matches = app.get_matches();
     let matches = match matches.subcommand().unwrap() {
@@ -27,10 +28,13 @@ async fn main() -> eyre::Result<()> {
         (actions::stream_pubchem_sdf::NAME, matches) => {
             actions::stream_pubchem_sdf::action(matches)
         }
-        (actions::search::NAME, matches) => actions::search::action(matches),
+        (actions::basic_search::NAME, matches) => actions::basic_search::action(matches),
         (actions::fetch_pubchem::NAME, matches) => actions::fetch_pubchem::action(matches).await,
         (actions::rest_api_server::NAME, matches) => {
             actions::rest_api_server::action(matches).await
+        }
+        (actions::substructure_search::NAME, matches) => {
+            actions::substructure_search::action(matches)
         }
         (unknown, _) => panic!("🤨: {}", unknown),
     };
