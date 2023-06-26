@@ -3,9 +3,6 @@ use crate::analysis::compound_processing::*;
 use crate::search::substructure_search::substructure_search;
 use crate::search::validate_structure;
 
-use rand::thread_rng;
-use rand::seq::SliceRandom;
-
 pub const NAME: &'static str = "substructure-search";
 
 pub fn command() -> Command {
@@ -46,7 +43,7 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
     }
 
     // Need to process cpd ahead of time as we may need to iterate through tautomers later
-    let (canon_taut, fingerprint, descriptors) = process_cpd(smiles).unwrap();
+    let (query_canon_taut, fingerprint, descriptors) = process_cpd(smiles).unwrap();
 
     let index = open_index(index_path)?;
     let reader = index.reader()?;
@@ -60,29 +57,16 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
 
     let tantivy_result_limit = limit * 10;
 
-    let mut results = substructure_search(&searcher, &canon_taut, fingerprint.0.as_bitslice(), &descriptors, tantivy_result_limit)?;
+    let mut results = substructure_search(&searcher, &query_canon_taut, fingerprint.0.as_bitslice(), &descriptors, tantivy_result_limit)?;
 
     if results.len() < limit {
-        let tautomers = get_tautomers(&canon_taut);
+        let tautomers = get_tautomers(&query_canon_taut);
 
         let max_tauts = 10;
-        let mut idx_vec = Vec::new();
 
-        if tautomers.len() > max_tauts {
-            println!("Whoa! Lots of tautomers!");
-
-            idx_vec = (0..tautomers.len()).collect();
-            idx_vec.shuffle(&mut thread_rng());
-            idx_vec = idx_vec[0..max_tauts].to_vec();
-        } else {
-            idx_vec = (0..tautomers.len()).collect();
-        }
-
-        for idx in idx_vec {
-            let test_taut = &tautomers[idx];
-
-            let (taut_fingerprint, taut_descriptors) = get_cpd_properties(test_taut)?;
-            let mut taut_results = substructure_search(&searcher, test_taut, taut_fingerprint.0.as_bitslice(), &taut_descriptors, tantivy_result_limit)?;
+        for test_taut in tautomers.into_iter().take(max_tauts) {
+            let (taut_fingerprint, taut_descriptors) = get_cpd_properties(&test_taut)?;
+            let mut taut_results = substructure_search(&searcher, &test_taut, taut_fingerprint.0.as_bitslice(), &taut_descriptors, tantivy_result_limit)?;
             results.append(&mut taut_results);
 
             if results.len() > limit {
@@ -91,12 +75,7 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
         }
     }
 
-
-    if results.len() > limit {
-        results = results[0..limit].to_vec();
-    }
-
-    println!("{:#?}", &results);
+    println!("{:#?}", results);
 
     Ok(())
 }
