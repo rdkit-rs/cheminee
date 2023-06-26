@@ -16,6 +16,7 @@ log = "0"
 poem =  { version="1", features=["test"] }
 poem-openapi = { version="2", features=["swagger-ui"] }
 poem-openapi-derive = "2"
+rand = "0.8.5"
 rayon = "1"
 rdkit = "0.3.1"
 #rdkit = {path="../rdkit"}

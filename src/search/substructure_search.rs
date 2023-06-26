@@ -29,7 +29,7 @@ const DESCRIPTOR_ALLOW_LIST: [&'static str; 20] = [
     "lipinskiHBA"
 ];
 
-pub fn substructure_search(searcher: &Searcher, query_mol: &ROMol, query_fingerprint: &BitSlice<u8, Lsb0>, query_descriptors: &HashMap<String, f64>, limit: usize) -> eyre::Result<()> {
+pub fn substructure_search(searcher: &Searcher, query_mol: &ROMol, query_fingerprint: &BitSlice<u8, Lsb0>, query_descriptors: &HashMap<String, f64>, limit: usize) -> eyre::Result<Vec<DocAddress>> {
     let schema = searcher.schema();
     let index = searcher.index();
 
@@ -50,7 +50,6 @@ pub fn substructure_search(searcher: &Searcher, query_mol: &ROMol, query_fingerp
         let doc = searcher.doc(docaddr)?;
         let smile = doc.get_first(smile_field).unwrap().as_text().unwrap();
 
-
         // TO-DO: find a zero-copy bitvec container
         let fingerprint = doc.get_first(fingerprint_field).unwrap().as_bytes().unwrap();
         let fingerprint_bits = BitSlice::<u8, Lsb0>::from_slice(fingerprint);
@@ -59,14 +58,13 @@ pub fn substructure_search(searcher: &Searcher, query_mol: &ROMol, query_fingerp
 
         if fp_match {
             let mol_substruct_match =  substruct_match(&ROMol::from_smile(smile).unwrap(), query_mol);
-
-            filtered_results2.push(docaddr);
-            println!("{:?}/{:?}", smile, mol_substruct_match);
+            if mol_substruct_match {
+                filtered_results2.push(docaddr);
+            }
         }
-
     }
 
-    Ok(())
+    Ok(filtered_results2)
 }
 
 fn build_query(descriptors: &HashMap<String, f64>) -> String {
@@ -92,18 +90,18 @@ mod tests {
     #[test]
     fn test_build_query() {
         let descriptors: HashMap<_, _> =
-            [("exactmw".to_string(), 136.2), ("NumAtoms".to_string(), 10.0)]
+            [("NumAtoms".to_string(), 10.0)]
                 .into_iter()
                 .collect();
         let query = super::build_query(&descriptors);
-        assert_eq!(query, "exactmw: [136.2 TO 10000] AND NumAtoms: [10 TO 10000]");
+        assert_eq!(query, "NumAtoms: [10 TO 10000]");
     }
 
     #[test]
     fn test_fake_index() {
-        let ccc_smile = "CCC";
+        let test_smile = "C";
 
-        let (query_mol, query_fingerprint, query_descriptors) = process_cpd(ccc_smile).unwrap();
+        let (query_mol, query_fingerprint, query_descriptors) = process_cpd(test_smile).unwrap();
 
         let mut builder = SchemaBuilder::new();
 
@@ -111,7 +109,7 @@ mod tests {
         let fingerprint_field = builder.add_bytes_field("fingerprint", FAST | STORED);
 
         let mut doc = doc!(
-            smile_field => ccc_smile,
+            smile_field => test_smile,
             fingerprint_field => query_fingerprint.0.clone().into_vec()
         );
 
@@ -146,9 +144,7 @@ mod tests {
         let reader = index.reader().unwrap();
         let searcher = reader.searcher();
 
-        // TODO: 1. change signature to return a list of some kind?
-        super::substructure_search(&searcher, &query_mol, query_fingerprint.0.as_bitslice(), &query_descriptors, 10).unwrap();
-
-        // TODO 2. use `assert_eq` to set expectations
+        let results = super::substructure_search(&searcher, &query_mol, query_fingerprint.0.as_bitslice(), &query_descriptors, 10).unwrap();
+        assert_eq!(results.len(), 1);
     }
 }

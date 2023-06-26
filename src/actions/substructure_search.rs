@@ -3,6 +3,9 @@ use crate::analysis::compound_processing::*;
 use crate::search::substructure_search::substructure_search;
 use crate::search::validate_structure;
 
+use rand::thread_rng;
+use rand::seq::SliceRandom;
+
 pub const NAME: &'static str = "substructure-search";
 
 pub fn command() -> Command {
@@ -45,12 +48,9 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
     // Need to process cpd ahead of time as we may need to iterate through tautomers later
     let (canon_taut, fingerprint, descriptors) = process_cpd(smiles).unwrap();
 
-    // let tautomers = get_tautomers(&canon_taut);
-
     let index = open_index(index_path)?;
     let reader = index.reader()?;
     let searcher = reader.searcher();
-
 
     let limit = if let Some(limit) = limit {
         limit.parse::<usize>()?
@@ -58,7 +58,34 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
         usize::try_from(1000).unwrap()
     };
 
-    let _result = substructure_search(&searcher, &canon_taut, fingerprint.0.as_bitslice(), &descriptors, limit);
+    let mut results = substructure_search(&searcher, &canon_taut, fingerprint.0.as_bitslice(), &descriptors, limit)?;
+
+    if results.len() < limit {
+        let tautomers = get_tautomers(&canon_taut);
+
+        let max_tauts = 10;
+        if tautomers.len() > max_tauts {
+            println!("Whoa! Lots of tautomers!");
+
+            let mut idx_vec: Vec<usize> = (0..tautomers.len()).collect();
+            idx_vec.shuffle(&mut thread_rng());
+
+            for idx in &idx_vec[0..max_tauts] {
+                let test_taut = &tautomers[*idx];
+                let (taut_fingerprint, taut_descriptors) = get_cpd_properties(&test_taut)?;
+                let mut taut_results = substructure_search(&searcher, &test_taut, taut_fingerprint.0.as_bitslice(), &taut_descriptors, limit)?;
+                results.append(&mut taut_results);
+
+                if results.len() > limit {
+                    break
+                }
+            }
+
+        };
+
+    }
+
+    println!("{:#?}", results);
 
     Ok(())
 }

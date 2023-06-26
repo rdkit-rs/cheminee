@@ -29,11 +29,17 @@ pub fn get_tautomers(romol: &ROMol) -> Vec<ROMol> {
     ts
 }
 
+pub fn get_cpd_properties(romol: &ROMol) -> eyre::Result<(Fingerprint, HashMap<String, f64>)> {
+    let properties = Properties::new();
+    let computed = properties.compute_properties(romol);
+    let rdkit_fp = romol.fingerprint();
+
+    Ok((rdkit_fp, computed))
+}
+
 pub fn process_cpd(smi: &str) -> eyre::Result<(ROMol, Fingerprint, HashMap<String, f64>)> {
     let canon_taut = standardize_smiles(smi)?;
-    let properties = Properties::new();
-    let computed = properties.compute_properties(&canon_taut);
-    let rdkit_fp = canon_taut.fingerprint();
+    let (rdkit_fp, computed) = get_cpd_properties(&canon_taut)?;
 
     Ok((canon_taut, rdkit_fp, computed))
 }
