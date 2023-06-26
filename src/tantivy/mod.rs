@@ -2,7 +2,7 @@ use std::path::Path;
 use std::collections::HashMap;
 use tantivy::directory::MmapDirectory;
 use tantivy::schema::*;
-use tantivy::{Index, IndexBuilder, Searcher, TantivyError, DocAddress};
+use tantivy::{Index, IndexBuilder, Searcher, TantivyError};
 use tantivy::collector::TopDocs;
 
 pub use tantivy::doc;
@@ -98,8 +98,12 @@ pub fn open_index(p: impl AsRef<Path>) -> eyre::Result<Index> {
     Ok(index)
 }
 
-// pub fn basic_search(query_parser: &QueryParser, searcher: &Searcher, schema: &Schema, query: &String) -> eyre::Result<Vec<(DocAddress, HashMap<str, Value>)>> {
-pub fn basic_search(query_parser: &QueryParser, searcher: &Searcher, schema: &Schema, query: &String) -> eyre::Result<()> {
+pub fn basic_search(searcher: &Searcher, query: &String) -> eyre::Result<()> {
+
+    let schema = searcher.schema();
+    let index = searcher.index();
+    let query_parser = QueryParser::for_index(index, vec![]);
+
     let query = query_parser.parse_query(query)?;
 
     let top_docs = searcher.search(&query, &TopDocs::with_limit(10))?;

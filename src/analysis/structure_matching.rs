@@ -1,4 +1,4 @@
-use bitvec::prelude::{BitSlice, BitVec};
+use bitvec::prelude::BitSlice;
 use rdkit::*;
 
 pub fn exact_match(romol1: &ROMol, romol2: &ROMol) -> bool {

@@ -1,8 +1,3 @@
-// use super::prelude::*;
-use rdkit::{MolBlockIter, ROMol, RWMol};
-use serde_json::{Map, Value};
-use std::collections::HashMap;
-use tantivy::schema::Field;
 use cheminee::tantivy::*;
 
 #[test]

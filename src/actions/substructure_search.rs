@@ -1,7 +1,4 @@
 pub use super::prelude::*;
-use std::collections::HashMap;
-use tantivy::collector::TopDocs;
-use tantivy::query::QueryParser;
 use crate::analysis::compound_processing::*;
 use crate::search::substructure_search::substructure_search;
 use crate::search::validate_structure;

@@ -1,6 +1,6 @@
-use rdkit::{Fingerprint, ROMol, substruct_match};
+use rdkit::{ROMol, substruct_match};
 use std::collections::HashMap;
-use bitvec::prelude::{BitSlice, BitVec, Lsb0};
+use bitvec::prelude::{BitSlice, Lsb0};
 use tantivy::collector::TopDocs;
 use tantivy::query::QueryParser;
 use tantivy::{DocAddress, Searcher};
@@ -41,22 +41,18 @@ pub fn substructure_search(searcher: &Searcher, query_mol: &ROMol, query_fingerp
     // Note: in the end, we want a limit for the FINAL number of matches to return
     let filtered_results1 = searcher.search(&parsed_query, &TopDocs::with_limit(limit))?;
 
-    // (DocId, Smile, Fingerprint, DescriptorsHashMap)
-
-    let query_smile = query_mol.as_smile();
     let smile_field = schema.get_field("smile")?;
     let fingerprint_field = schema.get_field("fingerprint")?;
 
     let mut filtered_results2: Vec<DocAddress> = Vec::new();
 
-    for (score, docaddr) in filtered_results1 {
+    for (_score, docaddr) in filtered_results1 {
         let doc = searcher.doc(docaddr)?;
         let smile = doc.get_first(smile_field).unwrap().as_text().unwrap();
 
 
         // TO-DO: find a zero-copy bitvec container
         let fingerprint = doc.get_first(fingerprint_field).unwrap().as_bytes().unwrap();
-        // let fingerprint_bits = BitVec::<u8, Lsb0>::from_slice(fingerprint);
         let fingerprint_bits = BitSlice::<u8, Lsb0>::from_slice(fingerprint);
 
         let fp_match = substructure_match_fp(query_fingerprint, fingerprint_bits);
@@ -87,7 +83,6 @@ fn build_query(descriptors: &HashMap<String, f64>) -> String {
 
 #[cfg(test)]
 mod tests {
-    use rdkit::ROMol;
     use std::collections::HashMap;
     use tantivy::schema::{SchemaBuilder, FAST, STORED, TEXT};
     use tantivy::{doc, IndexBuilder};
@@ -152,7 +147,7 @@ mod tests {
         let searcher = reader.searcher();
 
         // TODO: 1. change signature to return a list of some kind?
-        super::substructure_search(&searcher, &query_mol, query_fingerprint.0.as_slice(), &query_descriptors, 10).unwrap();
+        super::substructure_search(&searcher, &query_mol, query_fingerprint.0.as_bitslice(), &query_descriptors, 10).unwrap();
 
         // TODO 2. use `assert_eq` to set expectations
     }

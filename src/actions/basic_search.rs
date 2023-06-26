@@ -1,7 +1,4 @@
 pub use super::prelude::*;
-use std::collections::HashMap;
-use tantivy::collector::TopDocs;
-use tantivy::query::QueryParser;
 
 pub const NAME: &'static str = "search";
 
@@ -28,22 +25,11 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
     let query = matches.get_one::<String>("query").unwrap();
 
     let index = open_index(index_path)?;
-    let schema = index.schema();
 
     let reader = index.reader()?;
     let searcher = reader.searcher();
 
-    let query_parser = QueryParser::for_index(&index, vec![]);
-
-    let index = open_index(index_path)?;
-    let schema = index.schema();
-
-    let reader = index.reader()?;
-    let searcher = reader.searcher();
-
-    let query_parser = QueryParser::for_index(&index, vec![]);
-
-    let _result = basic_search(&query_parser, &searcher, &schema, query);
+    let _result = basic_search(&searcher, query);
 
     Ok(())
 }
