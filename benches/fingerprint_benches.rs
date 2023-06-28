@@ -1,7 +1,7 @@
 #![feature(test)]
 
 use rdkit::*;
-use cheminee::analysis::compound_processing::*;
+use cheminee::search::compound_processing::*;
 
 extern crate test;
 use test::Bencher;

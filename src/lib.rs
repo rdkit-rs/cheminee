@@ -1,5 +1,5 @@
-pub mod actions;
-pub mod analysis;
-pub mod pubchem;
+pub mod command_line;
 pub mod search;
-pub mod tantivy;
+pub mod pubchem;
+pub mod indexing;
+pub mod rest_api;

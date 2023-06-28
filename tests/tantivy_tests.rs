@@ -1,4 +1,4 @@
-use cheminee::tantivy::*;
+use cheminee::indexing::*;
 
 #[test]
 fn range_search_test() {

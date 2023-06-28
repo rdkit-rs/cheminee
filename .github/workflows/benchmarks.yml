@@ -16,7 +16,7 @@ jobs:
       packages: write
     steps:
       - name: Git checkout
-        uses: actions/checkout@v2
+        uses: command_line/checkout@v2
 
       - name: Run sccache-cache
         uses: mozilla/sccache-action@eaed7fb9f8fb32adea8bd40d7f276f312de9beaf
@@ -34,7 +34,7 @@ jobs:
           sudo apt-get install -y build-essential librdkit-dev libssl-dev libboost1.74-dev libboost-serialization1.74-dev pkg-config
 
       - name: Install latest nightly
-        uses: actions-rs/toolchain@v1
+        uses: command_line-rs/toolchain@v1
         with:
           toolchain: nightly
           override: true
