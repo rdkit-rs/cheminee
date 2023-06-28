@@ -1,5 +1,5 @@
 pub use super::prelude::*;
-use crate::analysis::compound_processing::*;
+use crate::search::compound_processing::*;
 use crate::search::substructure_search::substructure_search;
 use crate::search::validate_structure;
 

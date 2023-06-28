@@ -1,5 +1,5 @@
 use bitvec::prelude::*;
-use cheminee::analysis::compound_processing::*;
+use cheminee::search::compound_processing::*;
 use rdkit::*;
 
 #[test]

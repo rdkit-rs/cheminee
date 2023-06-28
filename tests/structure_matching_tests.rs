@@ -1,4 +1,4 @@
-use cheminee::analysis::structure_matching::*;
+use cheminee::search::structure_matching::*;
 use rdkit::*;
 
 #[test]

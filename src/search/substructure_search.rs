@@ -1,10 +1,9 @@
 use rdkit::{ROMol, substruct_match};
 use std::collections::HashMap;
 use bitvec::prelude::{BitSlice, Lsb0};
-use tantivy::collector::TopDocs;
-use tantivy::query::QueryParser;
 use tantivy::{DocAddress, Searcher};
-use crate::analysis::structure_matching::substructure_match_fp;
+use crate::search::structure_matching::substructure_match_fp;
+use crate::search::basic_search::basic_search;
 
 const DESCRIPTOR_ALLOW_LIST: [&'static str; 20] = [
     "NumAliphaticHeterocycles",
@@ -31,15 +30,10 @@ const DESCRIPTOR_ALLOW_LIST: [&'static str; 20] = [
 
 pub fn substructure_search(searcher: &Searcher, query_mol: &ROMol, query_fingerprint: &BitSlice<u8, Lsb0>, query_descriptors: &HashMap<String, f64>, limit: usize) -> eyre::Result<Vec<DocAddress>> {
     let schema = searcher.schema();
-    let index = searcher.index();
-
     let query = build_query(query_descriptors);
 
-    let query_parser = QueryParser::for_index(index, vec![]);
-    let parsed_query = query_parser.parse_query(&query)?;
-
     // Note: in the end, we want a limit for the FINAL number of matches to return
-    let filtered_results1 = searcher.search(&parsed_query, &TopDocs::with_limit(limit))?;
+    let filtered_results1 = basic_search(searcher, &query, limit)?;
 
     let smile_field = schema.get_field("smile")?;
     let fingerprint_field = schema.get_field("fingerprint")?;
@@ -84,8 +78,8 @@ mod tests {
     use std::collections::HashMap;
     use tantivy::schema::{SchemaBuilder, FAST, STORED, TEXT};
     use tantivy::{doc, IndexBuilder};
-    use crate::analysis::compound_processing::process_cpd;
-    use crate::tantivy::KNOWN_DESCRIPTORS;
+    use crate::search::compound_processing::process_cpd;
+    use crate::indexing::KNOWN_DESCRIPTORS;
 
     #[test]
     fn test_build_query() {

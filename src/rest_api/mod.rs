@@ -1,4 +1,4 @@
-use crate::analysis::compound_processing::standardize_smiles;
+use crate::search::compound_processing::standardize_smiles;
 use poem::{handler, listener::TcpListener, Route, Server};
 use poem_openapi::{payload::Json, ApiResponse, Object, OpenApi, OpenApiService};
 use rayon::prelude::*;

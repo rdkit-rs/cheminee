@@ -1,6 +1,7 @@
 use clap::*;
 
-use cheminee::actions;
+use cheminee::command_line;
+use cheminee::rest_api;
 
 #[tokio::main]
 async fn main() -> eyre::Result<()> {
@@ -11,30 +12,30 @@ async fn main() -> eyre::Result<()> {
 
     let app = Command::new("cheminee")
         .subcommand_required(true)
-        .subcommand(actions::fetch_pubchem::command())
-        .subcommand(actions::index_pubchem_sdf::command())
-        .subcommand(actions::stream_pubchem_sdf::command())
-        .subcommand(actions::basic_search::command())
-        .subcommand(actions::rest_api_server::command())
-        .subcommand(actions::substructure_search::command());
+        .subcommand(command_line::fetch_pubchem::command())
+        .subcommand(command_line::index_pubchem_sdf::command())
+        .subcommand(command_line::stream_pubchem_sdf::command())
+        .subcommand(command_line::basic_search::command())
+        .subcommand(rest_api::command())
+        .subcommand(command_line::substructure_search::command());
 
     let matches = app.get_matches();
     let matches = match matches.subcommand().unwrap() {
-        (actions::index_pubchem_sdf::NAME, matches) => {
-            let writes = actions::index_pubchem_sdf::action(matches)?;
+        (command_line::index_pubchem_sdf::NAME, matches) => {
+            let writes = command_line::index_pubchem_sdf::action(matches)?;
             log::info!("wrote: {}", writes);
             Ok(())
         }
-        (actions::stream_pubchem_sdf::NAME, matches) => {
-            actions::stream_pubchem_sdf::action(matches)
+        (command_line::stream_pubchem_sdf::NAME, matches) => {
+            command_line::stream_pubchem_sdf::action(matches)
         }
-        (actions::basic_search::NAME, matches) => actions::basic_search::action(matches),
-        (actions::fetch_pubchem::NAME, matches) => actions::fetch_pubchem::action(matches).await,
-        (actions::rest_api_server::NAME, matches) => {
-            actions::rest_api_server::action(matches).await
+        (command_line::basic_search::NAME, matches) => command_line::basic_search::action(matches),
+        (command_line::fetch_pubchem::NAME, matches) => command_line::fetch_pubchem::action(matches).await,
+        (rest_api::NAME, matches) => {
+            rest_api::action(matches).await
         }
-        (actions::substructure_search::NAME, matches) => {
-            actions::substructure_search::action(matches)
+        (command_line::substructure_search::NAME, matches) => {
+            command_line::substructure_search::action(matches)
         }
         (unknown, _) => panic!("🤨: {}", unknown),
     };
