@@ -1,9 +1,9 @@
 use super::prelude::*;
+use crate::search::compound_processing::process_cpd;
 use rdkit::{MolBlockIter, ROMol, RWMol};
 use serde_json::{Map, Value};
 use std::collections::HashMap;
 use tantivy::schema::Field;
-use crate::search::compound_processing::process_cpd;
 
 pub const NAME: &'static str = "index-pubchem-sdf";
 
@@ -49,7 +49,8 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<usize> {
         Box::new(mol_iter)
     };
 
-    let (schema, index) = create_or_reset_index(index_dir)?;
+    let schema = crate::schema::LIBRARY.get("descriptor_v1").unwrap();
+    let index = create_or_reset_index(index_dir, schema)?;
 
     let mut index_writer = index.writer_with_num_threads(1, 50 * 1024 * 1024)?;
 
@@ -94,7 +95,7 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<usize> {
                 } else {
                     doc.add_field_value(
                         descriptors_fields.get(field).unwrap().clone(),
-                        val.as_f64().unwrap()
+                        val.as_f64().unwrap(),
                     );
                 };
             }

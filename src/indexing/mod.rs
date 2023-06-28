@@ -49,28 +49,10 @@ pub const KNOWN_DESCRIPTORS: [&str; 43] = [
     "labuteASA",
     "lipinskiHBA",
     "lipinskiHBD",
-    "tpsa"
+    "tpsa",
 ];
 
-pub fn schema() -> Schema {
-    let mut builder = SchemaBuilder::new();
-    builder.add_text_field("smile", TEXT | STORED);
-    // builder.add_json_field("descriptors", TEXT | STORED);
-    for field in KNOWN_DESCRIPTORS {
-        if field.starts_with("Num") || field.starts_with("lipinski") {
-            builder.add_i64_field(field, FAST | STORED);
-        } else {
-            builder.add_f64_field(field, FAST | STORED);
-        }
-    }
-    builder.add_bytes_field("fingerprint", FAST | STORED);
-
-    builder.build()
-}
-
-pub fn create_or_reset_index(p: impl AsRef<Path>) -> eyre::Result<(Schema, Index)> {
-    let schema = schema();
-
+pub fn create_or_reset_index(p: impl AsRef<Path>, schema: &Schema) -> eyre::Result<Index> {
     let builder = IndexBuilder::new().schema(schema.clone());
 
     let index = match builder.create_in_dir(&p) {
@@ -84,7 +66,7 @@ pub fn create_or_reset_index(p: impl AsRef<Path>) -> eyre::Result<(Schema, Index
         Err(e) => return Err(eyre::eyre!("unhandled error: {:?}", e)),
     };
 
-    Ok((schema, index))
+    Ok(index)
 }
 
 pub fn open_index(p: impl AsRef<Path>) -> eyre::Result<Index> {
@@ -128,4 +110,3 @@ pub fn open_index(p: impl AsRef<Path>) -> eyre::Result<Index> {
 //
 //     Ok(())
 // }
-

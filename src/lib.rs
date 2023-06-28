@@ -1,5 +1,6 @@
 pub mod command_line;
-pub mod search;
-pub mod pubchem;
 pub mod indexing;
+pub mod pubchem;
 pub mod rest_api;
+pub mod schema;
+pub mod search;
