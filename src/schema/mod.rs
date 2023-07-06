@@ -20,7 +20,6 @@ fn descriptor_v1_schema() -> Schema {
     builder.add_bytes_field("fingerprint", FAST | STORED);
 
     builder.add_json_field("extra_data", STORED);
-    builder.add_i64_field("extra_data_org_ids", FAST);
 
     builder.build()
 }
