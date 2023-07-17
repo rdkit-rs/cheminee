@@ -1,3 +1,4 @@
+use std::collections::HashSet;
 use tantivy::schema::{JsonObjectOptions, STORED, TEXT};
 
 #[test]
@@ -38,4 +39,16 @@ fn test_json_data() {
     assert_eq!(results.len(), 1);
     let retrieved_doc = searcher.doc(results[0].1).unwrap();
     assert_eq!(retrieved_doc, doc_2);
+
+    let query = query_parser.parse_query("extra_data.org_ids:3").unwrap();
+    let results = searcher.search(&query, &collector).unwrap();
+    assert_eq!(results.len(), 2);
+
+    let set = results
+        .into_iter()
+        .map(|(_, doc_id)| serde_json::to_string(&searcher.doc(doc_id).unwrap()).unwrap())
+        .collect::<HashSet<_>>();
+
+    assert!(set.contains(&serde_json::to_string(&doc_1).unwrap()));
+    assert!(set.contains(&serde_json::to_string(&doc_2).unwrap()));
 }
