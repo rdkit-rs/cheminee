@@ -5,7 +5,7 @@ use tantivy::{Index, IndexBuilder, TantivyError};
 
 pub use tantivy::doc;
 
-pub mod manager;
+pub mod index_manager;
 
 // pub const KNOWN_DESCRIPTORS: [&str; 2] = ["CrippenClogP", "CrippenMR"];
 pub const KNOWN_DESCRIPTORS: [&str; 43] = [

@@ -1,4 +1,4 @@
-use cheminee::indexing::manager::IndexManager;
+use cheminee::indexing::index_manager::IndexManager;
 
 #[test]
 fn test_index_management() -> eyre::Result<()> {

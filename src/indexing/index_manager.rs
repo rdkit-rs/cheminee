@@ -26,9 +26,13 @@ impl IndexManager {
         })
     }
 
-    pub fn create(&self, name: &str, schema: Schema, force: bool) -> eyre::Result<tantivy::Index> {
+    pub fn create(&self, name: &str, schema: &Schema, force: bool) -> eyre::Result<tantivy::Index> {
         let builder = IndexBuilder::new().schema(schema.clone());
         let index_path = self.storage_dir.join(name);
+
+        if !index_path.exists() {
+            std::fs::create_dir_all(&index_path)?;
+        }
 
         let index = match builder.create_in_dir(&index_path) {
             Ok(index) => index,
@@ -62,10 +66,28 @@ impl IndexManager {
             Ok(None)
         }
     }
+
+    // Open?
+
+    // Delete?
+
+    // List?
 }
 
-#[cfg(tests)]
+#[cfg(test)]
 mod tests {
+    use crate::indexing::index_manager::IndexManager;
+
     #[test]
-    fn index_manager() {}
+    fn index_manager() -> eyre::Result<()> {
+        let index_manager = IndexManager::new("/tmp/xavier", true)?;
+
+        let schema = crate::schema::LIBRARY.get("descriptor_v1").unwrap();
+
+        let _index = index_manager.create("structure-search", schema, true)?;
+
+        assert!(index_manager.exists("structure-search").unwrap().is_some());
+
+        Ok(())
+    }
 }
