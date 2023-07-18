@@ -92,10 +92,15 @@ impl IndexManager {
         Ok(())
     }
 
-    pub fn list(&self) -> eyre::Result<Vec<PathBuf>> {
+    pub fn list(&self) -> eyre::Result<Vec<String>> {
+        let storage_dir = format!("{}{}", self.storage_dir.display(), "/");
+
         let paths = std::fs::read_dir(&self.storage_dir)?;
 
-        let paths: Vec<PathBuf> = paths.into_iter().map(|p| p.unwrap().path()).collect();
+        let paths: Vec<_> = paths
+            .into_iter()
+            .map(|p| format!("{}", p.unwrap().path().display()).replace(&storage_dir, ""))
+            .collect();
 
         Ok(paths)
     }
@@ -118,7 +123,7 @@ mod tests {
         assert!(index_manager.exists("structure-search").unwrap().is_some());
 
         let index_paths = index_manager.list()?;
-        assert_eq!(index_paths.len(), 1);
+        assert_eq!(index_paths[0], "structure-search");
 
         let _ = index_manager.delete("structure-search");
         assert!(index_manager.exists("structure-search").unwrap().is_none());
