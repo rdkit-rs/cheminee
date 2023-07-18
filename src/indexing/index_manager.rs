@@ -67,11 +67,38 @@ impl IndexManager {
         }
     }
 
-    // Open?
+    pub fn open(&self, name: &str) -> eyre::Result<tantivy::Index> {
+        let index_path = self.storage_dir.join(name);
 
-    // Delete?
+        if !index_path.exists() {
+            return Err(eyre::eyre!("{:?} path does not exist", index_path));
+        }
 
-    // List?
+        let mmap_directory = MmapDirectory::open(index_path)?;
+        let index = tantivy::Index::open(mmap_directory)?;
+
+        Ok(index)
+    }
+
+    pub fn delete(&self, name: &str) -> eyre::Result<()> {
+        let index_path = self.storage_dir.join(name);
+
+        if !index_path.exists() {
+            return Err(eyre::eyre!("{:?} path does not exist", index_path));
+        }
+
+        std::fs::remove_dir_all(&index_path)?;
+
+        Ok(())
+    }
+
+    pub fn list(&self) -> eyre::Result<Vec<PathBuf>> {
+        let paths = std::fs::read_dir(&self.storage_dir)?;
+
+        let paths: Vec<PathBuf> = paths.into_iter().map(|p| p.unwrap().path()).collect();
+
+        Ok(paths)
+    }
 }
 
 #[cfg(test)]
@@ -86,7 +113,15 @@ mod tests {
 
         let _index = index_manager.create("structure-search", schema, true)?;
 
+        let _index = index_manager.open("structure-search")?;
+
         assert!(index_manager.exists("structure-search").unwrap().is_some());
+
+        let index_paths = index_manager.list()?;
+        assert_eq!(index_paths.len(), 1);
+
+        let _ = index_manager.delete("structure-search");
+        assert!(index_manager.exists("structure-search").unwrap().is_none());
 
         Ok(())
     }
