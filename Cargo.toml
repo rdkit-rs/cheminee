@@ -30,3 +30,4 @@ tracing-subscriber = "0.3"
 
 [dev-dependencies]
 env_logger = "0"
+tempdir = "0"
