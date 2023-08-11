@@ -34,7 +34,9 @@ spec:
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           {{- if $.Values.ingress.enabled }}
-          args:
+          command:
+            - cheminee
+            - rest-api-server
           {{- if gt (len $.Values.ingress.tls) 0 }}
             - --server-url=https://{{ ($.Values.ingress.hosts | first).host }}
           {{- else }}

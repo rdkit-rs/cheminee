@@ -1,3 +1,8 @@
+0.1.3
+---
+
+ * Chart command needs all arguments
+
 0.1.2
 ---
 
