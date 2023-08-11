@@ -18,3 +18,8 @@ Logging in to ghcr.io:
 
     # generate a personal access token in your github settings
     echo ghp_123 | docker login ghcr.io -u your_gh_username --password-stdin
+
+Cutting A New Release
+---
+
+    cargo release patch --tag-prefix='' --execute
