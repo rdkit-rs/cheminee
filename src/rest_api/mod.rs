@@ -1,19 +1,21 @@
 use crate::search::compound_processing::standardize_smiles;
 use clap::Arg;
 use poem::{handler, listener::TcpListener, Route, Server};
-use poem_openapi::{payload::Json, ApiResponse, Object, OpenApi, OpenApiService};
+use poem_openapi::{payload::Json, ApiResponse, ContactObject, Object, OpenApi, OpenApiService};
 use rayon::prelude::*;
 
 pub const NAME: &'static str = "rest-api-server";
 pub fn command() -> clap::Command {
     clap::Command::new("rest-api-server").arg(
-        Arg::new("bind").num_args(1).required(false).short('b').long("bind").default_value("0.0.0.0:3000")
+        Arg::new("bind").num_args(1).required(false).short('b').long("bind").default_value("localhost:3000")
+    ).arg(
+        Arg::new("server-url").num_args(1).required(false).short('u').long("server-url").default_value("http://localhost:3000")
     ).subcommand(
         clap::Command::new("spec").arg(
             clap::Arg::new("output")
                 .help("Write openapi JSON specific to destination. Useful for building Cheminee client implementations.")
                 .required(true)
-                .short('d')
+                .short('o')
                 .long("output")
                 .num_args(1),
         ),
@@ -68,27 +70,26 @@ impl Api {
     }
 }
 
-fn api_service(hostname: &str, port: i16) -> OpenApiService<Api, ()> {
-    OpenApiService::new(Api, "Cheminée", "1.0").server(format!("http://{hostname}:{port}/api"))
+fn api_service(server_url: &str) -> OpenApiService<Api, ()> {
+    OpenApiService::new(Api, "Cheminée", "1.0")
+        .server(format!("{}/api/v1", server_url))
+        .description("Cheminée: The Chemical Structure Search Engine")
+        .contact(ContactObject::new().url("https://github.com/rdkit-rs/cheminee"))
 }
 
-async fn run_api_service(bind: &str) -> eyre::Result<()> {
-    let mut bind_parts = bind.split(":");
-    let hostname = bind_parts.next().unwrap();
-    let port = bind_parts.next().unwrap().parse().unwrap();
-
-    let api_service = api_service(hostname, port);
+async fn run_api_service(bind: &str, server_url: &str) -> eyre::Result<()> {
+    let api_service = api_service(server_url);
     let ui = api_service.swagger_ui();
 
     let spec = api_service.spec();
-    Server::new(TcpListener::bind(format!("{hostname}:{port}")))
+    Server::new(TcpListener::bind(bind))
         .run(
             Route::new()
                 .at(
-                    "/openapi.json",
+                    "/api/v1/openapi.json",
                     poem::endpoint::make_sync(move |_| spec.clone()),
                 )
-                .nest("/api", api_service)
+                .nest("/api/v1", api_service)
                 .nest("/", ui),
         )
         .await?;
@@ -96,12 +97,12 @@ async fn run_api_service(bind: &str) -> eyre::Result<()> {
     Ok(())
 }
 
-fn output_spec(dest: &String) -> eyre::Result<()> {
-    let api_service = api_service("127.0.0.1", 3000);
+fn output_spec(server_url: &String, output: &String) -> eyre::Result<()> {
+    let api_service = api_service(server_url);
 
     let spec = api_service.spec();
 
-    std::fs::write(dest, spec)?;
+    std::fs::write(output, spec)?;
 
     Ok(())
 }
@@ -110,9 +111,14 @@ pub async fn action(matches: &clap::ArgMatches) -> eyre::Result<()> {
     match matches.subcommand() {
         None => {
             let bind: &String = matches.get_one("bind").unwrap();
-            run_api_service(bind).await?
+            let server_url: &String = matches.get_one("server-url").unwrap();
+            run_api_service(bind, server_url).await?
         }
-        Some(("spec", args)) => output_spec(args.get_one::<String>("output").unwrap())?,
+        Some(("spec", args)) => {
+            let server_url = matches.get_one("server-url").unwrap();
+            let output = args.get_one::<String>("output").unwrap();
+            output_spec(server_url, output)?
+        }
         Some((other, _args)) => Err(eyre::eyre!("can't handle {}", other))?,
     }
 

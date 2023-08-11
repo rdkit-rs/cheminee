@@ -33,17 +33,25 @@ spec:
             {{- toYaml .Values.securityContext | nindent 12 }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
+          {{- if $.Values.ingress.enabled }}
+          args:
+          {{- if gt (len $.Values.ingress.tls) 0 }}
+            - --server-url=https://{{ ($.Values.ingress.hosts | first).host }}
+          {{- else }}
+            - --server-url=http://{{ ($.Values.ingress.hosts | first).host }}
+          {{- end }}
+          {{- end }}
           ports:
             - name: http
               containerPort: {{ .Values.service.port }}
               protocol: TCP
           livenessProbe:
             httpGet:
-              path: /openapi.json # TODO: We need a low-cost health endpoint
+              path: /api/v1/openapi.json # TODO: We need a low-cost health endpoint
               port: http
           readinessProbe:
             httpGet:
-              path: /openapi.json
+              path: /api/v1/openapi.json
               port: http
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
