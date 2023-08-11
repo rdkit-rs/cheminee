@@ -37,10 +37,11 @@ spec:
           command:
             - cheminee
             - rest-api-server
+            - "--bind=0.0.0.0:{{ $.Values.service.port }}"
           {{- if gt (len $.Values.ingress.tls) 0 }}
-            - --server-url=https://{{ ($.Values.ingress.hosts | first).host }}
+            - "--server-url=https://{{ ($.Values.ingress.hosts | first).host }}"
           {{- else }}
-            - --server-url=http://{{ ($.Values.ingress.hosts | first).host }}
+            - "--server-url=http://{{ ($.Values.ingress.hosts | first).host }}"
           {{- end }}
           {{- end }}
           ports:

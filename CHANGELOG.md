@@ -1,3 +1,8 @@
+0.1.4
+---
+
+ * Specify wide-open bind in command list
+
 0.1.3
 ---
 
