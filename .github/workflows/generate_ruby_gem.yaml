@@ -1,5 +1,6 @@
 on:
-  push: {} # TODO: change to be on tag
+  push:
+    tags: ["*"]
 
 jobs:
   generate_ruby_gem:
@@ -49,3 +50,4 @@ jobs:
         with:
           commit_message: "Automated Commit"
           repository: cheminee-ruby
+          tagging_message: ${{  github.ref_name }}
