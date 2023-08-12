@@ -36,6 +36,8 @@ jobs:
 
       - run: cd cheminee-ruby; ls -alh
 
+      - run: ls -alh
+
       - name: Generate Client Library w/ the OpenAPITools Generator
         uses: openapi-generators/openapitools-generator-action@v1.5.0
         with:
