@@ -43,3 +43,8 @@ jobs:
           command-args: "--additional-properties='gemVersion=2.0.1' --output=cheminee-ruby"
 
       - run: ls -alh .; ls -alh cheminee-ruby; cd cheminee-ruby; git status
+
+      - uses: stefanzweifel/git-auto-commit-action@v4
+        with:
+          commit_message: "Automated Commit"
+          repository: cheminee-ruby
