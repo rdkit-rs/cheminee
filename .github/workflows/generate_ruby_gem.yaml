@@ -34,7 +34,7 @@ jobs:
         run: cargo install --path cheminee/
 
       - name: Write Out Spec
-        run: cheminee rest-api-server spec -o cheminee-ruby/openapi.json
+        run: cheminee rest-api-server spec -o openapi.json
 
       - uses: bluwy/substitute-string-action@v2.0.1
         id: ref_name
@@ -47,7 +47,7 @@ jobs:
         with:
           generator: ruby
           config-file: cheminee-ruby/openapi-generator-config.json
-          openapi-file: cheminee-ruby/openapi.json
+          openapi-file: openapi.json
           command-args: "--additional-properties='gemVersion=${{  steps.ref_name.outputs.result }}' --output=cheminee-ruby"
 
       - run: echo "Gemfile.lock" >> cheminee-ruby/.gitignore
@@ -62,6 +62,7 @@ jobs:
         uses: ruby/setup-ruby@v1
         with:
           working-directory: cheminee-ruby
+          ruby-version: 3.2.2
 
       - name: Release
         working-directory: cheminee-ruby
@@ -73,11 +74,11 @@ jobs:
           git status
           rake release:rubygem_push
 
-      - name: Release Gem
-        if: contains(github.ref, 'refs/tags/v')
-        uses: cadwallion/publish-rubygems-action@master
-        env:
-          WORKDIR: cheminee-ruby
-          GITHUB_TOKEN: ${{ secrets.SCIENTIST_SERVICE_CHEMINEE_RUBY_GITHUB_TOKEN }}
-          RUBYGEMS_API_KEY: ${{ secrets.RUBYGEMS_API_KEY }}
-          RELEASE_COMMAND: rake release
+#      - name: Release Gem
+#        if: contains(github.ref, 'refs/tags/v')
+#        uses: cadwallion/publish-rubygems-action@master
+#        env:
+#          WORKDIR: cheminee-ruby
+#          GITHUB_TOKEN: ${{ secrets.SCIENTIST_SERVICE_CHEMINEE_RUBY_GITHUB_TOKEN }}
+#          RUBYGEMS_API_KEY: ${{ secrets.RUBYGEMS_API_KEY }}
+#          RELEASE_COMMAND: rake release
