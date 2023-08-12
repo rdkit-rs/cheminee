@@ -58,6 +58,21 @@ jobs:
           repository: cheminee-ruby
           tagging_message: ${{  steps.ref_name.outputs.result }}
 
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          working-directory: cheminee-ruby
+
+      - name: Release
+        working-directory: cheminee-ruby
+        env:
+          RUBYGEMS_API_KEY: ${{ secrets.RUBYGEMS_API_KEY }}
+        run: |
+          bundle install
+          rake build
+          git status
+          rake release:rubygem_push
+
       - name: Release Gem
         if: contains(github.ref, 'refs/tags/v')
         uses: cadwallion/publish-rubygems-action@master
