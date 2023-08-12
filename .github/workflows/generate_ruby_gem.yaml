@@ -46,8 +46,14 @@ jobs:
 
       - run: ls -alh .; ls -alh cheminee-ruby; cd cheminee-ruby; git status
 
+      - uses: bluwy/substitute-string-action@v1
+        id: ref_name
+        with:
+          _input-text: ${{  github.ref_name }}
+          v: ""
+
       - uses: stefanzweifel/git-auto-commit-action@v4
         with:
           commit_message: "Automated Commit"
           repository: cheminee-ruby
-          tagging_message: ${{  github.ref_name }}
+          tagging_message: ${{  steps.ref_name.outputs.result }}
