@@ -60,6 +60,7 @@ jobs:
       - name: Release Gem
         if: contains(github.ref, 'refs/tags/v')
         uses: cadwallion/publish-rubygems-action@master
+        working-directory: cheminee-ruby
         env:
           GITHUB_TOKEN: ${{ secrets.SCIENTIST_SERVICE_CHEMINEE_RUBY_GITHUB_TOKEN }}
           RUBYGEMS_API_KEY: ${{ secrets.RUBYGEMS_API_KEY }}
