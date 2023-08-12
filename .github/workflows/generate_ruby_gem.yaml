@@ -30,7 +30,7 @@ jobs:
           components: rustfmt, clippy
 
       - name: Install Cheminee
-        run: cargo install
+        run: cargo install --path .
 
       - name: Write Out Spec
         run: cheminee rest-api-server spec -o /tmp/openapi.json
