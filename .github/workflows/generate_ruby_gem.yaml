@@ -1,0 +1,89 @@
+on:
+  push:
+    tags: ["*"]
+
+jobs:
+  generate_ruby_gem:
+    runs-on: buildjet-16vcpu-ubuntu-2204
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          path: cheminee
+
+      - uses: actions/checkout@v3
+        with:
+          repository: assaydepot/cheminee-ruby.git
+          path: cheminee-ruby
+          ref: main
+          token: ${{ secrets.SCIENTIST_SERVICE_CHEMINEE_RUBY_GITHUB_TOKEN }}
+
+      - name: Install rdkit
+        run: |
+          sudo bash -c "echo 'deb [trusted=yes] https://rdkit-rs-debian.s3.amazonaws.com jammy main' > /etc/apt/sources.list.d/rdkit-rs.list"
+          sudo apt-get update
+          sudo apt-get install -y build-essential librdkit-dev libssl-dev libboost1.74-dev libboost-serialization1.74-dev pkg-config
+
+      - name: Install latest stable
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+          components: rustfmt, clippy
+
+      - name: Install Cheminee
+        run: cargo install --path cheminee/
+
+      - name: Write Out Spec
+        run: cheminee rest-api-server spec -o openapi.json
+
+      - uses: bluwy/substitute-string-action@v2.0.1
+        id: ref_name
+        with:
+          _input-text: ${{  github.ref_name }}
+          v: ""
+
+      - name: Generate Client Library w/ the OpenAPITools Generator
+        uses: openapi-generators/openapitools-generator-action@v1.5.0
+        with:
+          generator: ruby
+          config-file: cheminee-ruby/openapi-generator-config.json
+          openapi-file: openapi.json
+          command-args: "--additional-properties='gemVersion=${{  steps.ref_name.outputs.result }}' --output=cheminee-ruby"
+
+      - run: echo "Gemfile.lock" >> cheminee-ruby/.gitignore
+
+      - uses: stefanzweifel/git-auto-commit-action@v4
+        with:
+          commit_message: "Automated Commit"
+          repository: cheminee-ruby
+          tagging_message: ${{  steps.ref_name.outputs.result }}
+
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          working-directory: cheminee-ruby
+          ruby-version: 3.2.2
+
+      - name: Release
+        working-directory: cheminee-ruby
+        env:
+          GEM_HOST_API_KEY: ${{ secrets.RUBYGEMS_API_KEY }}
+        run: |
+          mkdir -p $HOME/.gem
+          touch $HOME/.gem/credentials
+          chmod 0600 $HOME/.gem/credentials
+          printf -- "---\n:rubygems_api_key: ${GEM_HOST_API_KEY}\n" > $HOME/.gem/credentials
+          
+          bundle install
+          rake build
+          git status
+          rake release:rubygem_push
+
+#      - name: Release Gem
+#        if: contains(github.ref, 'refs/tags/v')
+#        uses: cadwallion/publish-rubygems-action@master
+#        env:
+#          WORKDIR: cheminee-ruby
+#          GITHUB_TOKEN: ${{ secrets.SCIENTIST_SERVICE_CHEMINEE_RUBY_GITHUB_TOKEN }}
+#          RUBYGEMS_API_KEY: ${{ secrets.RUBYGEMS_API_KEY }}
+#          RELEASE_COMMAND: rake release
