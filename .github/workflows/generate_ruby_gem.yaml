@@ -15,15 +15,6 @@ jobs:
           path: cheminee-ruby
           ref: main
 
-      - name: Run sccache-cache
-        uses: mozilla/sccache-action@eaed7fb9f8fb32adea8bd40d7f276f312de9beaf
-        with:
-          version: "v0.4.0-pre.10"
-
-      - name: Run sccache stat for check
-        shell: bash
-        run: ${SCCACHE_PATH} --show-stats
-
       - name: Install rdkit
         run: |
           sudo bash -c "echo 'deb [trusted=yes] https://rdkit-rs-debian.s3.amazonaws.com jammy main' > /etc/apt/sources.list.d/rdkit-rs.list"
@@ -38,7 +29,7 @@ jobs:
           components: rustfmt, clippy
 
       - name: Install Cheminee
-        run: cargo install --path .
+        run: cargo install --path cheminee/
 
       - name: Write Out Spec
         run: cheminee rest-api-server spec -o /tmp/openapi.json
