@@ -34,7 +34,7 @@ jobs:
       - name: Write Out Spec
         run: cheminee rest-api-server spec -o cheminee-ruby/openapi.json
 
-      - run: cd cheminee-ruby
+      - run: cd cheminee-ruby; ls -alh
 
       - name: Generate Client Library w/ the OpenAPITools Generator
         uses: openapi-generators/openapitools-generator-action@v1.5.0
