@@ -32,12 +32,12 @@ jobs:
         run: cargo install --path cheminee/
 
       - name: Write Out Spec
-        run: cheminee rest-api-server spec -o /tmp/openapi.json
+        run: cheminee rest-api-server spec -o cheminee-ruby/openapi.json
 
       - name: Generate Client Library w/ the OpenAPITools Generator
         uses: openapi-generators/openapitools-generator-action@v1.5.0
         with:
           generator: ruby
           config-file: cheminee-ruby/openapi-generator-config.json
-          openapi-file: /tmp/openapi.json
+          openapi-file: cheminee-ruby/openapi.json
           command-args: "--additional-properties='gemVersion=2.0.1'"
