@@ -14,6 +14,7 @@ jobs:
           repository: assaydepot/cheminee-ruby.git
           path: cheminee-ruby
           ref: main
+          token: ${{ secrets.SCIENTIST_SERVICE_CHEMINEE_RUBY_GITHUB_TOKEN }}
 
       - name: Install rdkit
         run: |
