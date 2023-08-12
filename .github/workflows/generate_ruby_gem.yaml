@@ -35,10 +35,15 @@ jobs:
       - name: Write Out Spec
         run: cheminee rest-api-server spec -o /tmp/openapi.json
 
+      - uses: actions/checkout@v3
+        with:
+          repository: https://github.com/assaydepot/cheminee-ruby.git
+          path: cheminee-ruby
+
       - name: Generate Client Library w/ the OpenAPITools Generator
         uses: openapi-generators/openapitools-generator-action@v1.5.0
         with:
           generator: ruby
-          config-file: openapi-generator-config.json
+          config-file: cheminee-ruby/openapi-generator-config.json
           openapi-file: /tmp/openapi.json
           command-args: "--additional-properties='gemVersion=2.0.1'"
