@@ -6,6 +6,14 @@ jobs:
     runs-on: buildjet-16vcpu-ubuntu-2204
     steps:
       - uses: actions/checkout@v2
+        with:
+          path: cheminee
+
+      - uses: actions/checkout@v3
+        with:
+          repository: assaydepot/cheminee-ruby.git
+          path: cheminee-ruby
+          ref: main
 
       - name: Run sccache-cache
         uses: mozilla/sccache-action@eaed7fb9f8fb32adea8bd40d7f276f312de9beaf
@@ -34,12 +42,6 @@ jobs:
 
       - name: Write Out Spec
         run: cheminee rest-api-server spec -o /tmp/openapi.json
-
-      - uses: actions/checkout@v3
-        with:
-          repository: assaydepot/cheminee-ruby.git
-          path: cheminee-ruby
-          ref: main
 
       - name: Generate Client Library w/ the OpenAPITools Generator
         uses: openapi-generators/openapitools-generator-action@v1.5.0
