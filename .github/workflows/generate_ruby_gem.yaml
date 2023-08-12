@@ -34,3 +34,11 @@ jobs:
 
       - name: Write Out Spec
         run: cheminee rest-api-server spec -o /tmp/openapi.json
+
+      - name: Generate Client Library w/ the OpenAPITools Generator
+        uses: openapi-generators/openapitools-generator-action@v1.5.0
+        with:
+          generator: ruby
+          config-file: openapi-generator-config.json
+          openapi-file: /tmp/openapi.json
+          command-args: "--additional-properties='gemVersion=2.0.1'"
