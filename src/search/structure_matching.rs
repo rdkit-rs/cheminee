@@ -13,7 +13,10 @@ pub fn exact_match_fp(romol1: &ROMol, romol2: &ROMol) -> bool {
     fp1 == fp2
 }
 
-pub fn substructure_match_fp(substructure_fp: &BitSlice<u8>, superstructure_fp: &BitSlice<u8>) -> bool {
+pub fn substructure_match_fp(
+    substructure_fp: &BitSlice<u8>,
+    superstructure_fp: &BitSlice<u8>,
+) -> bool {
     let and_match = substructure_fp.to_bitvec() & superstructure_fp;
-        and_match == substructure_fp
+    and_match == substructure_fp
 }

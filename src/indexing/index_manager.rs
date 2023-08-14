@@ -1,6 +1,6 @@
 use std::path::PathBuf;
-use tantivy::directory::MmapDirectory;
-use tantivy::{schema::Schema, IndexBuilder, TantivyError};
+
+use tantivy::{directory::MmapDirectory, schema::Schema, IndexBuilder, TantivyError};
 
 pub struct IndexManager {
     storage_dir: PathBuf,

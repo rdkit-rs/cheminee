@@ -1,9 +1,11 @@
-use super::prelude::*;
-use crate::search::compound_processing::process_cpd;
+use std::collections::HashMap;
+
 use rdkit::{MolBlockIter, ROMol, RWMol};
 use serde_json::{Map, Value};
-use std::collections::HashMap;
 use tantivy::schema::Field;
+
+use super::prelude::*;
+use crate::search::compound_processing::process_cpd;
 
 pub const NAME: &'static str = "index-pubchem-sdf";
 

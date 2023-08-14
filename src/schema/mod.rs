@@ -1,6 +1,8 @@
-use crate::indexing::KNOWN_DESCRIPTORS;
 use std::collections::HashMap;
+
 use tantivy::schema::{JsonObjectOptions, Schema, SchemaBuilder, FAST, STORED, TEXT};
+
+use crate::indexing::KNOWN_DESCRIPTORS;
 
 lazy_static::lazy_static! {
     pub static ref LIBRARY: HashMap<&'static str, tantivy::schema::Schema> = [("descriptor_v1", descriptor_v1_schema())].into_iter().collect();

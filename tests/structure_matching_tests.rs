@@ -36,7 +36,7 @@ fn test_substructure_match_fp() {
     let sub_fp = sub_romol.fingerprint().0;
     let sub_fp = sub_fp.as_bitslice();
     let super_fp = super_romol.fingerprint().0;
-    let super_fp= super_fp.as_bitslice();
+    let super_fp = super_fp.as_bitslice();
 
     assert_eq!(substructure_match_fp(sub_fp, super_fp), true);
     assert_eq!(substructure_match_fp(super_fp, sub_fp), false);

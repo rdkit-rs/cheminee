@@ -1,9 +1,7 @@
 use std::path::Path;
-use tantivy::directory::MmapDirectory;
-use tantivy::schema::*;
-use tantivy::{Index, IndexBuilder, TantivyError};
 
 pub use tantivy::doc;
+use tantivy::{directory::MmapDirectory, schema::*, Index, IndexBuilder, TantivyError};
 
 pub mod index_manager;
 

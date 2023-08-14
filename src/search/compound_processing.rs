@@ -1,5 +1,6 @@
-use rdkit::*;
 use std::collections::HashMap;
+
+use rdkit::*;
 
 pub fn standardize_mol(romol: &ROMol) -> eyre::Result<ROMol> {
     let rwmol = romol.as_rw_mol(false, 1);
