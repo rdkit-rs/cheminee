@@ -7,7 +7,7 @@ pub mod substructure_search;
 pub mod superstructure_search;
 // mod compound_processing;
 
-pub fn validate_structure(smiles: &String) -> Vec<String> {
+pub fn validate_structure(smiles: &str) -> Vec<String> {
     let mut parser_params = SmilesParserParams::default();
     parser_params.sanitize(false);
     let mol = ROMol::from_smile_with_params(smiles, &parser_params).unwrap();

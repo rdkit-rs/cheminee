@@ -7,7 +7,7 @@ use tantivy::schema::Field;
 use super::prelude::*;
 use crate::search::compound_processing::process_cpd;
 
-pub const NAME: &'static str = "index-pubchem-sdf";
+pub const NAME: &str = "index-pubchem-sdf";
 
 pub fn command() -> Command {
     Command::new(NAME)
@@ -90,13 +90,13 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<usize> {
         );
 
         for field in KNOWN_DESCRIPTORS {
-            if let Some(&serde_json::Value::Number(ref val)) = descriptions_map.get(field) {
+            if let Some(serde_json::Value::Number(val)) = descriptions_map.get(field) {
                 if field.starts_with("Num") || field.starts_with("lipinski") {
                     let int = val.as_f64().unwrap() as i64;
-                    doc.add_field_value(descriptors_fields.get(field).unwrap().clone(), int);
+                    doc.add_field_value(*descriptors_fields.get(field).unwrap(), int);
                 } else {
                     doc.add_field_value(
-                        descriptors_fields.get(field).unwrap().clone(),
+                        *descriptors_fields.get(field).unwrap(),
                         val.as_f64().unwrap(),
                     );
                 };

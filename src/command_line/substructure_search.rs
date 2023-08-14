@@ -3,7 +3,7 @@ use crate::search::{
     compound_processing::*, substructure_search::substructure_search, validate_structure,
 };
 
-pub const NAME: &'static str = "substructure-search";
+pub const NAME: &str = "substructure-search";
 
 pub fn command() -> Command {
     Command::new(NAME)
@@ -37,7 +37,7 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
 
     // Validate structure
     let problems = validate_structure(smiles);
-    if problems.len() > 0 {
+    if !problems.is_empty() {
         panic!("Need to do something here to either correct the smiles query or return an error message");
     }
 

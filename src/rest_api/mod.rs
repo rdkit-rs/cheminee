@@ -6,7 +6,7 @@ use clap::Arg;
 use models::Smile;
 use poem_openapi::{payload::Json, OpenApi};
 
-pub const NAME: &'static str = "rest-api-server";
+pub const NAME: &str = "rest-api-server";
 pub fn command() -> clap::Command {
     clap::Command::new("rest-api-server").arg(
         Arg::new("bind").num_args(1).required(false).short('b').long("bind").default_value("localhost:3000")
@@ -39,7 +39,7 @@ impl Api {
     }
 }
 
-fn output_spec(server_url: &String, output: &String) -> eyre::Result<()> {
+fn output_spec(server_url: &str, output: &str) -> eyre::Result<()> {
     let api_service = server::api_service(server_url);
 
     let spec = api_service.spec();
@@ -57,8 +57,8 @@ pub async fn action(matches: &clap::ArgMatches) -> eyre::Result<()> {
             server::run_api_service(bind, server_url).await?
         }
         Some(("spec", args)) => {
-            let server_url = matches.get_one("server-url").unwrap();
-            let output = args.get_one::<String>("output").unwrap();
+            let server_url: &String = matches.get_one("server-url").unwrap();
+            let output: &String = args.get_one::<String>("output").unwrap();
             output_spec(server_url, output)?
         }
         Some((other, _args)) => Err(eyre::eyre!("can't handle {}", other))?,

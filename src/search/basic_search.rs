@@ -1,5 +1,6 @@
 use tantivy::{collector::TopDocs, query::QueryParser, DocAddress, Score, Searcher};
 
+#[allow(clippy::ptr_arg)]
 pub fn basic_search(
     searcher: &Searcher,
     query: &String,

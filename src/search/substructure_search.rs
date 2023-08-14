@@ -6,7 +6,7 @@ use tantivy::{DocAddress, Searcher};
 
 use crate::search::{basic_search::basic_search, structure_matching::substructure_match_fp};
 
-const DESCRIPTOR_ALLOW_LIST: [&'static str; 20] = [
+const DESCRIPTOR_ALLOW_LIST: [&str; 20] = [
     "NumAliphaticHeterocycles",
     "NumAliphaticRings",
     "NumAmideBonds",
