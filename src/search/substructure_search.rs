@@ -124,18 +124,18 @@ mod tests {
             if field.starts_with("Num") || field.starts_with("lipinski") {
                 let current_field = builder.add_i64_field(field, FAST | STORED);
 
-                let int = 10 as i64;
+                let int = 10_i64;
                 doc.add_field_value(current_field, int);
             } else {
                 let current_field = builder.add_f64_field(field, FAST | STORED);
 
-                doc.add_field_value(current_field, 100.0 as f64);
+                doc.add_field_value(current_field, 100.0_f64);
             }
         }
 
         let schema = builder.build();
 
-        let builder = IndexBuilder::new().schema(schema.clone());
+        let builder = IndexBuilder::new().schema(schema);
         let index = builder.create_in_ram().unwrap();
 
         let mut index_writer = index.writer_with_num_threads(1, 50 * 1024 * 1024).unwrap();
