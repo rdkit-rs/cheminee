@@ -5,9 +5,10 @@ use crate::{rest_api::models::Smile, search::compound_processing::standardize_sm
 
 #[cfg(test)]
 mod tests {
-    use poem::Route;
+    use poem::{handler, Route};
 
     use super::*;
+    use crate::rest_api::Api;
 
     #[handler]
     async fn index() -> StandardizeResponse {
