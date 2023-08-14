@@ -1,45 +1,48 @@
-use poem::handler;
 use poem_openapi::{payload::Json, ApiResponse, Object};
 use rayon::prelude::*;
 
-use crate::{
-    rest_api::{models::Smile, Api},
-    search::compound_processing::standardize_smiles,
-};
+use crate::{rest_api::models::Smile, search::compound_processing::standardize_smiles};
 
-#[handler]
-async fn index() -> StandardizeResponse {
-    let smiles = Json(vec![Smile {
-        smile: "CC=CO".to_string(), // smile:  "CCC=O".to_string(), -answer
-    }]);
-    Api.standardize(smiles).await
-}
+#[cfg(test)]
+mod tests {
+    use poem::Route;
 
-#[tokio::test]
-async fn test_poem() {
-    let app = Route::new().at("/", poem::post(index));
-    let client = poem::test::TestClient::new(app);
+    use super::*;
 
-    let resp = client.post("/").send().await;
+    #[handler]
+    async fn index() -> StandardizeResponse {
+        let smiles = Json(vec![Smile {
+            smile: "CC=CO".to_string(), // smile:  "CCC=O".to_string(), -answer
+        }]);
+        Api.standardize(smiles).await
+    }
 
-    resp.assert_status_is_ok();
+    #[tokio::test]
+    async fn test_poem() {
+        let app = Route::new().at("/", poem::post(index));
+        let client = poem::test::TestClient::new(app);
 
-    let json = resp.json().await;
-    let json_value = json.value();
-    // json_value.object().get("smile").assert_string("CCC=O");
-    json_value
-        .array()
-        .iter()
-        .map(|value| value.object().get("smile"))
-        .collect::<Vec<_>>()
-        .first()
-        .expect("first_value")
-        .assert_string("CCC=O");
-    println!("{:?}", json_value);
-    // TestJsonValue(Array([Object({"smile": String("CCC=O")})]))
-    //     resp.assert_text("CCC=O").await;
+        let resp = client.post("/").send().await;
 
-    println!("lllla")
+        resp.assert_status_is_ok();
+
+        let json = resp.json().await;
+        let json_value = json.value();
+        // json_value.object().get("smile").assert_string("CCC=O");
+        json_value
+            .array()
+            .iter()
+            .map(|value| value.object().get("smile"))
+            .collect::<Vec<_>>()
+            .first()
+            .expect("first_value")
+            .assert_string("CCC=O");
+        println!("{:?}", json_value);
+        // TestJsonValue(Array([Object({"smile": String("CCC=O")})]))
+        //     resp.assert_text("CCC=O").await;
+
+        println!("lllla")
+    }
 }
 
 #[derive(ApiResponse)]
