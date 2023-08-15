@@ -1,9 +1,9 @@
 pub use super::prelude::*;
-use crate::search::compound_processing::*;
-use crate::search::substructure_search::substructure_search;
-use crate::search::validate_structure;
+use crate::search::{
+    compound_processing::*, substructure_search::substructure_search, validate_structure,
+};
 
-pub const NAME: &'static str = "substructure-search";
+pub const NAME: &str = "substructure-search";
 
 pub fn command() -> Command {
     Command::new(NAME)
@@ -12,23 +12,22 @@ pub fn command() -> Command {
                 .required(true)
                 .long("index")
                 .short('i')
-                .num_args(1)
+                .num_args(1),
         )
         .arg(
             Arg::new("smiles")
                 .required(true)
                 .long("smiles")
                 .short('s')
-                .num_args(1)
+                .num_args(1),
         )
         .arg(
             Arg::new("limit")
                 .required(false)
                 .long("limit")
                 .short('l')
-                .num_args(1)
+                .num_args(1),
         )
-
 }
 
 pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
@@ -38,7 +37,7 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
 
     // Validate structure
     let problems = validate_structure(smiles);
-    if problems.len() > 0 {
+    if !problems.is_empty() {
         panic!("Need to do something here to either correct the smiles query or return an error message");
     }
 
@@ -57,7 +56,13 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
 
     let tantivy_result_limit = limit * 10;
 
-    let mut results = substructure_search(&searcher, &query_canon_taut, fingerprint.0.as_bitslice(), &descriptors, tantivy_result_limit)?;
+    let mut results = substructure_search(
+        &searcher,
+        &query_canon_taut,
+        fingerprint.0.as_bitslice(),
+        &descriptors,
+        tantivy_result_limit,
+    )?;
 
     if results.len() < limit {
         let tautomers = get_tautomers(&query_canon_taut);
@@ -66,11 +71,17 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
 
         for test_taut in tautomers.into_iter().take(max_tauts) {
             let (taut_fingerprint, taut_descriptors) = get_cpd_properties(&test_taut)?;
-            let mut taut_results = substructure_search(&searcher, &test_taut, taut_fingerprint.0.as_bitslice(), &taut_descriptors, tantivy_result_limit)?;
+            let mut taut_results = substructure_search(
+                &searcher,
+                &test_taut,
+                taut_fingerprint.0.as_bitslice(),
+                &taut_descriptors,
+                tantivy_result_limit,
+            )?;
             results.append(&mut taut_results);
 
             if results.len() > limit {
-                break
+                break;
             }
         }
     }

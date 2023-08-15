@@ -1,7 +1,8 @@
-use super::prelude::*;
 use rdkit::MolBlockIter;
 
-pub const NAME: &'static str = "stream-pubchem-sdf";
+use super::prelude::*;
+
+pub const NAME: &str = "stream-pubchem-sdf";
 
 pub fn command() -> Command {
     Command::new(NAME)

@@ -1,6 +1,6 @@
 use std::path::PathBuf;
-use tantivy::directory::MmapDirectory;
-use tantivy::{schema::Schema, IndexBuilder, TantivyError};
+
+use tantivy::{directory::MmapDirectory, schema::Schema, IndexBuilder, TantivyError};
 
 pub struct IndexManager {
     storage_dir: PathBuf,
@@ -21,9 +21,7 @@ impl IndexManager {
             std::fs::create_dir_all(&storage_dir)?;
         }
 
-        Ok(Self {
-            storage_dir: storage_dir.into(),
-        })
+        Ok(Self { storage_dir })
     }
 
     pub fn create(&self, name: &str, schema: &Schema, force: bool) -> eyre::Result<tantivy::Index> {

@@ -1,7 +1,7 @@
 pub use super::prelude::*;
 use crate::search::basic_search::basic_search;
 
-pub const NAME: &'static str = "search";
+pub const NAME: &str = "search";
 
 pub fn command() -> Command {
     Command::new(NAME)
@@ -20,12 +20,12 @@ pub fn command() -> Command {
                 .num_args(1),
         )
         .arg(
-        Arg::new("limit")
-            .required(false)
-            .long("limit")
-            .short('l')
-            .num_args(1)
-    )
+            Arg::new("limit")
+                .required(false)
+                .long("limit")
+                .short('l')
+                .num_args(1),
+        )
 }
 
 pub fn action(matches: &ArgMatches) -> eyre::Result<()> {

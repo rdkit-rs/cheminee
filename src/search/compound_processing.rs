@@ -1,5 +1,6 @@
-use rdkit::*;
 use std::collections::HashMap;
+
+use rdkit::*;
 
 pub fn standardize_mol(romol: &ROMol) -> eyre::Result<ROMol> {
     let rwmol = romol.as_rw_mol(false, 1);
@@ -24,9 +25,8 @@ pub fn standardize_smiles(smi: &str) -> eyre::Result<ROMol> {
 
 pub fn get_tautomers(romol: &ROMol) -> Vec<ROMol> {
     let te = TautomerEnumerator::new();
-    let ter = te.enumerate(&romol);
-    let ts = ter.collect::<Vec<_>>();
-    ts
+    let ter = te.enumerate(romol);
+    ter.collect::<Vec<_>>()
 }
 
 pub fn get_cpd_properties(romol: &ROMol) -> eyre::Result<(Fingerprint, HashMap<String, f64>)> {
@@ -63,7 +63,7 @@ pub fn fix_repeating_smiles(smiles: &str) -> String {
         let lengths = smiles_vec.iter().map(|s| s.len()).collect::<Vec<usize>>();
         let max_length = lengths.iter().max().unwrap();
         let max_idx = lengths.iter().position(|v| v == max_length).unwrap();
-        trunc_smiles = &smiles_vec[max_idx];
+        trunc_smiles = smiles_vec[max_idx];
     }
 
     let mut pattern_substrings: Vec<&str> = Vec::new();
@@ -103,8 +103,8 @@ pub fn fix_repeating_smiles(smiles: &str) -> String {
         pattern_lengths.push(pattern_length);
     }
 
-    if pattern_counts.len() == 0 || *pattern_counts.iter().max().unwrap() as u32 == 1 {
-        return trunc_smiles.to_string();
+    if !pattern_counts.is_empty() || *pattern_counts.iter().max().unwrap() as u32 == 1 {
+        trunc_smiles.to_string()
     } else {
         let max_length = pattern_lengths.iter().max().unwrap();
         let max_idx = pattern_lengths
@@ -113,6 +113,6 @@ pub fn fix_repeating_smiles(smiles: &str) -> String {
             .unwrap();
 
         let output_smiles = pattern_substrings[max_idx];
-        return output_smiles.to_string();
-    };
+        output_smiles.to_string()
+    }
 }

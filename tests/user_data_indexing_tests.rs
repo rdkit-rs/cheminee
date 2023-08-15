@@ -1,4 +1,5 @@
 use std::collections::HashSet;
+
 use tantivy::schema::{JsonObjectOptions, STORED, TEXT};
 
 #[test]

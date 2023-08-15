@@ -1,4 +1,5 @@
 use std::path::Path;
+
 use tokio::io::AsyncWriteExt;
 
 pub async fn down_all_current_sdf(p: impl AsRef<Path>) -> eyre::Result<()> {
@@ -23,7 +24,7 @@ pub async fn down_all_current_sdf(p: impl AsRef<Path>) -> eyre::Result<()> {
         .map(|m| {
             m.strip_prefix("<a href=\"")
                 .unwrap()
-                .strip_suffix("\"")
+                .strip_suffix('"')
                 .unwrap()
         })
         .collect::<Vec<_>>();
@@ -44,7 +45,7 @@ pub async fn down_all_current_sdf(p: impl AsRef<Path>) -> eyre::Result<()> {
         }
 
         while let Ok(Some(chunk)) = response.chunk().await {
-            let res = output_file.write(&chunk.to_vec()).await.unwrap();
+            let res = output_file.write(&chunk).await.unwrap();
             if res == 0 {
                 panic!("hmm")
             }

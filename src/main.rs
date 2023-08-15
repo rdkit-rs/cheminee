@@ -1,7 +1,5 @@
+use cheminee::{command_line, rest_api};
 use clap::*;
-
-use cheminee::command_line;
-use cheminee::rest_api;
 
 #[tokio::main]
 async fn main() -> eyre::Result<()> {
@@ -30,10 +28,10 @@ async fn main() -> eyre::Result<()> {
             command_line::stream_pubchem_sdf::action(matches)
         }
         (command_line::basic_search::NAME, matches) => command_line::basic_search::action(matches),
-        (command_line::fetch_pubchem::NAME, matches) => command_line::fetch_pubchem::action(matches).await,
-        (rest_api::NAME, matches) => {
-            rest_api::action(matches).await
+        (command_line::fetch_pubchem::NAME, matches) => {
+            command_line::fetch_pubchem::action(matches).await
         }
+        (rest_api::NAME, matches) => rest_api::action(matches).await,
         (command_line::substructure_search::NAME, matches) => {
             command_line::substructure_search::action(matches)
         }

@@ -5,6 +5,7 @@ pub mod stream_pubchem_sdf;
 pub mod substructure_search;
 
 pub mod prelude {
-    pub use crate::indexing::*;
     pub use clap::{Arg, ArgMatches, Command};
+
+    pub use crate::indexing::*;
 }
