@@ -43,4 +43,4 @@ jobs:
         run: RUST_WRAPPER=$SCCACHE_PATH cargo fmt --check
 
       - name: Clippy Check
-        run: RUST_WRAPPER=$SCCACHE_PATH cargo fmt --check
+        run: RUST_WRAPPER=$SCCACHE_PATH cargo clippy
