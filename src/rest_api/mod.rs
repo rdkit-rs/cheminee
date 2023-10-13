@@ -9,7 +9,10 @@ use tokio::sync::Mutex;
 
 use crate::{
     indexing::index_manager::IndexManager,
-    rest_api::api::index_management::{IndexMeta, ListIndexResponseErr},
+    rest_api::api::{
+        index_management::{IndexMeta, ListIndexResponseErr},
+        search::substructure_search::SubstructureSearchHit,
+    },
 };
 
 pub const NAME: &str = "rest-api-server";
@@ -70,10 +73,25 @@ impl Api {
         api::index_management::ListIndexesResponse::Ok(Json(index_metas))
     }
 
-    #[oai(path = "/v1/indexes/:index", method = "get")]
+    // #[oai(path = "/v1/indexes/:index", method = "get")]
+    // #[allow(unused_variables)]
+    // async fn v1_get_index(&self, index: Path<String>) -> api::index_management::GetIndexesResponse {
+    //     unimplemented!()
+    // }
+
+    // v1/indexes/inventory_items_v1/search/substructure?q=1234
+    #[oai(path = "/v1/indexes/search/substructure", method = "get")]
     #[allow(unused_variables)]
-    async fn v1_get_index(&self, index: Path<String>) -> api::index_management::GetIndexesResponse {
-        unimplemented!()
+    async fn v1_index_search_substructure(
+        &self,
+    ) -> api::search::substructure_search::GetSubstructureSearchResponse {
+        api::search::substructure_search::GetSubstructureSearchResponse::Ok(Json(vec![
+            SubstructureSearchHit {
+                extra_data: serde_json::json!({"hi": "mom"}),
+                smiles: ":)".to_string(),
+                score: 100.00,
+            },
+        ]))
     }
 }
 
@@ -97,7 +115,7 @@ pub async fn action(matches: &clap::ArgMatches) -> eyre::Result<()> {
                 matches.get_one("index-storage-directory").unwrap();
             let index_storage_directory_create_if_missing: bool =
                 matches.get_flag("index-storage-directory-create-if-missing");
-            panic!("create if missing: {}", index_storage_directory);
+
             server::run_api_service(
                 bind,
                 server_url,
