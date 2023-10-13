@@ -15,7 +15,7 @@ mod tests {
         let smiles = Json(vec![Smile {
             smile: "CC=CO".to_string(), // smile:  "CCC=O".to_string(), -answer
         }]);
-        Api.standardize(smiles).await
+        Api.v1_standardize(smiles).await
     }
 
     #[tokio::test]
