@@ -32,7 +32,7 @@ impl IndexManager {
         name: &str,
         schema: &Schema,
         force: bool,
-        sort_by: &str,
+        sort_by: Option<&str>,
     ) -> eyre::Result<tantivy::Index> {
         let builder = Self::build_builder(schema, sort_by)?;
 
@@ -49,7 +49,7 @@ impl IndexManager {
                     std::fs::remove_dir_all(&index_path)?;
                     std::fs::create_dir(&index_path)?;
 
-                    let builder = Self::build_builder(schema, "")?;
+                    let builder = Self::build_builder(schema, None)?;
                     builder.create_in_dir(&index_path)?
                 } else {
                     return Err(eyre::eyre!(
@@ -63,9 +63,12 @@ impl IndexManager {
         Ok(index)
     }
 
-    pub fn build_builder(schema: &Schema, sort_by: &str) -> eyre::Result<tantivy::IndexBuilder> {
+    pub fn build_builder(
+        schema: &Schema,
+        sort_by: Option<&str>,
+    ) -> eyre::Result<tantivy::IndexBuilder> {
         let mut builder = IndexBuilder::new().schema(schema.clone());
-        if sort_by != "" {
+        if let Some(sort_by) = sort_by {
             let settings = IndexSettings {
                 sort_by_field: Some(IndexSortByField {
                     field: sort_by.to_string(),
@@ -141,7 +144,7 @@ mod tests {
 
         let schema = crate::schema::LIBRARY.get("descriptor_v1").unwrap();
 
-        let _index = index_manager.create("structure-search", schema, true, "exactmw")?;
+        let _index = index_manager.create("structure-search", schema, true, Some("exactmw"))?;
 
         let _index = index_manager.open("structure-search")?;
 
