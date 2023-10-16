@@ -14,8 +14,8 @@ use crate::{
     rest_api::{
         api::{
             v1_get_index, v1_index_search_substructure, v1_list_indexes, v1_list_schemas,
-            v1_standardize, GetIndexesResponse, GetSubstructureSearchResponse, ListIndexesResponse,
-            ListSchemasResponse, StandardizeResponse,
+            v1_post_index, v1_standardize, GetIndexesResponse, GetSubstructureSearchResponse,
+            ListIndexesResponse, ListSchemasResponse, PostIndexResponse, StandardizeResponse,
         },
         models::Smile,
     },
@@ -93,6 +93,19 @@ impl Api {
         let index_manager = self.index_manager.lock().await;
 
         v1_get_index(&index_manager, index.to_string())
+    }
+
+    // v1/indexes/inventory_items_v1?schema=v1_descriptors
+    #[oai(path = "/v1/indexes/:index", method = "post")]
+    #[allow(unused_variables)]
+    pub async fn v1_post_index(
+        &self,
+        index: Path<String>,
+        schema: Query<String>,
+    ) -> PostIndexResponse {
+        let index_manager = self.index_manager.lock().await;
+
+        v1_post_index(&index_manager, index.to_string(), schema.0)
     }
 
     // v1/indexes/inventory_items_v1/search/substructure?q=1234
