@@ -26,8 +26,7 @@ serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1" }
 tantivy = "0.20.2"
 tokio = { version = "1", features = ["full"] }
-tracing-subscriber = "0.3"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 
 [dev-dependencies]
-env_logger = "0"
 tempdir = "0"

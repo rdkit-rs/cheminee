@@ -6,16 +6,21 @@ use crate::{rest_api::models::Smile, search::compound_processing::standardize_sm
 #[cfg(test)]
 mod tests {
     use poem::{handler, Route};
+    use tokio::sync::Mutex;
 
     use super::*;
-    use crate::rest_api::Api;
+    use crate::{indexing::index_manager::IndexManager, rest_api::openapi_server::Api};
 
     #[handler]
     async fn index() -> StandardizeResponse {
         let smiles = Json(vec![Smile {
             smile: "CC=CO".to_string(), // smile:  "CCC=O".to_string(), -answer
         }]);
-        Api.v1_standardize(smiles).await
+        Api {
+            index_manager: Mutex::new(IndexManager::new("/tmp/blah", false).unwrap()),
+        }
+        .v1_standardize(smiles)
+        .await
     }
 
     #[tokio::test]
@@ -39,10 +44,6 @@ mod tests {
             .expect("first_value")
             .assert_string("CCC=O");
         println!("{:?}", json_value);
-        // TestJsonValue(Array([Object({"smile": String("CCC=O")})]))
-        //     resp.assert_text("CCC=O").await;
-
-        println!("lllla")
     }
 }
 
@@ -60,7 +61,7 @@ pub struct StandardizedSmile {
     pub error: Option<String>,
 }
 
-pub async fn standardize(mol: Json<Vec<Smile>>) -> StandardizeResponse {
+pub async fn v1_standardize(mol: Json<Vec<Smile>>) -> StandardizeResponse {
     let standardized_smiles = mol
         .0
         .into_par_iter()
