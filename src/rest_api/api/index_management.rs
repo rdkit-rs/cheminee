@@ -52,7 +52,7 @@ pub async fn list_schemas() -> ListSchemasResponse {
         .iter()
         .map(|(name, schema)| Schema {
             name: name.to_string(),
-            schema: serde_json::to_value(&schema).unwrap(),
+            schema: serde_json::to_value(schema).unwrap(),
         })
         .collect();
 

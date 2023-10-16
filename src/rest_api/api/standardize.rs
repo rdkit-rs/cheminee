@@ -9,7 +9,7 @@ mod tests {
     use tokio::sync::Mutex;
 
     use super::*;
-    use crate::{indexing::index_manager::IndexManager, rest_api::Api};
+    use crate::{indexing::index_manager::IndexManager, rest_api::openapi_server::Api};
 
     #[handler]
     async fn index() -> StandardizeResponse {
