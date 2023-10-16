@@ -266,7 +266,6 @@ version = "0.1.4"
 dependencies = [
  "bitvec",
  "clap",
- "env_logger",
  "eyre",
  "lazy_static",
  "log",

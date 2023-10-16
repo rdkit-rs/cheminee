@@ -3,10 +3,19 @@ use clap::*;
 
 #[tokio::main]
 async fn main() -> eyre::Result<()> {
-    if std::env::var_os("RUST_LOG").is_none() {
-        std::env::set_var("RUST_LOG", "info,poem=debug");
+    if let Some(rust_debug) = std::env::var_os("RUST_DEBUG") {
+        tracing_subscriber::fmt()
+            .with_env_filter(
+                rust_debug
+                    .to_str()
+                    .ok_or(eyre::eyre!("could not convert RUST_DEBUG to str"))?,
+            )
+            .init();
+    } else {
+        tracing_subscriber::fmt()
+            .with_env_filter("poem=info,tokio-runtime-worker=debug")
+            .init();
     }
-    tracing_subscriber::fmt::init();
 
     let app = Command::new("cheminee")
         .subcommand_required(true)

@@ -29,7 +29,7 @@ fn test_standardize_smiles() {
 
 #[test]
 fn test_standardize_bad_smiles() {
-    env_logger::init();
+    tracing_subscriber::fmt().with_env_filter("trace").init();
 
     let smiles = "smiles";
     assert!(standardize_smiles(smiles).is_err());
