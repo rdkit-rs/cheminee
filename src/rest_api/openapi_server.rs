@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use poem::{listener::TcpListener, Route, Server};
+use poem::{listener::TcpListener, EndpointExt, Route, Server};
 use poem_openapi::{
     param::{Path, Query},
     payload::Json,
@@ -21,8 +21,11 @@ use crate::{
     },
 };
 
+const API_PREFIX: &str = "/api";
+
 pub fn api_service(
     server_url: &str,
+    api_prefix: &str,
     indexes_root: PathBuf,
     create_storage_dir_if_missing: bool,
 ) -> eyre::Result<OpenApiService<Api, ()>> {
@@ -33,7 +36,7 @@ pub fn api_service(
         )?),
     };
     let openapi_service = OpenApiService::new(api, "Cheminée", "1.0")
-        .server(server_url)
+        .server(format!("{}{}", server_url, api_prefix))
         .description("Cheminée: The Chemical Structure Search Engine")
         .contact(ContactObject::new().url("https://github.com/rdkit-rs/cheminee"));
     Ok(openapi_service)
@@ -45,10 +48,19 @@ pub async fn run_api_service(
     index_path: PathBuf,
     create_storage_dir_if_missing: bool,
 ) -> eyre::Result<()> {
-    let api_service = api_service(server_url, index_path, create_storage_dir_if_missing)?;
+    let api_prefix = "/api";
+    let api_service = api_service(
+        server_url,
+        api_prefix,
+        index_path,
+        create_storage_dir_if_missing,
+    )?;
     let ui = api_service.swagger_ui();
 
     let spec = api_service.spec();
+
+    let logging_middleware = poem::middleware::Tracing::default();
+
     Server::new(TcpListener::bind(bind))
         .run(
             Route::new()
@@ -56,8 +68,9 @@ pub async fn run_api_service(
                     "/api/v1/openapi.json",
                     poem::endpoint::make_sync(move |_| spec.clone()),
                 )
-                .nest("/api", api_service)
-                .nest("/", ui),
+                .nest(API_PREFIX, api_service)
+                .nest("/", ui)
+                .with(logging_middleware),
         )
         .await?;
 
@@ -101,8 +114,24 @@ impl Api {
     pub async fn v1_index_search_substructure(
         &self,
         index: Path<String>,
-        q: Query<Option<String>>,
+        q: Query<String>,
     ) -> GetSubstructureSearchResponse {
-        v1_index_search_substructure(index.to_string(), q.0)
+        v1_index_search_substructure(index.to_string(), Some(q.0))
     }
+}
+
+pub fn output_spec(server_url: &str, output: &str) -> eyre::Result<()> {
+    let api_service = api_service(
+        server_url,
+        API_PREFIX,
+        std::path::PathBuf::from("/tmp/cheminee"),
+        false,
+    )
+    .unwrap();
+
+    let spec = api_service.spec();
+
+    std::fs::write(output, spec)?;
+
+    Ok(())
 }
