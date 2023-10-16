@@ -31,6 +31,15 @@ pub struct ListIndexResponseErr {
 pub enum GetIndexesResponse {
     #[oai(status = "200")]
     Ok(Json<Vec<IndexMeta>>),
+    #[oai(status = "400")]
+    NotFound,
+    #[oai(status = "500")]
+    Err(Json<GetIndexesResponseError>),
+}
+
+#[derive(Object)]
+pub struct GetIndexesResponseError {
+    pub error: String,
 }
 
 #[derive(Object, Debug)]
@@ -48,9 +57,4 @@ pub async fn list_schemas() -> ListSchemasResponse {
         .collect();
 
     ListSchemasResponse::Ok(Json(schema_descriptions))
-}
-
-pub async fn list_indexes() -> ListIndexesResponse {
-    // ListSchemasResponse::Ok(Json(vec![]))
-    unimplemented!("bang")
 }

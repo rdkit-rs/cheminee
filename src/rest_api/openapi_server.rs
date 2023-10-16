@@ -1,8 +1,7 @@
 use std::path::PathBuf;
 
-use poem::{listener::TcpListener, EndpointExt, Route, Server};
+use poem::{listener::TcpListener, Route, Server};
 use poem_openapi::{ContactObject, OpenApiService};
-use tantivy::Index;
 use tokio::sync::Mutex;
 
 use crate::{indexing::index_manager::IndexManager, rest_api::Api};

@@ -1,6 +1,6 @@
 pub mod api;
 pub mod models;
-pub mod server;
+pub mod openapi_server;
 
 use clap::{Arg, ArgAction};
 use models::Smile;
@@ -10,7 +10,7 @@ use tokio::sync::Mutex;
 use crate::{
     indexing::index_manager::IndexManager,
     rest_api::api::{
-        index_management::{IndexMeta, ListIndexResponseErr},
+        index_management::{GetIndexesResponseError, IndexMeta, ListIndexResponseErr},
         search::substructure_search::SubstructureSearchHit,
     },
 };
@@ -73,21 +73,32 @@ impl Api {
         api::index_management::ListIndexesResponse::Ok(Json(index_metas))
     }
 
-    // #[oai(path = "/v1/indexes/:index", method = "get")]
-    // #[allow(unused_variables)]
-    // async fn v1_get_index(&self, index: Path<String>) -> api::index_management::GetIndexesResponse {
-    //     unimplemented!()
-    // }
+    #[oai(path = "/v1/indexes/:index", method = "get")]
+    #[allow(unused_variables)]
+    async fn v1_get_index(&self, index: Path<String>) -> api::index_management::GetIndexesResponse {
+        let index_manager = self.index_manager.lock().await;
+        let index = index_manager.open(&index);
+
+        match index {
+            Ok(index) => api::index_management::GetIndexesResponse::Ok(Json(vec![])),
+            Err(e) => {
+                api::index_management::GetIndexesResponse::Err(Json(GetIndexesResponseError {
+                    error: format!("{}", e),
+                }))
+            }
+        }
+    }
 
     // v1/indexes/inventory_items_v1/search/substructure?q=1234
-    #[oai(path = "/v1/indexes/search/substructure", method = "get")]
+    #[oai(path = "/v1/indexes/:index/search/substructure", method = "get")]
     #[allow(unused_variables)]
     async fn v1_index_search_substructure(
         &self,
+        index: Path<String>,
     ) -> api::search::substructure_search::GetSubstructureSearchResponse {
         api::search::substructure_search::GetSubstructureSearchResponse::Ok(Json(vec![
             SubstructureSearchHit {
-                extra_data: serde_json::json!({"hi": "mom"}),
+                extra_data: serde_json::json!({"hi": "mom", "index": index.to_string()}),
                 smiles: ":)".to_string(),
                 score: 100.00,
             },
@@ -97,7 +108,8 @@ impl Api {
 
 fn output_spec(server_url: &str, output: &str) -> eyre::Result<()> {
     let api_service =
-        server::api_service(server_url, std::path::PathBuf::from("/tmp/cheminee"), false).unwrap();
+        openapi_server::api_service(server_url, std::path::PathBuf::from("/tmp/cheminee"), false)
+            .unwrap();
 
     let spec = api_service.spec();
 
@@ -116,7 +128,7 @@ pub async fn action(matches: &clap::ArgMatches) -> eyre::Result<()> {
             let index_storage_directory_create_if_missing: bool =
                 matches.get_flag("index-storage-directory-create-if-missing");
 
-            server::run_api_service(
+            openapi_server::run_api_service(
                 bind,
                 server_url,
                 index_storage_directory.into(),
