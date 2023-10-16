@@ -48,10 +48,9 @@ pub async fn run_api_service(
     index_path: PathBuf,
     create_storage_dir_if_missing: bool,
 ) -> eyre::Result<()> {
-    let api_prefix = "/api";
     let api_service = api_service(
         server_url,
-        api_prefix,
+        API_PREFIX,
         index_path,
         create_storage_dir_if_missing,
     )?;
