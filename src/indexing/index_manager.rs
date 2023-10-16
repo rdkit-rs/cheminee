@@ -1,6 +1,9 @@
 use std::path::PathBuf;
 
-use tantivy::{directory::MmapDirectory, schema::Schema, IndexBuilder, TantivyError};
+use tantivy::{
+    directory::MmapDirectory, schema::Schema, IndexBuilder, IndexSettings, IndexSortByField, Order,
+    TantivyError,
+};
 
 pub struct IndexManager {
     storage_dir: PathBuf,
@@ -24,8 +27,15 @@ impl IndexManager {
         Ok(Self { storage_dir })
     }
 
-    pub fn create(&self, name: &str, schema: &Schema, force: bool) -> eyre::Result<tantivy::Index> {
-        let builder = IndexBuilder::new().schema(schema.clone());
+    pub fn create(
+        &self,
+        name: &str,
+        schema: &Schema,
+        force: bool,
+        sort_by: Option<&str>,
+    ) -> eyre::Result<tantivy::Index> {
+        let builder = Self::build_builder(schema, sort_by)?;
+
         let index_path = self.storage_dir.join(name);
 
         if !index_path.exists() {
@@ -38,7 +48,8 @@ impl IndexManager {
                 if force {
                     std::fs::remove_dir_all(&index_path)?;
                     std::fs::create_dir(&index_path)?;
-                    let builder = IndexBuilder::new().schema(schema.clone());
+
+                    let builder = Self::build_builder(schema, None)?;
                     builder.create_in_dir(&index_path)?
                 } else {
                     return Err(eyre::eyre!(
@@ -50,6 +61,25 @@ impl IndexManager {
         };
 
         Ok(index)
+    }
+
+    pub fn build_builder(
+        schema: &Schema,
+        sort_by: Option<&str>,
+    ) -> eyre::Result<tantivy::IndexBuilder> {
+        let mut builder = IndexBuilder::new().schema(schema.clone());
+        if let Some(sort_by) = sort_by {
+            let settings = IndexSettings {
+                sort_by_field: Some(IndexSortByField {
+                    field: sort_by.to_string(),
+                    order: Order::Asc,
+                }),
+                ..Default::default()
+            };
+            builder = builder.settings(settings);
+        }
+
+        Ok(builder)
     }
 
     pub fn exists(&self, name: &str) -> eyre::Result<Option<tantivy::schema::Schema>> {
@@ -114,7 +144,7 @@ mod tests {
 
         let schema = crate::schema::LIBRARY.get("descriptor_v1").unwrap();
 
-        let _index = index_manager.create("structure-search", schema, true)?;
+        let _index = index_manager.create("structure-search", schema, true, Some("exactmw"))?;
 
         let _index = index_manager.open("structure-search")?;
 
