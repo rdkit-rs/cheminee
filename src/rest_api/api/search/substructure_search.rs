@@ -12,4 +12,20 @@ pub struct SubstructureSearchHit {
     pub extra_data: serde_json::Value,
     pub smiles: String,
     pub score: f32,
+    pub query: String,
+}
+
+pub fn v1_index_search_substructure(
+    index: String,
+    q: Option<String>,
+) -> GetSubstructureSearchResponse {
+    let q_str = format!("{:?}", q);
+    let index = index.to_string();
+
+    GetSubstructureSearchResponse::Ok(Json(vec![SubstructureSearchHit {
+        extra_data: serde_json::json!({"hi": "mom", "index": index}),
+        smiles: ":)".to_string(),
+        score: 100.00,
+        query: q_str,
+    }]))
 }

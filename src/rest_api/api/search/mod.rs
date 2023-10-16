@@ -1,1 +1,2 @@
-pub mod substructure_search;
+mod substructure_search;
+pub use substructure_search::*;

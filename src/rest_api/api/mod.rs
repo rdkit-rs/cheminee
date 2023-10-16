@@ -1,5 +1,8 @@
-pub mod index_management;
+mod index_management;
+pub use index_management::*;
 
-pub mod search;
+mod search;
+pub use search::*;
 
-pub mod standardize;
+mod standardize;
+pub use standardize::*;

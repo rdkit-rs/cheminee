@@ -1,17 +1,21 @@
 use std::path::PathBuf;
 
 use poem::{listener::TcpListener, Route, Server};
-use poem_openapi::{param::Path, payload::Json, ContactObject, OpenApiService};
+use poem_openapi::{
+    param::{Path, Query},
+    payload::Json,
+    ContactObject, OpenApiService,
+};
 use poem_openapi_derive::OpenApi;
 use tokio::sync::Mutex;
 
 use crate::{
     indexing::index_manager::IndexManager,
     rest_api::{
-        api,
         api::{
-            index_management::{GetIndexesResponseError, IndexMeta, ListIndexResponseErr},
-            search::substructure_search::SubstructureSearchHit,
+            v1_get_index, v1_index_search_substructure, v1_list_indexes, v1_list_schemas,
+            v1_standardize, GetIndexesResponse, GetSubstructureSearchResponse, ListIndexesResponse,
+            ListSchemasResponse, StandardizeResponse,
         },
         models::Smile,
     },
@@ -61,70 +65,44 @@ pub async fn run_api_service(
 }
 
 pub struct Api {
-    index_manager: Mutex<IndexManager>,
+    pub index_manager: Mutex<IndexManager>,
 }
 
 #[OpenApi]
 impl Api {
     #[oai(path = "/v1/standardize", method = "post")]
-    async fn v1_standardize(&self, mol: Json<Vec<Smile>>) -> api::standardize::StandardizeResponse {
-        api::standardize::standardize(mol).await
+    pub async fn v1_standardize(&self, mol: Json<Vec<Smile>>) -> StandardizeResponse {
+        v1_standardize(mol).await
     }
 
     #[oai(path = "/v1/schemas", method = "get")]
-    async fn v1_list_schemas(&self) -> api::index_management::ListSchemasResponse {
-        api::index_management::list_schemas().await
+    pub async fn v1_list_schemas(&self) -> ListSchemasResponse {
+        v1_list_schemas().await
     }
 
     #[oai(path = "/v1/indexes", method = "get")]
-    async fn v1_list_indexes(&self) -> api::index_management::ListIndexesResponse {
+    pub async fn v1_list_indexes(&self) -> ListIndexesResponse {
         let manager = self.index_manager.lock().await;
 
-        let list_result = manager.list();
-        if let Err(e) = list_result {
-            return api::index_management::ListIndexesResponse::Err(Json(ListIndexResponseErr {
-                error: format!("{:?}", e),
-            }));
-        }
-
-        let index_metas = list_result
-            .unwrap()
-            .into_iter()
-            .map(|x| IndexMeta { name: x })
-            .collect();
-
-        api::index_management::ListIndexesResponse::Ok(Json(index_metas))
+        v1_list_indexes(&manager)
     }
 
     #[oai(path = "/v1/indexes/:index", method = "get")]
     #[allow(unused_variables)]
-    async fn v1_get_index(&self, index: Path<String>) -> api::index_management::GetIndexesResponse {
+    pub async fn v1_get_index(&self, index: Path<String>) -> GetIndexesResponse {
         let index_manager = self.index_manager.lock().await;
-        let index = index_manager.open(&index);
 
-        match index {
-            Ok(index) => api::index_management::GetIndexesResponse::Ok(Json(vec![])),
-            Err(e) => {
-                api::index_management::GetIndexesResponse::Err(Json(GetIndexesResponseError {
-                    error: format!("{}", e),
-                }))
-            }
-        }
+        v1_get_index(&index_manager, index.to_string())
     }
 
     // v1/indexes/inventory_items_v1/search/substructure?q=1234
     #[oai(path = "/v1/indexes/:index/search/substructure", method = "get")]
     #[allow(unused_variables)]
-    async fn v1_index_search_substructure(
+    pub async fn v1_index_search_substructure(
         &self,
         index: Path<String>,
-    ) -> api::search::substructure_search::GetSubstructureSearchResponse {
-        api::search::substructure_search::GetSubstructureSearchResponse::Ok(Json(vec![
-            SubstructureSearchHit {
-                extra_data: serde_json::json!({"hi": "mom", "index": index.to_string()}),
-                smiles: ":)".to_string(),
-                score: 100.00,
-            },
-        ]))
+        q: Query<Option<String>>,
+    ) -> GetSubstructureSearchResponse {
+        v1_index_search_substructure(index.to_string(), q.0)
     }
 }

@@ -61,7 +61,7 @@ pub struct StandardizedSmile {
     pub error: Option<String>,
 }
 
-pub async fn standardize(mol: Json<Vec<Smile>>) -> StandardizeResponse {
+pub async fn v1_standardize(mol: Json<Vec<Smile>>) -> StandardizeResponse {
     let standardized_smiles = mol
         .0
         .into_par_iter()
