@@ -26,18 +26,6 @@ pub fn command() -> clap::Command {
     )
 }
 
-fn output_spec(server_url: &str, output: &str) -> eyre::Result<()> {
-    let api_service =
-        openapi_server::api_service(server_url, std::path::PathBuf::from("/tmp/cheminee"), false)
-            .unwrap();
-
-    let spec = api_service.spec();
-
-    std::fs::write(output, spec)?;
-
-    Ok(())
-}
-
 pub async fn action(matches: &clap::ArgMatches) -> eyre::Result<()> {
     match matches.subcommand() {
         None => {
@@ -59,7 +47,7 @@ pub async fn action(matches: &clap::ArgMatches) -> eyre::Result<()> {
         Some(("spec", args)) => {
             let server_url: &String = matches.get_one("server-url").unwrap();
             let output: &String = args.get_one::<String>("output").unwrap();
-            output_spec(server_url, output)?
+            openapi_server::output_spec(server_url, output)?
         }
         Some((other, _args)) => Err(eyre::eyre!("can't handle {}", other))?,
     }
