@@ -45,6 +45,7 @@ pub struct GetIndexesResponseError {
 #[derive(Object, Debug)]
 pub struct IndexMeta {
     pub name: String,
+    pub schema: String,
 }
 
 pub async fn v1_list_schemas() -> ListSchemasResponse {
@@ -70,7 +71,20 @@ pub fn v1_list_indexes(index_manager: &IndexManager) -> ListIndexesResponse {
     let index_metas = list_result
         .unwrap()
         .into_iter()
-        .map(|x| IndexMeta { name: x })
+        .map(|x| {
+            let index = index_manager.open(&x);
+            let schema = match index {
+                Ok(_index) => {
+                    // let tantivy_schema = index.schema();
+                    // let (found_name, found_schema) = LIBRARY.enume(|(ref library_name, ref library_value)| {
+                    //     library_value == tantivy_schema
+                    // });
+                    "descriptor_v1".to_string()
+                }
+                Err(e) => format!("error open index: {:?}", e),
+            };
+            IndexMeta { name: x, schema }
+        })
         .collect();
 
     ListIndexesResponse::Ok(Json(index_metas))

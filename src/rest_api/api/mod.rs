@@ -1,3 +1,6 @@
+mod indexing;
+pub use indexing::*;
+
 mod index_management;
 pub use index_management::*;
 
