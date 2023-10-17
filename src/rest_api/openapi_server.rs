@@ -114,10 +114,16 @@ impl Api {
         &self,
         index: Path<String>,
         schema: Query<String>,
+        sort_by: Query<Option<String>>,
     ) -> PostIndexResponse {
         let index_manager = self.index_manager.lock().await;
 
-        v1_post_index(&index_manager, index.to_string(), schema.0)
+        v1_post_index(
+            &index_manager,
+            index.to_string(),
+            schema.0,
+            sort_by.0.as_deref(),
+        )
     }
 
     // v1/indexes/inventory_items_v1/search/substructure?q=1234
