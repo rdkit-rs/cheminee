@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use poem::{listener::TcpListener, EndpointExt, Route, Server};
 use poem_openapi::{
     param::{Path, Query},
-    payload::{Json, Payload},
+    payload::Json,
     ContactObject, OpenApiService,
 };
 use poem_openapi_derive::OpenApi;
@@ -59,7 +59,7 @@ pub async fn run_api_service(
 
     let spec = api_service.spec();
 
-    let logging_middleware = poem::middleware::Tracing::default();
+    let logging_middleware = poem::middleware::Tracing;
 
     Server::new(TcpListener::bind(bind))
         .run(
