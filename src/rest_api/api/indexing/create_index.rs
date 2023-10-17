@@ -22,13 +22,14 @@ pub fn v1_post_index(
     index_manager: &IndexManager,
     index: String,
     schema_name: String,
+    sort_by: Option<&str>,
 ) -> PostIndexResponse {
     let schema = match LIBRARY.get(schema_name.as_str()) {
         Some(schema) => schema,
         None => return PostIndexResponse::SchemaDoesNotExist,
     };
 
-    let tantivy_index = index_manager.create(&index, schema, false);
+    let tantivy_index = index_manager.create(&index, schema, false, sort_by);
 
     match tantivy_index {
         Ok(_) => PostIndexResponse::Ok(Json(IndexMeta {
