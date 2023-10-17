@@ -126,6 +126,18 @@ impl Api {
         )
     }
 
+    // #[oai(path = "/v1/indexes/:index/_bulk", method = "post")]
+    // #[allow(unused_variables)]
+    // pub async fn v1_post_index_bulk(
+    //     &self,
+    //     index: Path<String>,
+    //     schema: Query<String>,
+    // ) -> PostIndexBulkResponse {
+    //     let index_manager = self.index_manager.lock().await;
+    //
+    //     v1_post_index_bulk(&index_manager, index.to_string(), schema.0)
+    // }
+
     // v1/indexes/inventory_items_v1/search/substructure?q=1234
     #[oai(path = "/v1/indexes/:index/search/substructure", method = "get")]
     #[allow(unused_variables)]

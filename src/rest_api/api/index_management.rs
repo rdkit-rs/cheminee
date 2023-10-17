@@ -74,7 +74,7 @@ pub fn v1_list_indexes(index_manager: &IndexManager) -> ListIndexesResponse {
         .map(|x| {
             let index = index_manager.open(&x);
             let schema = match index {
-                Ok(index) => {
+                Ok(_index) => {
                     // let tantivy_schema = index.schema();
                     // let (found_name, found_schema) = LIBRARY.enume(|(ref library_name, ref library_value)| {
                     //     library_value == tantivy_schema
