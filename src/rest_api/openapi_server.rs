@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use poem::{listener::TcpListener, EndpointExt, Route, Server};
 use poem_openapi::{
     param::{Path, Query},
-    payload::Json,
+    payload::{Json, Payload},
     ContactObject, OpenApiService,
 };
 use poem_openapi_derive::OpenApi;
@@ -14,8 +14,9 @@ use crate::{
     rest_api::{
         api::{
             v1_get_index, v1_index_search_substructure, v1_list_indexes, v1_list_schemas,
-            v1_post_index, v1_standardize, GetIndexesResponse, GetSubstructureSearchResponse,
-            ListIndexesResponse, ListSchemasResponse, PostIndexResponse, StandardizeResponse,
+            v1_post_index, v1_post_index_bulk, v1_standardize, BulkRequest, GetIndexesResponse,
+            GetSubstructureSearchResponse, ListIndexesResponse, ListSchemasResponse,
+            PostIndexResponse, PostIndexesBulkIndexResponse, StandardizeResponse,
         },
         models::Smile,
     },
@@ -126,17 +127,17 @@ impl Api {
         )
     }
 
-    // #[oai(path = "/v1/indexes/:index/_bulk", method = "post")]
-    // #[allow(unused_variables)]
-    // pub async fn v1_post_index_bulk(
-    //     &self,
-    //     index: Path<String>,
-    //     schema: Query<String>,
-    // ) -> PostIndexBulkResponse {
-    //     let index_manager = self.index_manager.lock().await;
-    //
-    //     v1_post_index_bulk(&index_manager, index.to_string(), schema.0)
-    // }
+    #[oai(path = "/v1/indexes/:index/bulk_index", method = "post")]
+    #[allow(unused_variables)]
+    pub async fn v1_post_indexes_bulk_index(
+        &self,
+        index: Path<String>,
+        bulk_request: Json<BulkRequest>,
+    ) -> PostIndexesBulkIndexResponse {
+        let index_manager = self.index_manager.lock().await;
+
+        v1_post_index_bulk(&index_manager, index.to_string(), bulk_request.0)
+    }
 
     // v1/indexes/inventory_items_v1/search/substructure?q=1234
     #[oai(path = "/v1/indexes/:index/search/substructure", method = "get")]
