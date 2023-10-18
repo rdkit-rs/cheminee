@@ -84,16 +84,19 @@ pub struct Api {
 #[OpenApi]
 impl Api {
     #[oai(path = "/v1/standardize", method = "post")]
+    /// Pass a list of SMILES through fragment_parent, uncharger, and canonicalization routines
     pub async fn v1_standardize(&self, mol: Json<Vec<Smile>>) -> StandardizeResponse {
         v1_standardize(mol).await
     }
 
     #[oai(path = "/v1/schemas", method = "get")]
+    /// List schemas available for creating indexes
     pub async fn v1_list_schemas(&self) -> ListSchemasResponse {
         v1_list_schemas().await
     }
 
     #[oai(path = "/v1/indexes", method = "get")]
+    /// List indexes
     pub async fn v1_list_indexes(&self) -> ListIndexesResponse {
         let manager = self.index_manager.lock().await;
 
@@ -101,7 +104,7 @@ impl Api {
     }
 
     #[oai(path = "/v1/indexes/:index", method = "get")]
-    #[allow(unused_variables)]
+    /// Get extended information about an index
     pub async fn v1_get_index(&self, index: Path<String>) -> GetIndexesResponse {
         let index_manager = self.index_manager.lock().await;
 
@@ -110,7 +113,7 @@ impl Api {
 
     // v1/indexes/inventory_items_v1?schema=v1_descriptors
     #[oai(path = "/v1/indexes/:index", method = "post")]
-    #[allow(unused_variables)]
+    /// Create an index
     pub async fn v1_post_index(
         &self,
         index: Path<String>,
@@ -128,7 +131,8 @@ impl Api {
     }
 
     #[oai(path = "/v1/indexes/:index/bulk_index", method = "post")]
-    #[allow(unused_variables)]
+    /// Index a list of SMILES and associated, free-form JSON attributes
+    /// which are indexed and searchable
     pub async fn v1_post_indexes_bulk_index(
         &self,
         index: Path<String>,
@@ -139,9 +143,8 @@ impl Api {
         v1_post_index_bulk(&index_manager, index.to_string(), bulk_request.0)
     }
 
-    // v1/indexes/inventory_items_v1/search/substructure?q=1234
     #[oai(path = "/v1/indexes/:index/search/substructure", method = "get")]
-    #[allow(unused_variables)]
+    /// Perform substructure search against index
     pub async fn v1_index_search_substructure(
         &self,
         index: Path<String>,
