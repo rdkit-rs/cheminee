@@ -38,6 +38,7 @@ spec:
             - cheminee
             - rest-api-server
             - "--bind=0.0.0.0:{{ $.Values.service.port }}"
+            --index-storage-directory=/data
           {{- if gt (len $.Values.ingress.tls) 0 }}
             - "--server-url=https://{{ ($.Values.ingress.hosts | first).host }}"
           {{- else }}
@@ -48,6 +49,9 @@ spec:
             - name: http
               containerPort: {{ .Values.service.port }}
               protocol: TCP
+          volumeMounts:
+            - mountPath: /data
+              name: indexes
           livenessProbe:
             httpGet:
               path: /api/v1/openapi.json # TODO: We need a low-cost health endpoint
@@ -70,3 +74,6 @@ spec:
       tolerations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
+      volumes:
+        - name: indexes
+          emptyDir: {}
