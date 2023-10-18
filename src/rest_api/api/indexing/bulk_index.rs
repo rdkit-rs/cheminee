@@ -95,7 +95,7 @@ pub fn v1_post_index_bulk(
 
     for doc in bulk_request.docs {
         let tantivy_doc = bulk_request_doc_to_tantivy_doc(
-            &doc,
+            doc,
             smile_field,
             fingerprint_field,
             &descriptors_fields,
@@ -143,14 +143,14 @@ pub fn v1_post_index_bulk(
 }
 
 fn bulk_request_doc_to_tantivy_doc(
-    bulk_request_doc: &BulkRequestDoc,
+    bulk_request_doc: BulkRequestDoc,
     smile_field: Field,
     fingerprint_field: Field,
     descriptors_fields: &HashMap<&str, Field>,
     extra_data_field: Field,
 ) -> Result<tantivy::Document, String> {
     let (tautomer, fingerprint, descriptors) =
-        { process_cpd(&bulk_request_doc.smile).map_err(|err| err.to_string())? };
+        process_cpd(&bulk_request_doc.smile).map_err(|err| err.to_string())?;
 
     let json: serde_json::Value = serde_json::to_value(&descriptors).map_err(|x| x.to_string())?;
     let jsonified_compound_descriptors: Map<String, Value> =
@@ -166,7 +166,7 @@ fn bulk_request_doc_to_tantivy_doc(
     );
 
     // TODO: remove clone() by passing request doc by value in to this function
-    if let Some(extra_data) = bulk_request_doc.extra_data.clone() {
+    if let Some(extra_data) = bulk_request_doc.extra_data {
         doc.add_field_value(extra_data_field, extra_data);
     }
 
