@@ -33,17 +33,15 @@ spec:
             {{- toYaml .Values.securityContext | nindent 12 }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
-          {{- if $.Values.ingress.enabled }}
           command:
             - cheminee
             - rest-api-server
             - "--bind=0.0.0.0:{{ $.Values.service.port }}"
-            --index-storage-directory=/data
+            - --index-storage-directory=/data
           {{- if gt (len $.Values.ingress.tls) 0 }}
             - "--server-url=https://{{ ($.Values.ingress.hosts | first).host }}"
           {{- else }}
             - "--server-url=http://{{ ($.Values.ingress.hosts | first).host }}"
-          {{- end }}
           {{- end }}
           ports:
             - name: http
