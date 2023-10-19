@@ -7,7 +7,6 @@ use poem_openapi::{
     ContactObject, OpenApiService,
 };
 use poem_openapi_derive::OpenApi;
-use tokio::sync::Mutex;
 
 use crate::{
     indexing::index_manager::IndexManager,
@@ -31,10 +30,7 @@ pub fn api_service(
     create_storage_dir_if_missing: bool,
 ) -> eyre::Result<OpenApiService<Api, ()>> {
     let api = Api {
-        index_manager: Mutex::new(IndexManager::new(
-            indexes_root,
-            create_storage_dir_if_missing,
-        )?),
+        index_manager: IndexManager::new(indexes_root, create_storage_dir_if_missing)?,
     };
     let openapi_service = OpenApiService::new(api, "Cheminée", "1.0")
         .server(format!("{}{}", server_url, api_prefix))
@@ -78,7 +74,7 @@ pub async fn run_api_service(
 }
 
 pub struct Api {
-    pub index_manager: Mutex<IndexManager>,
+    pub index_manager: IndexManager,
 }
 
 #[OpenApi]
@@ -98,17 +94,13 @@ impl Api {
     #[oai(path = "/v1/indexes", method = "get")]
     /// List indexes
     pub async fn v1_list_indexes(&self) -> ListIndexesResponse {
-        let manager = self.index_manager.lock().await;
-
-        v1_list_indexes(&manager)
+        v1_list_indexes(&self.index_manager)
     }
 
     #[oai(path = "/v1/indexes/:index", method = "get")]
     /// Get extended information about an index
     pub async fn v1_get_index(&self, index: Path<String>) -> GetIndexesResponse {
-        let index_manager = self.index_manager.lock().await;
-
-        v1_get_index(&index_manager, index.to_string())
+        v1_get_index(&self.index_manager, index.to_string())
     }
 
     // v1/indexes/inventory_items_v1?schema=v1_descriptors
@@ -120,10 +112,8 @@ impl Api {
         schema: Query<String>,
         sort_by: Query<Option<String>>,
     ) -> PostIndexResponse {
-        let index_manager = self.index_manager.lock().await;
-
         v1_post_index(
-            &index_manager,
+            &self.index_manager,
             index.to_string(),
             schema.0,
             sort_by.0.as_deref(),
@@ -138,9 +128,7 @@ impl Api {
         index: Path<String>,
         bulk_request: Json<BulkRequest>,
     ) -> PostIndexesBulkIndexResponse {
-        let index_manager = self.index_manager.lock().await;
-
-        v1_post_index_bulk(&index_manager, index.to_string(), bulk_request.0)
+        v1_post_index_bulk(&self.index_manager, index.to_string(), bulk_request.0)
     }
 
     #[oai(path = "/v1/indexes/:index/search/substructure", method = "get")]
