@@ -48,9 +48,12 @@ spec:
             - name: http
               containerPort: {{ .Values.service.port }}
               protocol: TCP
+          {{- if .Values.persistence.enabled }}
           volumeMounts:
             - mountPath: /data
-              name: indexes
+              name: data
+              subPath: data
+          {{- end }}
           livenessProbe:
             httpGet:
               path: /api/v1/openapi.json # TODO: We need a low-cost health endpoint
@@ -73,7 +76,9 @@ spec:
       tolerations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- with .Values.persistentStorage.volumes }}
+      {{- if .Values.persistence.enabled }}
       volumes:
-        {{- toYaml . | nindent 8 }}
+        - name: data
+          persistentVolumeClaim:
+            claimName: {{ include "cheminee.fullname" . }}-data
       {{- end }}
