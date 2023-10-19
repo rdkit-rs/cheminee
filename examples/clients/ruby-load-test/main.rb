@@ -23,4 +23,3 @@ end
 
 bulk_request = Cheminee::BulkRequest.build_from_hash(docs: docs)
 result = default_api.v1_indexes_index_bulk_index_post("meepity-beepity", bulk_request)
-# print result.inspect
