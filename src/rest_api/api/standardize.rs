@@ -6,7 +6,6 @@ use crate::{rest_api::models::Smile, search::compound_processing::standardize_sm
 #[cfg(test)]
 mod tests {
     use poem::{handler, Route};
-    use tokio::sync::Mutex;
 
     use super::*;
     use crate::{indexing::index_manager::IndexManager, rest_api::openapi_server::Api};
@@ -17,7 +16,7 @@ mod tests {
             smile: "CC=CO".to_string(), // smile:  "CCC=O".to_string(), -answer
         }]);
         Api {
-            index_manager: Mutex::new(IndexManager::new("/tmp/blah", false).unwrap()),
+            index_manager: IndexManager::new("/tmp/blah", false).unwrap(),
         }
         .v1_standardize(smiles)
         .await
