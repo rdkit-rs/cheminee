@@ -140,7 +140,7 @@ impl Api {
     ) -> PostIndexesBulkIndexResponse {
         let index_manager = self.index_manager.lock().await;
 
-        v1_post_index_bulk(&index_manager, index.to_string(), bulk_request.0)
+        v1_post_index_bulk(&index_manager, index.to_string(), bulk_request.0).await
     }
 
     #[oai(path = "/v1/indexes/:index/search/substructure", method = "get")]
