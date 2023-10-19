@@ -73,6 +73,7 @@ spec:
       tolerations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
+      {{- with .Values.persistentStorage.volumes }}
       volumes:
-        - name: indexes
-          emptyDir: {}
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

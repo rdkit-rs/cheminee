@@ -80,3 +80,8 @@ nodeSelector: {}
 tolerations: []
 
 affinity: {}
+
+persistentStorage:
+  volumes:
+    - name: indexes
+      emptyDir: {}
