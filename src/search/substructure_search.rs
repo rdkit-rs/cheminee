@@ -50,14 +50,18 @@ pub fn substructure_search(
     for (_score, docaddr) in filtered_results1 {
         let doc = searcher.doc(docaddr)?;
 
-        let smile = doc.get_first(smile_field).unwrap().as_text().unwrap();
+        let smile = doc
+            .get_first(smile_field)
+            .ok_or(eyre::eyre!("Tantivy smiles retrieval failed"))?
+            .as_text()
+            .ok_or(eyre::eyre!("Failed to stringify smiles"))?;
 
         // TO-DO: find a zero-copy bitvec container
         let fingerprint = doc
             .get_first(fingerprint_field)
-            .unwrap()
+            .ok_or(eyre::eyre!("Tantivy fingerprint retrieval failed"))?
             .as_bytes()
-            .unwrap();
+            .ok_or(eyre::eyre!("Failed to read fingerprint as bytes"))?;
 
         let fingerprint_bits = BitSlice::<u8, Lsb0>::from_slice(fingerprint);
 

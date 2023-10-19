@@ -38,6 +38,7 @@ pub fn aggregate_search_hits(
     searcher: Searcher,
     results: Vec<DocAddress>,
     tautomers_used: bool,
+    query: &str,
 ) -> eyre::Result<Vec<StructureSearchHit>> {
     let mut final_results: Vec<StructureSearchHit> = Vec::new();
     let schema = searcher.schema();
@@ -54,17 +55,20 @@ pub fn aggregate_search_hits(
             .as_text()
             .ok_or(eyre::eyre!("Failed to stringify smiles"))?;
 
-        let extra_data = doc
-            .get_first(extra_data_field)
-            .ok_or(eyre::eyre!("Tantivy extra data retrieval failed"))?
-            .as_text()
-            .ok_or(eyre::eyre!("Failed to stringify extra data"))?;
+        let extra_data = doc.get_first(extra_data_field);
+
+        let extra_data = match extra_data {
+            Some(extra_data) => extra_data
+                .as_text()
+                .ok_or(eyre::eyre!("Failed to stringify extra data"))?,
+            None => "",
+        };
 
         final_results.push(StructureSearchHit {
             extra_data: extra_data.into(),
-            smiles: smile.to_string(),
+            smiles: smile.into(),
             score: score,
-            query: smile.to_string(),
+            query: query.into(),
             used_tautomers: tautomers_used,
         })
     }

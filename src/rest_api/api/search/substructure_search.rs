@@ -108,7 +108,7 @@ pub fn v1_index_search_substructure(
         }
     }
 
-    let final_results = aggregate_search_hits(searcher, results, tautomers_used);
+    let final_results = aggregate_search_hits(searcher, results, tautomers_used, &smile);
 
     let final_results = match final_results {
         Ok(final_results) => final_results,
