@@ -48,11 +48,17 @@ pub fn aggregate_search_hits(
 
     for result in results {
         let doc = searcher.doc(result)?;
-        let smile = doc.get_first(smile_field).unwrap();
-        let smile = smile.as_text().unwrap();
+        let smile = doc
+            .get_first(smile_field)
+            .ok_or(eyre::eyre!("Tantivy smiles retrieval failed"))?
+            .as_text()
+            .ok_or(eyre::eyre!("Failed to stringify smiles"))?;
 
-        let extra_data = doc.get_first(extra_data_field).unwrap();
-        let extra_data = extra_data.as_text().unwrap();
+        let extra_data = doc
+            .get_first(extra_data_field)
+            .ok_or(eyre::eyre!("Tantivy extra data retrieval failed"))?
+            .as_text()
+            .ok_or(eyre::eyre!("Failed to stringify extra data"))?;
 
         final_results.push(StructureSearchHit {
             extra_data: extra_data.into(),

@@ -19,7 +19,7 @@ pub fn prepare_query_structure(
 ) -> eyre::Result<(ROMol, Fingerprint, HashMap<String, f64>)> {
     let problems = validate_structure(smiles);
     if !problems.is_empty() {
-        panic!("Need to implement error handling here")
+        return Err(eyre::eyre!("Failed structure validation"));
     };
 
     let (query_canon_taut, fingerprint, descriptors) = process_cpd(smiles)?;
