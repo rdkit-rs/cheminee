@@ -47,14 +47,12 @@ pub fn v1_index_search_substructure(
 
     let (query_canon_taut, fingerprint, descriptors) = query_attributes;
 
-    let tantivy_result_limit = limit * 10;
-
     let results = substructure_search(
         &searcher,
         &query_canon_taut,
         fingerprint.0.as_bitslice(),
         &descriptors,
-        tantivy_result_limit,
+        limit,
     );
 
     let mut results = match results {
@@ -88,7 +86,7 @@ pub fn v1_index_search_substructure(
                 &test_taut,
                 taut_fingerprint.0.as_bitslice(),
                 &taut_descriptors,
-                tantivy_result_limit,
+                limit,
             );
 
             let mut taut_results = match taut_results {

@@ -36,7 +36,7 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
     let limit = matches.get_one::<String>("limit");
 
     // Validate structure
-    let problems = validate_structure(smiles);
+    let problems = validate_structure(smiles)?;
     if !problems.is_empty() {
         panic!("Need to do something here to either correct the smiles query or return an error message");
     }
@@ -51,7 +51,7 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
     let limit = if let Some(limit) = limit {
         limit.parse::<usize>()?
     } else {
-        usize::try_from(1000).unwrap()
+        usize::try_from(1000)?
     };
 
     let tantivy_result_limit = limit * 10;

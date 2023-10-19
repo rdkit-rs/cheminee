@@ -34,12 +34,13 @@ pub fn substructure_search(
     query_mol: &ROMol,
     query_fingerprint: &BitSlice<u8, Lsb0>,
     query_descriptors: &HashMap<String, f64>,
-    tantivy_limit: usize,
+    limit: usize,
 ) -> eyre::Result<Vec<DocAddress>> {
     let schema = searcher.schema();
     let query = build_query(query_descriptors);
 
     // Note: in the end, we want a limit for the FINAL number of matches to return
+    let tantivy_limit = 10 * limit;
     let filtered_results1 = basic_search(searcher, &query, tantivy_limit)?;
 
     let smile_field = schema.get_field("smile")?;
@@ -48,6 +49,10 @@ pub fn substructure_search(
     let mut filtered_results2: Vec<DocAddress> = Vec::new();
 
     for (_score, docaddr) in filtered_results1 {
+        if filtered_results2.len() >= limit {
+            break;
+        }
+
         let doc = searcher.doc(docaddr)?;
 
         let smile = doc

@@ -17,19 +17,18 @@ pub struct StructureValidationError {
 pub fn prepare_query_structure(
     smiles: &String,
 ) -> eyre::Result<(ROMol, Fingerprint, HashMap<String, f64>)> {
-    let problems = validate_structure(smiles);
+    let problems = validate_structure(smiles)?;
     if !problems.is_empty() {
         return Err(eyre::eyre!("Failed structure validation"));
     };
 
     let (query_canon_taut, fingerprint, descriptors) = process_cpd(smiles)?;
-
     Ok((query_canon_taut, fingerprint, descriptors))
 }
 
-pub fn validate_structure(smiles: &str) -> Vec<String> {
+pub fn validate_structure(smiles: &str) -> eyre::Result<Vec<String>> {
     let mut parser_params = SmilesParserParams::default();
     parser_params.sanitize(false);
-    let mol = ROMol::from_smile_with_params(smiles, &parser_params).unwrap();
-    detect_chemistry_problems(&mol)
+    let mol = ROMol::from_smile_with_params(smiles, &parser_params)?;
+    Ok(detect_chemistry_problems(&mol))
 }
