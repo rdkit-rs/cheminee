@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use poem_openapi::payload::Json;
 use poem_openapi_derive::{ApiResponse, Object};
+use rayon::prelude::*;
 use serde_json::{Map, Value};
 use tantivy::{schema::Field, Opstamp};
 
@@ -28,12 +29,15 @@ pub struct BulkRequest {
 #[derive(Object, Debug)]
 pub struct BulkRequestDoc {
     pub smile: String,
+    /// This value can store an arbitrary JSON object like '{}'
     pub extra_data: Option<serde_json::Value>,
 }
 
 #[derive(Object, Debug)]
 pub struct PostIndexBulkResponseOk {
     pub statuses: Vec<PostIndexBulkResponseOkStatus>,
+    // pub errors: usize,
+    // pub seconds_taken: usize,
 }
 
 #[derive(Object, Debug)]
@@ -47,7 +51,7 @@ pub struct PostIndexBulkResponseError {
     pub error: String,
 }
 
-pub fn v1_post_index_bulk(
+pub async fn v1_post_index_bulk(
     index_manager: &IndexManager,
     index: String,
     bulk_request: BulkRequest,
@@ -80,8 +84,6 @@ pub fn v1_post_index_bulk(
         }
     };
 
-    let mut document_insert_statuses = Vec::with_capacity(bulk_request.docs.len());
-
     let schema = index.schema();
 
     let smile_field = schema.get_field("smile").unwrap();
@@ -93,29 +95,49 @@ pub fn v1_post_index_bulk(
         .map(|kd| (*kd, schema.get_field(kd).unwrap()))
         .collect::<HashMap<&str, Field>>();
 
-    for doc in bulk_request.docs {
-        let tantivy_doc = bulk_request_doc_to_tantivy_doc(
-            doc,
-            smile_field,
-            fingerprint_field,
-            &descriptors_fields,
-            extra_data_field,
-        );
+    let tantivy_docs_conversion_operation = tokio::task::spawn_blocking(move || {
+        bulk_request
+            .docs
+            .into_par_iter()
+            .map(|doc| {
+                bulk_request_doc_to_tantivy_doc(
+                    doc,
+                    smile_field,
+                    fingerprint_field,
+                    &descriptors_fields,
+                    extra_data_field,
+                )
+            })
+            .collect::<Vec<_>>()
+    })
+    .await;
 
-        let tantivy_doc = match tantivy_doc {
-            Ok(td) => td,
+    let tantivy_docs = match tantivy_docs_conversion_operation {
+        Ok(docs) => docs,
+        Err(e) => {
+            return PostIndexesBulkIndexResponse::Err(Json(PostIndexBulkResponseError {
+                error: e.to_string(),
+            }))
+        }
+    };
+
+    let mut document_insert_statuses = Vec::with_capacity(tantivy_docs.len());
+
+    for doc_conversion_result in tantivy_docs {
+        let tantivy_doc = match doc_conversion_result {
+            Ok(doc) => doc,
             Err(e) => {
                 document_insert_statuses.push(PostIndexBulkResponseOkStatus {
                     opcode: None,
-                    error: Some(e),
+                    error: Some(e.to_string()),
                 });
                 continue;
             }
         };
 
-        let opstamp = writer.add_document(tantivy_doc);
+        let write_operation = writer.add_document(tantivy_doc);
 
-        let status = match opstamp {
+        let status = match write_operation {
             Ok(opstamp) => PostIndexBulkResponseOkStatus {
                 opcode: Some(opstamp),
                 error: None,
