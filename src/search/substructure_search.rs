@@ -49,21 +49,20 @@ pub fn substructure_search(
 
     for (_score, docaddr) in filtered_results1 {
         let doc = searcher.doc(docaddr)?;
-        let smile = doc.get_first(smile_field).unwrap().as_text().unwrap();
+
+        let smile = doc.get_first(smile_field)?;
+        let smile = smile.as_text()?;
 
         // TO-DO: find a zero-copy bitvec container
-        let fingerprint = doc
-            .get_first(fingerprint_field)
-            .unwrap()
-            .as_bytes()
-            .unwrap();
+        let fingerprint = doc.get_first(fingerprint_field)?;
+        let fingerprint = fingerprint.as_bytes()?;
+
         let fingerprint_bits = BitSlice::<u8, Lsb0>::from_slice(fingerprint);
 
         let fp_match = substructure_match_fp(query_fingerprint, fingerprint_bits);
 
         if fp_match {
-            let mol_substruct_match =
-                substruct_match(&ROMol::from_smile(smile).unwrap(), query_mol);
+            let mol_substruct_match = substruct_match(&ROMol::from_smile(smile)?, query_mol);
             if mol_substruct_match {
                 filtered_results2.push(docaddr);
             }

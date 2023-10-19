@@ -1,46 +1,53 @@
+use crate::indexing::index_manager::IndexManager;
+use crate::rest_api::api::{
+    aggregate_search_hits, GetStructureSearchResponse, StructureResponseError, StructureSearchHit,
+};
 use crate::search::compound_processing::{get_cpd_properties, get_tautomers};
-use crate::search::prepare_search;
+use crate::search::prepare_query_structure;
 use crate::search::substructure_search::substructure_search;
 use poem_openapi::payload::Json;
 use poem_openapi_derive::{ApiResponse, Object};
-
-#[derive(ApiResponse)]
-pub enum GetSubstructureSearchResponse {
-    #[oai(status = "200")]
-    Ok(Json<Vec<SubstructureSearchHit>>),
-}
-
-#[derive(Object)]
-pub struct SubstructureSearchHit {
-    pub extra_data: serde_json::Value,
-    pub smiles: String,
-    pub score: f32,
-    pub query: String,
-}
-
-// pub fn v1_index_search_substructure(
-//     index: String,
-//     q: Option<String>,
-// ) -> GetSubstructureSearchResponse {
-//     let q_str = format!("{:?}", q);
-//     let index = index.to_string();
-//
-//     GetSubstructureSearchResponse::Ok(Json(vec![SubstructureSearchHit {
-//         extra_data: serde_json::json!({"hi": "mom", "index": index}),
-//         smiles: ":)".to_string(),
-//         score: 100.00,
-//         query: q_str,
-//     }]))
-// }
+use tantivy::HasLen;
 
 pub fn v1_index_search_substructure(
+    index_manager: &IndexManager,
     index: String,
     smile: String,
     limit: usize,
-) -> GetSubstructureSearchResponse {
-    let index = index.to_string();
-    let (searcher, query_canon_taut, fingerprint, descriptors) =
-        prepare_search(&index, &smile).unwrap();
+) -> GetStructureSearchResponse {
+    let index = match index_manager.open(&index) {
+        Ok(index) => index,
+        Err(e) => {
+            return GetStructureSearchResponse::Err(Json(StructureResponseError {
+                error: e.to_string(),
+            }))
+        }
+    };
+
+    let reader = index.reader();
+    let reader = match reader {
+        Ok(reader) => reader,
+        Err(e) => {
+            return GetStructureSearchResponse::Err(Json(StructureResponseError {
+                error: e.to_string(),
+            }))
+        }
+    };
+
+    let searcher = reader.searcher();
+
+    let query_attributes = prepare_query_structure(&smile);
+
+    let query_attributes = match query_attributes {
+        Ok(query_attributes) => query_attributes,
+        Err(e) => {
+            return GetStructureSearchResponse::Err(Json(StructureResponseError {
+                error: e.to_string(),
+            }))
+        }
+    };
+
+    let (query_canon_taut, fingerprint, descriptors) = query_attributes;
 
     let tantivy_result_limit = limit * 10;
 
@@ -50,8 +57,18 @@ pub fn v1_index_search_substructure(
         fingerprint.0.as_bitslice(),
         &descriptors,
         tantivy_result_limit,
-    )
-    .unwrap();
+    );
+
+    let mut results = match results {
+        Ok(results) => results,
+        Err(e) => {
+            return GetStructureSearchResponse::Err(Json(StructureResponseError {
+                error: e.to_string(),
+            }))
+        }
+    };
+
+    let mut tautomers_used = false;
 
     if results.len() < limit {
         let tautomers = get_tautomers(&query_canon_taut);
@@ -59,15 +76,32 @@ pub fn v1_index_search_substructure(
         let max_tauts = 10;
 
         for test_taut in tautomers.into_iter().take(max_tauts) {
-            let (taut_fingerprint, taut_descriptors) = get_cpd_properties(&test_taut).unwrap();
+            let taut_attributes = get_cpd_properties(&test_taut);
+
+            let taut_attributes = match taut_attributes {
+                Ok(taut_attributes) => taut_attributes,
+                Err(_) => continue,
+            };
+
+            let (taut_fingerprint, taut_descriptors) = taut_attributes;
+
             let mut taut_results = substructure_search(
                 &searcher,
                 &test_taut,
                 taut_fingerprint.0.as_bitslice(),
                 &taut_descriptors,
                 tantivy_result_limit,
-            )
-            .unwrap();
+            );
+
+            let mut taut_results = match taut_results {
+                Ok(taut_results) => taut_results,
+                Err(_) => continue,
+            };
+
+            if taut_results.len() > 0 {
+                tautomers_used = true;
+            };
+
             results.append(&mut taut_results);
 
             if results.len() > limit {
@@ -76,24 +110,16 @@ pub fn v1_index_search_substructure(
         }
     }
 
-    let mut final_results: Vec<SubstructureSearchHit> = Vec::new();
-    let schema = searcher.schema();
-    let smile_field = schema.get_field("smile").unwrap();
-    let extra_data_field = schema.get_field("extra_data").unwrap();
-    let score: f32 = 1.0; // every substructure match should get a 1
+    let final_results = aggregate_search_hits(searcher, results, tautomers_used);
 
-    for result in results {
-        let doc = searcher.doc(result).unwrap();
-        let smile = doc.get_first(smile_field).unwrap().as_text().unwrap();
-        let extra_data = doc.get_first(extra_data_field).unwrap().as_text().unwrap();
+    let final_results = match final_results {
+        Ok(final_results) => final_results,
+        Err(e) => {
+            return GetStructureSearchResponse::Err(Json(StructureResponseError {
+                error: e.to_string(),
+            }))
+        }
+    };
 
-        final_results.push(SubstructureSearchHit {
-            extra_data: extra_data.into(),
-            smiles: smile.to_string(),
-            score: score,
-            query: smile.to_string(),
-        })
-    }
-
-    GetSubstructureSearchResponse::Ok(Json(final_results))
+    GetStructureSearchResponse::Ok(Json(final_results))
 }

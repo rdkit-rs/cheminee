@@ -14,7 +14,7 @@ use crate::{
         api::{
             v1_get_index, v1_index_search_substructure, v1_list_indexes, v1_list_schemas,
             v1_post_index, v1_post_index_bulk, v1_standardize, BulkRequest, GetIndexesResponse,
-            GetSubstructureSearchResponse, ListIndexesResponse, ListSchemasResponse,
+            GetStructureSearchResponse, ListIndexesResponse, ListSchemasResponse,
             PostIndexResponse, PostIndexesBulkIndexResponse, StandardizeResponse,
         },
         models::Smile,
@@ -138,14 +138,16 @@ impl Api {
         index: Path<String>,
         smile: Query<String>,
         limit: Query<Option<String>>,
-    ) -> GetSubstructureSearchResponse {
+    ) -> GetStructureSearchResponse {
         let limit = if let Some(limit) = limit.0 {
             limit.parse::<usize>().unwrap()
         } else {
             usize::try_from(1000).unwrap()
         };
 
-        v1_index_search_substructure(index.to_string(), smile.0, limit)
+        let index_manager = self.index_manager.lock().await;
+
+        v1_index_search_substructure(&index_manager, index.to_string(), smile.0, limit)
     }
 }
 
