@@ -128,7 +128,7 @@ impl Api {
         index: Path<String>,
         bulk_request: Json<BulkRequest>,
     ) -> PostIndexesBulkIndexResponse {
-        v1_post_index_bulk(&self.index_manager, index.to_string(), bulk_request.0)
+        v1_post_index_bulk(&self.index_manager, index.to_string(), bulk_request.0).await
     }
 
     #[oai(path = "/v1/indexes/:index/search/substructure", method = "get")]
