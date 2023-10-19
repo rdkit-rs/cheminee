@@ -1,9 +1,7 @@
-use crate::indexing::open_index;
-use crate::rest_api::api::GetStructureSearchResponse;
 use crate::search::compound_processing::process_cpd;
+use poem_openapi_derive::Object;
 use rdkit::{detect_chemistry_problems, Fingerprint, ROMol, SmilesParserParams};
 use std::collections::HashMap;
-use tantivy::Searcher;
 
 pub mod basic_search;
 pub mod compound_processing;
@@ -21,7 +19,7 @@ pub fn prepare_query_structure(
 ) -> eyre::Result<(ROMol, Fingerprint, HashMap<String, f64>)> {
     let problems = validate_structure(smiles);
     if !problems.is_empty() {
-        return Err("Failed structure validation");
+        panic!("Need to implement error handling here")
     };
 
     let (query_canon_taut, fingerprint, descriptors) = process_cpd(smiles)?;

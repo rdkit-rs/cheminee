@@ -145,9 +145,7 @@ impl Api {
             usize::try_from(1000).unwrap()
         };
 
-        let index_manager = self.index_manager.lock().await;
-
-        v1_index_search_substructure(&index_manager, index.to_string(), smile.0, limit)
+        v1_index_search_substructure(&self.index_manager, index.to_string(), smile.0, limit)
     }
 }
 

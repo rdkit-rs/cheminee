@@ -1,13 +1,11 @@
 use crate::indexing::index_manager::IndexManager;
 use crate::rest_api::api::{
-    aggregate_search_hits, GetStructureSearchResponse, StructureResponseError, StructureSearchHit,
+    aggregate_search_hits, GetStructureSearchResponse, StructureResponseError,
 };
 use crate::search::compound_processing::{get_cpd_properties, get_tautomers};
 use crate::search::prepare_query_structure;
 use crate::search::substructure_search::substructure_search;
 use poem_openapi::payload::Json;
-use poem_openapi_derive::{ApiResponse, Object};
-use tantivy::HasLen;
 
 pub fn v1_index_search_substructure(
     index_manager: &IndexManager,
@@ -51,7 +49,7 @@ pub fn v1_index_search_substructure(
 
     let tantivy_result_limit = limit * 10;
 
-    let mut results = substructure_search(
+    let results = substructure_search(
         &searcher,
         &query_canon_taut,
         fingerprint.0.as_bitslice(),
@@ -85,7 +83,7 @@ pub fn v1_index_search_substructure(
 
             let (taut_fingerprint, taut_descriptors) = taut_attributes;
 
-            let mut taut_results = substructure_search(
+            let taut_results = substructure_search(
                 &searcher,
                 &test_taut,
                 taut_fingerprint.0.as_bitslice(),

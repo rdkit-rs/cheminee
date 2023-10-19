@@ -48,19 +48,11 @@ pub fn aggregate_search_hits(
 
     for result in results {
         let doc = searcher.doc(result)?;
-        let smile = doc
-            .get_first(smile_field)
-            .ok_or("Failed to retrieve result smiles");
+        let smile = doc.get_first(smile_field).unwrap();
+        let smile = smile.as_text().unwrap();
 
-
-        let smile = smile.as_text().;
-
-        let extra_data = doc
-            .get_first(extra_data_field)
-            .ok_or("Failed to retrieve result extra_data");
-        let extra_data = extra_data
-            .as_text()
-            .ok_or("Failed to retrieve result extra_data");
+        let extra_data = doc.get_first(extra_data_field).unwrap();
+        let extra_data = extra_data.as_text().unwrap();
 
         final_results.push(StructureSearchHit {
             extra_data: extra_data.into(),

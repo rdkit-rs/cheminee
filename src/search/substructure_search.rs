@@ -50,12 +50,14 @@ pub fn substructure_search(
     for (_score, docaddr) in filtered_results1 {
         let doc = searcher.doc(docaddr)?;
 
-        let smile = doc.get_first(smile_field)?;
-        let smile = smile.as_text()?;
+        let smile = doc.get_first(smile_field).unwrap().as_text().unwrap();
 
         // TO-DO: find a zero-copy bitvec container
-        let fingerprint = doc.get_first(fingerprint_field)?;
-        let fingerprint = fingerprint.as_bytes()?;
+        let fingerprint = doc
+            .get_first(fingerprint_field)
+            .unwrap()
+            .as_bytes()
+            .unwrap();
 
         let fingerprint_bits = BitSlice::<u8, Lsb0>::from_slice(fingerprint);
 
