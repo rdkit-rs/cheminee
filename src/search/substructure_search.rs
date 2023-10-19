@@ -40,7 +40,8 @@ pub fn substructure_search(
     let query = build_query(query_descriptors);
 
     // Note: in the end, we want a limit for the FINAL number of matches to return
-    let filtered_results1 = basic_search(searcher, &query, limit)?;
+    let tantivy_limit = 10 * limit;
+    let filtered_results1 = basic_search(searcher, &query, tantivy_limit)?;
 
     let smile_field = schema.get_field("smile")?;
     let fingerprint_field = schema.get_field("fingerprint")?;
@@ -48,22 +49,31 @@ pub fn substructure_search(
     let mut filtered_results2: Vec<DocAddress> = Vec::new();
 
     for (_score, docaddr) in filtered_results1 {
+        if filtered_results2.len() >= limit {
+            break;
+        }
+
         let doc = searcher.doc(docaddr)?;
-        let smile = doc.get_first(smile_field).unwrap().as_text().unwrap();
+
+        let smile = doc
+            .get_first(smile_field)
+            .ok_or(eyre::eyre!("Tantivy smiles retrieval failed"))?
+            .as_text()
+            .ok_or(eyre::eyre!("Failed to stringify smiles"))?;
 
         // TO-DO: find a zero-copy bitvec container
         let fingerprint = doc
             .get_first(fingerprint_field)
-            .unwrap()
+            .ok_or(eyre::eyre!("Tantivy fingerprint retrieval failed"))?
             .as_bytes()
-            .unwrap();
+            .ok_or(eyre::eyre!("Failed to read fingerprint as bytes"))?;
+
         let fingerprint_bits = BitSlice::<u8, Lsb0>::from_slice(fingerprint);
 
         let fp_match = substructure_match_fp(query_fingerprint, fingerprint_bits);
 
         if fp_match {
-            let mol_substruct_match =
-                substruct_match(&ROMol::from_smile(smile).unwrap(), query_mol);
+            let mol_substruct_match = substruct_match(&ROMol::from_smile(smile)?, query_mol);
             if mol_substruct_match {
                 filtered_results2.push(docaddr);
             }

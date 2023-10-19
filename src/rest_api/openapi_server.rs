@@ -14,7 +14,7 @@ use crate::{
         api::{
             v1_get_index, v1_index_search_substructure, v1_list_indexes, v1_list_schemas,
             v1_post_index, v1_post_index_bulk, v1_standardize, BulkRequest, GetIndexesResponse,
-            GetSubstructureSearchResponse, ListIndexesResponse, ListSchemasResponse,
+            GetStructureSearchResponse, ListIndexesResponse, ListSchemasResponse,
             PostIndexResponse, PostIndexesBulkIndexResponse, StandardizeResponse,
         },
         models::Smile,
@@ -141,9 +141,16 @@ impl Api {
     pub async fn v1_index_search_substructure(
         &self,
         index: Path<String>,
-        q: Query<String>,
-    ) -> GetSubstructureSearchResponse {
-        v1_index_search_substructure(index.to_string(), Some(q.0))
+        smile: Query<String>,
+        limit: Query<Option<String>>,
+    ) -> GetStructureSearchResponse {
+        let limit = if let Some(limit) = limit.0 {
+            limit.parse::<usize>().unwrap()
+        } else {
+            usize::try_from(1000).unwrap()
+        };
+
+        v1_index_search_substructure(&self.index_manager, index.to_string(), smile.0, limit)
     }
 }
 
