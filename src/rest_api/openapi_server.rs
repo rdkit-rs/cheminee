@@ -57,16 +57,21 @@ pub async fn run_api_service(
 
     let logging_middleware = poem::middleware::Tracing;
 
+    let app = Route::new()
+        .at(
+            "/api/v1/openapi.json",
+            poem::endpoint::make_sync(move |_| spec.clone()),
+        )
+        .nest(API_PREFIX, api_service)
+        .nest("/", ui)
+        .with(logging_middleware);
     Server::new(TcpListener::bind(bind))
-        .run(
-            Route::new()
-                .at(
-                    "/api/v1/openapi.json",
-                    poem::endpoint::make_sync(move |_| spec.clone()),
-                )
-                .nest(API_PREFIX, api_service)
-                .nest("/", ui)
-                .with(logging_middleware),
+        .run_with_graceful_shutdown(
+            app,
+            async move {
+                let _ = tokio::signal::ctrl_c().await;
+            },
+            Some(tokio::time::Duration::from_secs(5)),
         )
         .await?;
 
