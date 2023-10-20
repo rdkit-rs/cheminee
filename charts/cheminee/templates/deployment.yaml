@@ -9,6 +9,10 @@ spec:
   replicas: {{ .Values.replicaCount }}
   revisionHistoryLimit: 1
   {{- end }}
+  {{- if .Values.persistence.enabled }}
+  strategy:
+    type: Recreate
+  {{- end }}
   selector:
     matchLabels:
       {{- include "cheminee.selectorLabels" . | nindent 6 }}
