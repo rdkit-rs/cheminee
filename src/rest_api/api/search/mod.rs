@@ -1,7 +1,8 @@
+mod search;
 mod substructure_search;
-
 use poem_openapi::payload::Json;
 use poem_openapi_derive::{ApiResponse, Object};
+pub use search::*;
 pub use substructure_search::*;
 use tantivy::{DocAddress, Searcher};
 

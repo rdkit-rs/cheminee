@@ -12,10 +12,11 @@ use crate::{
     indexing::index_manager::IndexManager,
     rest_api::{
         api::{
-            v1_get_index, v1_index_search_substructure, v1_list_indexes, v1_list_schemas,
-            v1_post_index, v1_post_index_bulk, v1_standardize, BulkRequest, GetIndexesResponse,
-            GetStructureSearchResponse, ListIndexesResponse, ListSchemasResponse,
-            PostIndexResponse, PostIndexesBulkIndexResponse, StandardizeResponse,
+            v1_get_index, v1_index_search, v1_index_search_substructure, v1_list_indexes,
+            v1_list_schemas, v1_post_index, v1_post_index_bulk, v1_standardize, BulkRequest,
+            GetIndexesResponse, GetIndexesSearchResponse, GetStructureSearchResponse,
+            ListIndexesResponse, ListSchemasResponse, PostIndexResponse,
+            PostIndexesBulkIndexResponse, StandardizeResponse,
         },
         models::Smile,
     },
@@ -134,6 +135,18 @@ impl Api {
         bulk_request: Json<BulkRequest>,
     ) -> PostIndexesBulkIndexResponse {
         v1_post_index_bulk(&self.index_manager, index.to_string(), bulk_request.0).await
+    }
+
+    #[oai(path = "/v1/indexes/:index/search", method = "get")]
+    /// The no-smarts search, just applies a tantivy query to the index and serializes the response
+    pub async fn v1_index_search(
+        &self,
+        index: Path<String>,
+        q: Query<Option<String>>,
+        limit: Query<Option<usize>>,
+        offset: Query<Option<usize>>,
+    ) -> GetIndexesSearchResponse {
+        v1_index_search(&self.index_manager, index.to_string, q.0, offset.0)
     }
 
     #[oai(path = "/v1/indexes/:index/search/substructure", method = "get")]
