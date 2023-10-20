@@ -11,7 +11,8 @@ pub fn v1_index_search_substructure(
     index_manager: &IndexManager,
     index: String,
     smile: String,
-    limit: usize,
+    result_limit: usize,
+    tautomer_limit: usize,
 ) -> GetStructureSearchResponse {
     let index = match index_manager.open(&index) {
         Ok(index) => index,
@@ -52,7 +53,7 @@ pub fn v1_index_search_substructure(
         &query_canon_taut,
         fingerprint.0.as_bitslice(),
         &descriptors,
-        limit,
+        result_limit,
     );
 
     let mut results = match results {
@@ -66,42 +67,49 @@ pub fn v1_index_search_substructure(
 
     let mut tautomers_used = false;
 
-    if results.len() < limit {
+    if results.len() < result_limit {
         let tautomers = get_tautomers(&query_canon_taut);
 
-        let max_tauts = 10;
+        if tautomers.len() > 1 && tautomer_limit > 0 {
+            let max_tauts = 10;
 
-        for test_taut in tautomers.into_iter().take(max_tauts) {
-            let taut_attributes = get_cpd_properties(&test_taut);
+            for test_taut in tautomers.into_iter().take(max_tauts) {
+                // don't reuse the canonical tautomer
+                if test_taut.as_smile() == query_canon_taut.as_smile() {
+                    continue;
+                }
 
-            let taut_attributes = match taut_attributes {
-                Ok(taut_attributes) => taut_attributes,
-                Err(_) => continue,
-            };
+                let taut_attributes = get_cpd_properties(&test_taut);
 
-            let (taut_fingerprint, taut_descriptors) = taut_attributes;
+                let taut_attributes = match taut_attributes {
+                    Ok(taut_attributes) => taut_attributes,
+                    Err(_) => continue,
+                };
 
-            let taut_results = substructure_search(
-                &searcher,
-                &test_taut,
-                taut_fingerprint.0.as_bitslice(),
-                &taut_descriptors,
-                limit,
-            );
+                let (taut_fingerprint, taut_descriptors) = taut_attributes;
 
-            let mut taut_results = match taut_results {
-                Ok(taut_results) => taut_results,
-                Err(_) => continue,
-            };
+                let taut_results = substructure_search(
+                    &searcher,
+                    &test_taut,
+                    taut_fingerprint.0.as_bitslice(),
+                    &taut_descriptors,
+                    result_limit,
+                );
 
-            if taut_results.len() > 0 {
-                tautomers_used = true;
-            };
+                let taut_results = match taut_results {
+                    Ok(taut_results) => taut_results,
+                    Err(_) => continue,
+                };
 
-            results.append(&mut taut_results);
+                if taut_results.len() > 0 {
+                    tautomers_used = true;
+                };
 
-            if results.len() > limit {
-                break;
+                results.extend(&taut_results);
+
+                if results.len() > result_limit {
+                    break;
+                }
             }
         }
     }

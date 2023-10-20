@@ -2,6 +2,7 @@ mod substructure_search;
 
 use poem_openapi::payload::Json;
 use poem_openapi_derive::{ApiResponse, Object};
+use std::collections::HashSet;
 pub use substructure_search::*;
 use tantivy::{DocAddress, Searcher};
 
@@ -36,7 +37,7 @@ pub struct StructureSearchResponseError {
 
 pub fn aggregate_search_hits(
     searcher: Searcher,
-    results: Vec<DocAddress>,
+    results: HashSet<DocAddress>,
     tautomers_used: bool,
     query: &str,
 ) -> eyre::Result<Vec<StructureSearchHit>> {
