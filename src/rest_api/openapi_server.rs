@@ -142,17 +142,17 @@ impl Api {
         &self,
         index: Path<String>,
         smile: Query<String>,
-        result_limit: Query<Option<String>>,
-        tautomer_limit: Query<Option<String>>,
+        result_limit: Query<Option<usize>>,
+        tautomer_limit: Query<Option<usize>>,
     ) -> GetStructureSearchResponse {
         let result_limit = if let Some(result_limit) = result_limit.0 {
-            result_limit.parse::<usize>().unwrap()
+            result_limit
         } else {
             usize::try_from(1000).unwrap()
         };
 
         let tautomer_limit = if let Some(tautomer_limit) = tautomer_limit.0 {
-            tautomer_limit.parse::<usize>().unwrap()
+            tautomer_limit
         } else {
             usize::try_from(10).unwrap()
         };
