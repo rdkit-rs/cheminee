@@ -70,10 +70,8 @@ pub fn v1_index_search_substructure(
     if results.len() < result_limit {
         let tautomers = get_tautomers(&query_canon_taut);
 
-        if tautomers.len() > 1 && tautomer_limit > 0 {
-            let max_tauts = 10;
-
-            for test_taut in tautomers.into_iter().take(max_tauts) {
+        if tautomers.len() > 1 && tautomer_limit > 1 {
+            for test_taut in tautomers.into_iter().take(tautomer_limit) {
                 // don't reuse the canonical tautomer
                 if test_taut.as_smile() == query_canon_taut.as_smile() {
                     continue;
