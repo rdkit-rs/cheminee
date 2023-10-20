@@ -71,14 +71,14 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
 
         for test_taut in tautomers.into_iter().take(max_tauts) {
             let (taut_fingerprint, taut_descriptors) = get_cpd_properties(&test_taut)?;
-            let mut taut_results = substructure_search(
+            let taut_results = substructure_search(
                 &searcher,
                 &test_taut,
                 taut_fingerprint.0.as_bitslice(),
                 &taut_descriptors,
                 tantivy_result_limit,
             )?;
-            results.append(&mut taut_results);
+            results.extend(&taut_results);
 
             if results.len() > limit {
                 break;
