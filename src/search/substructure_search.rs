@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use bitvec::prelude::{BitSlice, Lsb0};
 use rdkit::{substruct_match, ROMol};
@@ -34,22 +34,22 @@ pub fn substructure_search(
     query_mol: &ROMol,
     query_fingerprint: &BitSlice<u8, Lsb0>,
     query_descriptors: &HashMap<String, f64>,
-    limit: usize,
-) -> eyre::Result<Vec<DocAddress>> {
+    result_limit: usize,
+) -> eyre::Result<HashSet<DocAddress>> {
     let schema = searcher.schema();
     let query = build_query(query_descriptors);
 
     // Note: in the end, we want a limit for the FINAL number of matches to return
-    let tantivy_limit = 10 * limit;
+    let tantivy_limit = 10 * result_limit;
     let filtered_results1 = basic_search(searcher, &query, tantivy_limit)?;
 
     let smile_field = schema.get_field("smile")?;
     let fingerprint_field = schema.get_field("fingerprint")?;
 
-    let mut filtered_results2: Vec<DocAddress> = Vec::new();
+    let mut filtered_results2: HashSet<DocAddress> = HashSet::new();
 
     for (_score, docaddr) in filtered_results1 {
-        if filtered_results2.len() >= limit {
+        if filtered_results2.len() >= result_limit {
             break;
         }
 
@@ -75,7 +75,7 @@ pub fn substructure_search(
         if fp_match {
             let mol_substruct_match = substruct_match(&ROMol::from_smile(smile)?, query_mol);
             if mol_substruct_match {
-                filtered_results2.push(docaddr);
+                filtered_results2.insert(docaddr);
             }
         }
     }
