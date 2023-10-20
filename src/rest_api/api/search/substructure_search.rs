@@ -69,39 +69,41 @@ pub fn v1_index_search_substructure(
     if results.len() < limit {
         let tautomers = get_tautomers(&query_canon_taut);
 
-        let max_tauts = 10;
+        if tautomers.len() > 1 {
+            let max_tauts = 10;
 
-        for test_taut in tautomers.into_iter().take(max_tauts) {
-            let taut_attributes = get_cpd_properties(&test_taut);
+            for test_taut in tautomers.into_iter().take(max_tauts) {
+                let taut_attributes = get_cpd_properties(&test_taut);
 
-            let taut_attributes = match taut_attributes {
-                Ok(taut_attributes) => taut_attributes,
-                Err(_) => continue,
-            };
+                let taut_attributes = match taut_attributes {
+                    Ok(taut_attributes) => taut_attributes,
+                    Err(_) => continue,
+                };
 
-            let (taut_fingerprint, taut_descriptors) = taut_attributes;
+                let (taut_fingerprint, taut_descriptors) = taut_attributes;
 
-            let taut_results = substructure_search(
-                &searcher,
-                &test_taut,
-                taut_fingerprint.0.as_bitslice(),
-                &taut_descriptors,
-                limit,
-            );
+                let taut_results = substructure_search(
+                    &searcher,
+                    &test_taut,
+                    taut_fingerprint.0.as_bitslice(),
+                    &taut_descriptors,
+                    limit,
+                );
 
-            let mut taut_results = match taut_results {
-                Ok(taut_results) => taut_results,
-                Err(_) => continue,
-            };
+                let mut taut_results = match taut_results {
+                    Ok(taut_results) => taut_results,
+                    Err(_) => continue,
+                };
 
-            if taut_results.len() > 0 {
-                tautomers_used = true;
-            };
+                if taut_results.len() > 0 {
+                    tautomers_used = true;
+                };
 
-            results.append(&mut taut_results);
+                results.append(&mut taut_results);
 
-            if results.len() > limit {
-                break;
+                if results.len() > limit {
+                    break;
+                }
             }
         }
     }
