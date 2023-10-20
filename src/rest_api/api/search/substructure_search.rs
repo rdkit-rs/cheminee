@@ -65,15 +65,17 @@ pub fn v1_index_search_substructure(
         }
     };
 
-    let mut tautomers_used = false;
+    let mut used_tautomers = false;
+    let mut num_tauts_used = 0;
+    if results.len() > 0 {
+        num_tauts_used = 1;
+    }
 
     if results.len() < result_limit {
         let tautomers = get_tautomers(&query_canon_taut);
 
-        if tautomers.len() > 1 && tautomer_limit > 0 {
-            let max_tauts = 10;
-
-            for test_taut in tautomers.into_iter().take(max_tauts) {
+        if tautomers.len() > 1 && tautomer_limit > 1 {
+            for test_taut in tautomers {
                 // don't reuse the canonical tautomer
                 if test_taut.as_smile() == query_canon_taut.as_smile() {
                     continue;
@@ -101,20 +103,21 @@ pub fn v1_index_search_substructure(
                     Err(_) => continue,
                 };
 
-                if taut_results.len() > 0 {
-                    tautomers_used = true;
-                };
-
                 results.extend(&taut_results);
+                num_tauts_used += 1;
 
-                if results.len() > result_limit {
+                if used_tautomers == false {
+                    used_tautomers = true;
+                }
+
+                if results.len() > result_limit || num_tauts_used == tautomer_limit {
                     break;
                 }
             }
         }
     }
 
-    let final_results = aggregate_search_hits(searcher, results, tautomers_used, &smile);
+    let final_results = aggregate_search_hits(searcher, results, used_tautomers, &smile);
 
     let final_results = match final_results {
         Ok(final_results) => final_results,
