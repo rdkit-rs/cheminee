@@ -1,7 +1,9 @@
-use crate::search::compound_processing::process_cpd;
+use std::collections::HashMap;
+
 use poem_openapi_derive::Object;
 use rdkit::{detect_chemistry_problems, Fingerprint, ROMol, SmilesParserParams};
-use std::collections::HashMap;
+
+use crate::search::compound_processing::process_cpd;
 
 pub mod basic_search;
 pub mod compound_processing;
@@ -26,7 +28,7 @@ pub fn prepare_query_structure(
     Ok((query_canon_taut, fingerprint, descriptors))
 }
 
-pub fn validate_structure(smiles: &str) -> eyre::Result<Vec<String>> {
+pub fn validate_structure(smiles: &str) -> eyre::Result<Vec<(String, Option<u32>)>> {
     let mut parser_params = SmilesParserParams::default();
     parser_params.sanitize(false);
     let mol = ROMol::from_smile_with_params(smiles, &parser_params)?;

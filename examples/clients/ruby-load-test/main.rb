@@ -10,6 +10,8 @@ configuration.scheme = "http"
 api_client = Cheminee::ApiClient.new(configuration)
 default_api = Cheminee::DefaultApi.new(api_client)
 
+default_api.v1_indexes_index_post("meepity-beepity", "descriptor_v1", sort_by: "exactmw")
+
 structures = File.read("structures").split("\n")
 
 passes = 5
