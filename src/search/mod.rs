@@ -18,7 +18,7 @@ pub struct StructureValidationError {
 }
 
 pub fn prepare_query_structure(
-    smiles: &String,
+    smiles: &str,
 ) -> eyre::Result<(ROMol, Fingerprint, HashMap<String, f64>)> {
     let problems = validate_structure(smiles)?;
     if !problems.is_empty() {
@@ -78,7 +78,7 @@ pub fn aggregate_search_hits(
         final_results.push(StructureSearchHit {
             extra_data: extra_data.into(),
             smiles: smile.into(),
-            score: score,
+            score,
             query: query.into(),
             used_tautomers: tautomers_used,
         })

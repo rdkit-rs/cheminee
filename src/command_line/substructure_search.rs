@@ -48,7 +48,7 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
         usize::try_from(1000)?
     };
 
-    let tautomer_limit = &result_limit * 10;
+    let tautomer_limit = result_limit * 10;
 
     let mut results = substructure_search(
         &searcher,
@@ -60,7 +60,7 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
 
     let mut used_tautomers = false;
     let mut num_tauts_used = 0;
-    if results.len() > 0 {
+    if !results.is_empty() {
         num_tauts_used = 1;
     }
 
@@ -99,7 +99,7 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
                 results.extend(&taut_results);
                 num_tauts_used += 1;
 
-                if used_tautomers == false {
+                if !used_tautomers {
                     used_tautomers = true;
                 }
 
@@ -110,7 +110,7 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
         }
     }
 
-    let final_results = aggregate_search_hits(searcher, results, used_tautomers, &smile)?;
+    let final_results = aggregate_search_hits(searcher, results, used_tautomers, smile)?;
 
     println!("{:#?}", final_results);
 

@@ -65,7 +65,7 @@ pub fn v1_index_search_substructure(
 
     let mut used_tautomers = false;
     let mut num_tauts_used = 0;
-    if results.len() > 0 {
+    if !results.is_empty() {
         num_tauts_used = 1;
     }
 
@@ -104,7 +104,7 @@ pub fn v1_index_search_substructure(
                 results.extend(&taut_results);
                 num_tauts_used += 1;
 
-                if used_tautomers == false {
+                if !used_tautomers {
                     used_tautomers = true;
                 }
 
