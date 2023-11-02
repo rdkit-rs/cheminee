@@ -2,15 +2,15 @@
 require 'cheminee'
 
 configuration = Cheminee::Configuration.new()
-configuration.host = "localhost:3000"
-configuration.scheme = "http"
-# configuration.host = "cheminee.scientist.com"
-# configuration.scheme = "https"
+# configuration.host = "localhost:3000"
+# configuration.scheme = "http"
+configuration.host = "cheminee.scientist.com"
+configuration.scheme = "https"
 
 api_client = Cheminee::ApiClient.new(configuration)
 default_api = Cheminee::DefaultApi.new(api_client)
 
-default_api.v1_indexes_index_post("meepity-beepity", "descriptor_v1", sort_by: "exactmw")
+default_api.v1_indexes_index_post("meepity-beepity", "descriptor_v1", sort_by: "exactmw") rescue nil
 
 structures = File.read("structures").split("\n")
 
