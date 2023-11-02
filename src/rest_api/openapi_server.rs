@@ -173,8 +173,7 @@ pub fn output_spec(server_url: &str, output: &str) -> eyre::Result<()> {
         API_PREFIX,
         std::path::PathBuf::from("/tmp/cheminee"),
         false,
-    )
-    .unwrap();
+    )?;
 
     let spec = api_service.spec();
 
