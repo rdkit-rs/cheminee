@@ -1,7 +1,9 @@
 use std::collections::{HashMap, HashSet};
 
 use poem_openapi_derive::Object;
-use rdkit::{detect_chemistry_problems, Fingerprint, ROMol, SmilesParserParams};
+use rdkit::{
+    detect_chemistry_problems, Fingerprint, MolSanitizeException, ROMol, SmilesParserParams,
+};
 use tantivy::{DocAddress, Searcher};
 
 use crate::search::compound_processing::process_cpd;
@@ -29,7 +31,7 @@ pub fn prepare_query_structure(
     Ok((query_canon_taut, fingerprint, descriptors))
 }
 
-pub fn validate_structure(smiles: &str) -> eyre::Result<Vec<(String, Option<u32>)>> {
+pub fn validate_structure(smiles: &str) -> eyre::Result<Vec<MolSanitizeException>> {
     let mut parser_params = SmilesParserParams::default();
     parser_params.sanitize(false);
     let mol = ROMol::from_smile_with_params(smiles, &parser_params)?;

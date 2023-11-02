@@ -1,9 +1,10 @@
 mod substructure_search;
 
-use crate::search::StructureSearchHit;
 use poem_openapi::payload::Json;
 use poem_openapi_derive::{ApiResponse, Object};
 pub use substructure_search::*;
+
+use crate::search::StructureSearchHit;
 
 #[derive(ApiResponse)]
 pub enum GetStructureSearchResponse {

@@ -2,9 +2,10 @@ use bitvec::prelude::BitSlice;
 use rdkit::*;
 
 pub fn exact_match(romol1: &ROMol, romol2: &ROMol) -> bool {
-    let match1 = substruct_match(romol1, romol2);
-    let match2 = substruct_match(romol2, romol1);
-    match1 & match2
+    let params = SubstructMatchParameters::default();
+    let match1 = substruct_match(romol1, romol2, &params);
+    let match2 = substruct_match(romol2, romol1, &params);
+    !(match1.is_empty() || match2.is_empty())
 }
 
 pub fn exact_match_fp(romol1: &ROMol, romol2: &ROMol) -> bool {

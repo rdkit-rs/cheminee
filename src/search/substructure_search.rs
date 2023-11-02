@@ -1,7 +1,7 @@
 use std::collections::{HashMap, HashSet};
 
 use bitvec::prelude::{BitSlice, Lsb0};
-use rdkit::{substruct_match, ROMol};
+use rdkit::{substruct_match, ROMol, SubstructMatchParameters};
 use tantivy::{DocAddress, Searcher};
 
 use crate::search::{basic_search::basic_search, structure_matching::substructure_match_fp};
@@ -73,8 +73,10 @@ pub fn substructure_search(
         let fp_match = substructure_match_fp(query_fingerprint, fingerprint_bits);
 
         if fp_match {
-            let mol_substruct_match = substruct_match(&ROMol::from_smile(smile)?, query_mol);
-            if mol_substruct_match {
+            let params = SubstructMatchParameters::default();
+            let mol_substruct_match =
+                substruct_match(&ROMol::from_smile(smile)?, &query_mol, &params);
+            if !mol_substruct_match.is_empty() {
                 filtered_results2.insert(docaddr);
             }
         }

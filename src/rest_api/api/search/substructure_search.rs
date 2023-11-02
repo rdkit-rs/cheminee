@@ -1,9 +1,15 @@
-use crate::indexing::index_manager::IndexManager;
-use crate::rest_api::api::{GetStructureSearchResponse, StructureResponseError};
-use crate::search::compound_processing::{get_cpd_properties, get_tautomers};
-use crate::search::substructure_search::substructure_search;
-use crate::search::{aggregate_search_hits, prepare_query_structure};
 use poem_openapi::payload::Json;
+
+use crate::{
+    indexing::index_manager::IndexManager,
+    rest_api::api::{GetStructureSearchResponse, StructureResponseError},
+    search::{
+        aggregate_search_hits,
+        compound_processing::{get_cpd_properties, get_tautomers},
+        prepare_query_structure,
+        substructure_search::substructure_search,
+    },
+};
 
 pub fn v1_index_search_substructure(
     index_manager: &IndexManager,
