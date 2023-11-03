@@ -33,15 +33,15 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
     let query = matches.get_one::<String>("query").unwrap();
     let limit = matches.get_one::<String>("limit");
 
-    let index = open_index(index_path)?;
-    let reader = index.reader()?;
-    let searcher = reader.searcher();
-
     let limit = if let Some(limit) = limit {
         limit.parse::<usize>()?
     } else {
-        usize::try_from(1000).unwrap()
+        usize::try_from(1000)?
     };
+
+    let index = open_index(index_path)?;
+    let reader = index.reader()?;
+    let searcher = reader.searcher();
 
     let results = basic_search(&searcher, query, limit);
 
