@@ -20,8 +20,3 @@ pub enum GetStructureSearchResponse {
 pub struct StructureResponseError {
     pub error: String,
 }
-
-#[derive(Object, Debug)]
-pub struct StructureSearchResponseError {
-    pub error: String,
-}
