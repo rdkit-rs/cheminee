@@ -1,4 +1,5 @@
 pub use super::prelude::*;
+use crate::search::aggregate_query_hits;
 use crate::search::basic_search::basic_search;
 
 pub const NAME: &str = "search";
@@ -43,9 +44,11 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
     let reader = index.reader()?;
     let searcher = reader.searcher();
 
-    let results = basic_search(&searcher, query, limit);
+    let results = basic_search(&searcher, query, limit)?;
 
-    println!("{:#?}", results);
+    let final_results = aggregate_query_hits(searcher, results, query)?;
+
+    println!("{:#?}", final_results);
 
     Ok(())
 }
