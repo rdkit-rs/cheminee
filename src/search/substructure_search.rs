@@ -48,7 +48,7 @@ pub fn substructure_search(
 
     let mut filtered_results2: HashSet<DocAddress> = HashSet::new();
 
-    for (_score, docaddr) in filtered_results1 {
+    for docaddr in filtered_results1 {
         if filtered_results2.len() >= result_limit {
             break;
         }
