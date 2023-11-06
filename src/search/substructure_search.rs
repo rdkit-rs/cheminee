@@ -35,9 +35,11 @@ pub fn substructure_search(
     query_fingerprint: &BitSlice<u8, Lsb0>,
     query_descriptors: &HashMap<String, f64>,
     result_limit: usize,
+    exactmw_min: usize,
+    exactmw_max: usize,
 ) -> eyre::Result<HashSet<DocAddress>> {
     let schema = searcher.schema();
-    let query = build_query(query_descriptors);
+    let query = build_query(query_descriptors, exactmw_min, exactmw_max);
 
     // Note: in the end, we want a limit for the FINAL number of matches to return
     let tantivy_limit = 10 * result_limit;
@@ -85,12 +87,20 @@ pub fn substructure_search(
     Ok(filtered_results2)
 }
 
-fn build_query(descriptors: &HashMap<String, f64>) -> String {
+fn build_query(
+    descriptors: &HashMap<String, f64>,
+    exactmw_min: usize,
+    exactmw_max: usize,
+) -> String {
     let mut query_parts = Vec::with_capacity(descriptors.len());
 
     for (k, v) in descriptors {
         if DESCRIPTOR_ALLOW_LIST.contains(&k.as_str()) {
-            query_parts.push(format!("{k}: [{v} TO 10000]"));
+            if k.as_str() == "exactmw" {
+                query_parts.push(format!("{k}: [{exactmw_min} TO {exactmw_max}]"));
+            } else {
+                query_parts.push(format!("{k}: [{v} TO 10000]"));
+            }
         }
     }
 
