@@ -17,6 +17,7 @@ pub fn v1_index_search_substructure(
     smile: String,
     result_limit: usize,
     tautomer_limit: usize,
+    extra_query: &String,
 ) -> GetStructureSearchResponse {
     let index = match index_manager.open(&index) {
         Ok(index) => index,
@@ -58,6 +59,7 @@ pub fn v1_index_search_substructure(
         fingerprint.0.as_bitslice(),
         &descriptors,
         result_limit,
+        extra_query,
     );
 
     let mut results = match results {
@@ -100,6 +102,7 @@ pub fn v1_index_search_substructure(
                     taut_fingerprint.0.as_bitslice(),
                     &taut_descriptors,
                     result_limit,
+                    extra_query,
                 );
 
                 let taut_results = match taut_results {

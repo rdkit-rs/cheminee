@@ -23,10 +23,24 @@ pub fn command() -> Command {
                 .num_args(1),
         )
         .arg(
-            Arg::new("limit")
+            Arg::new("result_limit")
                 .required(false)
-                .long("limit")
-                .short('l')
+                .long("result_limit")
+                .short('r')
+                .num_args(1),
+        )
+        .arg(
+            Arg::new("tautomer_limit")
+                .required(false)
+                .long("tautomer_limit")
+                .short('t')
+                .num_args(1),
+        )
+        .arg(
+            Arg::new("extra_query")
+                .required(false)
+                .long("extra_query")
+                .short('e')
                 .num_args(1),
         )
 }
@@ -34,13 +48,9 @@ pub fn command() -> Command {
 pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
     let index_path = matches.get_one::<String>("index").unwrap();
     let smile = matches.get_one::<String>("smiles").unwrap();
-    let result_limit = matches.get_one::<String>("limit");
-
-    let (query_canon_taut, fingerprint, descriptors) = prepare_query_structure(smile)?;
-
-    let index = open_index(index_path)?;
-    let reader = index.reader()?;
-    let searcher = reader.searcher();
+    let result_limit = matches.get_one::<String>("result_limit");
+    let tautomer_limit = matches.get_one::<String>("tautomer_limit");
+    let extra_query = matches.get_one::<String>("extra_query");
 
     let result_limit = if let Some(result_limit) = result_limit {
         result_limit.parse::<usize>()?
@@ -48,7 +58,23 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
         usize::try_from(1000)?
     };
 
-    let tautomer_limit = result_limit * 10;
+    let tautomer_limit = if let Some(tautomer_limit) = tautomer_limit {
+        tautomer_limit.parse::<usize>()?
+    } else {
+        usize::try_from(10)?
+    };
+
+    let extra_query = if let Some(extra_query) = extra_query {
+        extra_query.clone()
+    } else {
+        "".to_string()
+    };
+
+    let index = open_index(index_path)?;
+    let reader = index.reader()?;
+    let searcher = reader.searcher();
+
+    let (query_canon_taut, fingerprint, descriptors) = prepare_query_structure(smile)?;
 
     let mut results = substructure_search(
         &searcher,
@@ -56,6 +82,7 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
         fingerprint.0.as_bitslice(),
         &descriptors,
         result_limit,
+        &extra_query,
     )?;
 
     let mut used_tautomers = false;
@@ -89,6 +116,7 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
                     taut_fingerprint.0.as_bitslice(),
                     &taut_descriptors,
                     result_limit,
+                    &extra_query,
                 );
 
                 let taut_results = match taut_results {

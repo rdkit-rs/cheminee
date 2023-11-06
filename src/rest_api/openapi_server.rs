@@ -12,10 +12,11 @@ use crate::{
     indexing::index_manager::IndexManager,
     rest_api::{
         api::{
-            v1_get_index, v1_index_search_substructure, v1_list_indexes, v1_list_schemas,
-            v1_post_index, v1_post_index_bulk, v1_standardize, BulkRequest, GetIndexesResponse,
-            GetStructureSearchResponse, ListIndexesResponse, ListSchemasResponse,
-            PostIndexResponse, PostIndexesBulkIndexResponse, StandardizeResponse,
+            v1_get_index, v1_index_search_basic, v1_index_search_substructure, v1_list_indexes,
+            v1_list_schemas, v1_post_index, v1_post_index_bulk, v1_standardize, BulkRequest,
+            GetIndexesResponse, GetQuerySearchResponse, GetStructureSearchResponse,
+            ListIndexesResponse, ListSchemasResponse, PostIndexResponse,
+            PostIndexesBulkIndexResponse, StandardizeResponse,
         },
         models::Smile,
     },
@@ -136,6 +137,23 @@ impl Api {
         v1_post_index_bulk(&self.index_manager, index.to_string(), bulk_request.0).await
     }
 
+    #[oai(path = "/v1/indexes/:index/search/basic", method = "get")]
+    /// Perform basic query search against index
+    pub async fn v1_index_search_basic(
+        &self,
+        index: Path<String>,
+        query: Query<String>,
+        limit: Query<Option<usize>>,
+    ) -> GetQuerySearchResponse {
+        let limit = if let Some(limit) = limit.0 {
+            limit
+        } else {
+            usize::try_from(1000).unwrap()
+        };
+
+        v1_index_search_basic(&self.index_manager, index.to_string(), query.0, limit)
+    }
+
     #[oai(path = "/v1/indexes/:index/search/substructure", method = "get")]
     /// Perform substructure search against index
     pub async fn v1_index_search_substructure(
@@ -144,6 +162,7 @@ impl Api {
         smile: Query<String>,
         result_limit: Query<Option<usize>>,
         tautomer_limit: Query<Option<usize>>,
+        extra_query: Query<Option<String>>,
     ) -> GetStructureSearchResponse {
         let result_limit = if let Some(result_limit) = result_limit.0 {
             result_limit
@@ -157,12 +176,19 @@ impl Api {
             usize::try_from(10).unwrap()
         };
 
+        let extra_query = if let Some(extra_query) = extra_query.0 {
+            extra_query
+        } else {
+            "".to_string()
+        };
+
         v1_index_search_substructure(
             &self.index_manager,
             index.to_string(),
             smile.0,
             result_limit,
             tautomer_limit,
+            &extra_query,
         )
     }
 }

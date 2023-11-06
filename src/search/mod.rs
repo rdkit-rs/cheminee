@@ -4,6 +4,7 @@ use poem_openapi_derive::Object;
 use rdkit::{
     detect_chemistry_problems, Fingerprint, MolSanitizeException, ROMol, SmilesParserParams,
 };
+use tantivy::schema::Field;
 use tantivy::{DocAddress, Searcher};
 
 use crate::search::compound_processing::process_cpd;
@@ -39,12 +40,68 @@ pub fn validate_structure(smiles: &str) -> eyre::Result<Vec<MolSanitizeException
 }
 
 #[derive(Object, Debug)]
+pub struct QuerySearchHit {
+    pub extra_data: serde_json::Value,
+    pub smiles: String,
+    pub query: String,
+}
+
+#[derive(Object, Debug)]
 pub struct StructureSearchHit {
     pub extra_data: serde_json::Value,
     pub smiles: String,
     pub score: f32,
     pub query: String,
     pub used_tautomers: bool,
+}
+
+pub fn get_smiles_and_extra_data(
+    docaddr: DocAddress,
+    searcher: &Searcher,
+    smile_field: Field,
+    extra_data_field: Field,
+) -> eyre::Result<(String, String)> {
+    let doc = searcher.doc(docaddr)?;
+    let smile = doc
+        .get_first(smile_field)
+        .ok_or(eyre::eyre!("Tantivy smiles retrieval failed"))?
+        .as_text()
+        .ok_or(eyre::eyre!("Failed to stringify smiles"))?;
+
+    let extra_data = doc.get_first(extra_data_field);
+
+    let extra_data = match extra_data {
+        Some(extra_data) => extra_data
+            .as_text()
+            .ok_or(eyre::eyre!("Failed to stringify extra data"))?,
+        None => "",
+    };
+
+    Ok((smile.to_string(), extra_data.to_string()))
+}
+
+pub fn aggregate_query_hits(
+    searcher: Searcher,
+    results: HashSet<DocAddress>,
+    query: &str,
+) -> eyre::Result<Vec<QuerySearchHit>> {
+    let mut final_results: Vec<QuerySearchHit> = Vec::new();
+    let schema = searcher.schema();
+    let smile_field = schema.get_field("smile")?;
+    let extra_data_field = schema.get_field("extra_data")?;
+
+    for result in results {
+        let (smile, extra_data) =
+            get_smiles_and_extra_data(result, &searcher, smile_field, extra_data_field)?;
+
+        final_results.push(QuerySearchHit {
+            extra_data: extra_data.into(),
+            smiles: smile.into(),
+            query: query.into(),
+        })
+    }
+
+    Ok(final_results)
 }
 
 pub fn aggregate_search_hits(
@@ -61,21 +118,8 @@ pub fn aggregate_search_hits(
     let score: f32 = 1.0; // every substructure match should get a 1
 
     for result in results {
-        let doc = searcher.doc(result)?;
-        let smile = doc
-            .get_first(smile_field)
-            .ok_or(eyre::eyre!("Tantivy smiles retrieval failed"))?
-            .as_text()
-            .ok_or(eyre::eyre!("Failed to stringify smiles"))?;
-
-        let extra_data = doc.get_first(extra_data_field);
-
-        let extra_data = match extra_data {
-            Some(extra_data) => extra_data
-                .as_text()
-                .ok_or(eyre::eyre!("Failed to stringify extra data"))?,
-            None => "",
-        };
+        let (smile, extra_data) =
+            get_smiles_and_extra_data(result, &searcher, smile_field, extra_data_field)?;
 
         final_results.push(StructureSearchHit {
             extra_data: extra_data.into(),
