@@ -37,17 +37,10 @@ pub fn command() -> Command {
                 .num_args(1),
         )
         .arg(
-            Arg::new("exactmw_min")
+            Arg::new("extra_query")
                 .required(false)
-                .long("exactmw_min")
-                .short('n')
-                .num_args(1),
-        )
-        .arg(
-            Arg::new("exactmw_max")
-                .required(false)
-                .long("exactmw_max")
-                .short('x')
+                .long("extra_query")
+                .short('e')
                 .num_args(1),
         )
 }
@@ -57,8 +50,7 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
     let smile = matches.get_one::<String>("smiles").unwrap();
     let result_limit = matches.get_one::<String>("result_limit");
     let tautomer_limit = matches.get_one::<String>("tautomer_limit");
-    let exactmw_min = matches.get_one::<String>("exactmw_min");
-    let exactmw_max = matches.get_one::<String>("exactmw_max");
+    let extra_query = matches.get_one::<String>("extra_query");
 
     let result_limit = if let Some(result_limit) = result_limit {
         result_limit.parse::<usize>()?
@@ -72,16 +64,10 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
         usize::try_from(10)?
     };
 
-    let exactmw_min = if let Some(exactmw_min) = exactmw_min {
-        exactmw_min.parse::<usize>()?
+    let extra_query = if let Some(extra_query) = extra_query {
+        extra_query.clone()
     } else {
-        usize::try_from(0)?
-    };
-
-    let exactmw_max = if let Some(exactmw_max) = exactmw_max {
-        exactmw_max.parse::<usize>()?
-    } else {
-        usize::try_from(10000)?
+        "".to_string()
     };
 
     let index = open_index(index_path)?;
@@ -96,8 +82,7 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
         fingerprint.0.as_bitslice(),
         &descriptors,
         result_limit,
-        exactmw_min,
-        exactmw_max,
+        &extra_query,
     )?;
 
     let mut used_tautomers = false;
@@ -131,8 +116,7 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
                     taut_fingerprint.0.as_bitslice(),
                     &taut_descriptors,
                     result_limit,
-                    exactmw_min,
-                    exactmw_max,
+                    &extra_query,
                 );
 
                 let taut_results = match taut_results {

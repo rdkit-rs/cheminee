@@ -162,8 +162,7 @@ impl Api {
         smile: Query<String>,
         result_limit: Query<Option<usize>>,
         tautomer_limit: Query<Option<usize>>,
-        exactmw_min: Query<Option<usize>>,
-        exactmw_max: Query<Option<usize>>,
+        extra_query: Query<Option<String>>,
     ) -> GetStructureSearchResponse {
         let result_limit = if let Some(result_limit) = result_limit.0 {
             result_limit
@@ -177,16 +176,10 @@ impl Api {
             usize::try_from(10).unwrap()
         };
 
-        let exactmw_min = if let Some(exactmw_min) = exactmw_min.0 {
-            exactmw_min
+        let extra_query = if let Some(extra_query) = extra_query.0 {
+            extra_query
         } else {
-            usize::try_from(0).unwrap()
-        };
-
-        let exactmw_max = if let Some(exactmw_max) = exactmw_max.0 {
-            exactmw_max
-        } else {
-            usize::try_from(10000).unwrap()
+            "".to_string()
         };
 
         v1_index_search_substructure(
@@ -195,8 +188,7 @@ impl Api {
             smile.0,
             result_limit,
             tautomer_limit,
-            exactmw_min,
-            exactmw_max,
+            &extra_query,
         )
     }
 }

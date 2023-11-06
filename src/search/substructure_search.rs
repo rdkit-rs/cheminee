@@ -2,6 +2,7 @@ use std::collections::{HashMap, HashSet};
 
 use bitvec::prelude::{BitSlice, Lsb0};
 use rdkit::{substruct_match, ROMol, SubstructMatchParameters};
+use regex::Regex;
 use tantivy::{DocAddress, Searcher};
 
 use crate::search::{basic_search::basic_search, structure_matching::substructure_match_fp};
@@ -35,11 +36,10 @@ pub fn substructure_search(
     query_fingerprint: &BitSlice<u8, Lsb0>,
     query_descriptors: &HashMap<String, f64>,
     result_limit: usize,
-    exactmw_min: usize,
-    exactmw_max: usize,
+    extra_query: &String,
 ) -> eyre::Result<HashSet<DocAddress>> {
     let schema = searcher.schema();
-    let query = build_query(query_descriptors, exactmw_min, exactmw_max);
+    let query = build_query(query_descriptors, extra_query);
 
     // Note: in the end, we want a limit for the FINAL number of matches to return
     let tantivy_limit = 10 * result_limit;
@@ -87,18 +87,19 @@ pub fn substructure_search(
     Ok(filtered_results2)
 }
 
-fn build_query(
-    descriptors: &HashMap<String, f64>,
-    exactmw_min: usize,
-    exactmw_max: usize,
-) -> String {
+fn build_query(descriptors: &HashMap<String, f64>, extra_query: &String) -> String {
     let mut query_parts = Vec::with_capacity(descriptors.len());
+
+    if !extra_query.is_empty() {
+        for subquery in extra_query.split(" AND ") {
+            query_parts.push(subquery.to_string());
+        }
+    }
 
     for (k, v) in descriptors {
         if DESCRIPTOR_ALLOW_LIST.contains(&k.as_str()) {
-            if k.as_str() == "exactmw" {
-                query_parts.push(format!("{k}: [{exactmw_min} TO {exactmw_max}]"));
-            } else {
+            let re = Regex::new(&format!("{k}:")).unwrap();
+            if !re.is_match(&extra_query) {
                 query_parts.push(format!("{k}: [{v} TO 10000]"));
             }
         }
@@ -122,7 +123,7 @@ mod tests {
     #[test]
     fn test_build_query() {
         let descriptors: HashMap<_, _> = [("NumAtoms".to_string(), 10.0)].into_iter().collect();
-        let query = super::build_query(&descriptors);
+        let query = super::build_query(&descriptors, &"".to_string());
         assert_eq!(query, "NumAtoms: [10 TO 10000]");
     }
 
@@ -168,12 +169,15 @@ mod tests {
         let reader = index.reader().unwrap();
         let searcher = reader.searcher();
 
+        let extra_query = "".to_string();
+
         let results = super::substructure_search(
             &searcher,
             &query_mol,
             query_fingerprint.0.as_bitslice(),
             &query_descriptors,
             10,
+            &extra_query,
         )
         .unwrap();
         assert_eq!(results.len(), 1);
