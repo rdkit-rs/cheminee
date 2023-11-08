@@ -74,12 +74,15 @@ pub fn v1_list_indexes(index_manager: &IndexManager) -> ListIndexesResponse {
         .map(|x| {
             let index = index_manager.open(&x);
             let schema = match index {
-                Ok(_index) => {
-                    // let tantivy_schema = index.schema();
-                    // let (found_name, found_schema) = LIBRARY.enume(|(ref library_name, ref library_value)| {
-                    //     library_value == tantivy_schema
-                    // });
-                    "descriptor_v1".to_string()
+                Ok(index) => {
+                    let tantivy_schema = index.schema();
+                    let mut schema_name = "";
+                    for (k, v) in LIBRARY.clone().into_iter() {
+                        if tantivy_schema == v {
+                            schema_name = k
+                        }
+                    }
+                    schema_name.to_string()
                 }
                 Err(e) => format!("error open index: {:?}", e),
             };

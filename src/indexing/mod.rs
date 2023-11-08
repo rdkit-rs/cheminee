@@ -5,7 +5,6 @@ use tantivy::{directory::MmapDirectory, schema::*, Index, IndexBuilder, TantivyE
 
 pub mod index_manager;
 
-// pub const KNOWN_DESCRIPTORS: [&str; 2] = ["CrippenClogP", "CrippenMR"];
 pub const KNOWN_DESCRIPTORS: [&str; 43] = [
     "CrippenClogP",
     "CrippenMR",
