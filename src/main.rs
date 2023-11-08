@@ -25,7 +25,8 @@ async fn main() -> eyre::Result<()> {
         .subcommand(command_line::basic_search::command())
         .subcommand(rest_api::command())
         .subcommand(command_line::substructure_search::command())
-        .subcommand(command_line::create_index::command());
+        .subcommand(command_line::create_index::command())
+        .subcommand(command_line::delete_index::command());
 
     let matches = app.get_matches();
     let matches = match matches.subcommand().unwrap() {
@@ -46,6 +47,7 @@ async fn main() -> eyre::Result<()> {
             command_line::substructure_search::action(matches)
         }
         (command_line::create_index::NAME, matches) => command_line::create_index::action(matches),
+        (command_line::delete_index::NAME, matches) => command_line::delete_index::action(matches),
         (unknown, _) => panic!("🤨: {}", unknown),
     };
 
