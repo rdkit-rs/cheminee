@@ -11,7 +11,13 @@ pub const NAME: &str = "index-sdf";
 
 pub fn command() -> Command {
     Command::new(NAME)
-        .arg(Arg::new("sdf").required(true).long("sdf").num_args(1))
+        .arg(
+            Arg::new("sdf")
+                .required(true)
+                .long("sdf")
+                .short('s')
+                .num_args(1),
+        )
         .arg(
             Arg::new("index")
                 .required(true)
@@ -19,7 +25,13 @@ pub fn command() -> Command {
                 .short('i')
                 .num_args(1),
         )
-        .arg(Arg::new("limit").required(false).long("limit").num_args(1))
+        .arg(
+            Arg::new("limit")
+                .required(false)
+                .long("limit")
+                .short('l')
+                .num_args(1),
+        )
 }
 
 pub fn action(matches: &ArgMatches) -> eyre::Result<usize> {
