@@ -56,16 +56,6 @@ pub async fn v1_post_index_bulk(
     index: String,
     bulk_request: BulkRequest,
 ) -> PostIndexesBulkIndexResponse {
-    match index_manager.exists(&index) {
-        Ok(None) => return PostIndexesBulkIndexResponse::IndexDoesNotExist,
-        Err(e) => {
-            return PostIndexesBulkIndexResponse::Err(Json(PostIndexBulkResponseError {
-                error: e.to_string(),
-            }))
-        }
-        _ => (),
-    }
-
     let index = match index_manager.open(&index) {
         Ok(index) => index,
         Err(e) => {
