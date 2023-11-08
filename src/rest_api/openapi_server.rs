@@ -8,15 +8,16 @@ use poem_openapi::{
 };
 use poem_openapi_derive::OpenApi;
 
+use crate::rest_api::api::GetIndexResponse;
 use crate::{
     indexing::index_manager::IndexManager,
     rest_api::{
         api::{
             v1_get_index, v1_index_search_basic, v1_index_search_substructure, v1_list_indexes,
             v1_list_schemas, v1_post_index, v1_post_index_bulk, v1_standardize, BulkRequest,
-            GetIndexesResponse, GetQuerySearchResponse, GetStructureSearchResponse,
-            ListIndexesResponse, ListSchemasResponse, PostIndexResponse,
-            PostIndexesBulkIndexResponse, StandardizeResponse,
+            GetQuerySearchResponse, GetStructureSearchResponse, ListIndexesResponse,
+            ListSchemasResponse, PostIndexResponse, PostIndexesBulkIndexResponse,
+            StandardizeResponse,
         },
         models::Smile,
     },
@@ -105,7 +106,7 @@ impl Api {
 
     #[oai(path = "/v1/indexes/:index", method = "get")]
     /// Get extended information about an index
-    pub async fn v1_get_index(&self, index: Path<String>) -> GetIndexesResponse {
+    pub async fn v1_get_index(&self, index: Path<String>) -> GetIndexResponse {
         v1_get_index(&self.index_manager, index.to_string())
     }
 

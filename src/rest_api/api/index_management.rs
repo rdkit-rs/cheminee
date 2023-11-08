@@ -14,6 +14,12 @@ pub struct Schema {
     pub schema: serde_json::Value,
 }
 
+#[derive(Object, Debug)]
+pub struct IndexSchema {
+    pub index: String,
+    pub schema: serde_json::Value,
+}
+
 #[derive(ApiResponse)]
 pub enum ListIndexesResponse {
     #[oai(status = "200")]
@@ -31,6 +37,16 @@ pub struct ListIndexResponseErr {
 pub enum GetIndexesResponse {
     #[oai(status = "200")]
     Ok(Json<Vec<IndexMeta>>),
+    #[oai(status = "400")]
+    NotFound,
+    #[oai(status = "500")]
+    Err(Json<GetIndexesResponseError>),
+}
+
+#[derive(ApiResponse)]
+pub enum GetIndexResponse {
+    #[oai(status = "200")]
+    Ok(Json<IndexSchema>),
     #[oai(status = "400")]
     NotFound,
     #[oai(status = "500")]
@@ -94,12 +110,19 @@ pub fn v1_list_indexes(index_manager: &IndexManager) -> ListIndexesResponse {
 }
 
 #[allow(unused_variables)]
-pub fn v1_get_index(index_manager: &IndexManager, index: String) -> GetIndexesResponse {
-    let index = index_manager.open(&index);
+pub fn v1_get_index(index_manager: &IndexManager, index_name: String) -> GetIndexResponse {
+    let index = index_manager.open(&index_name);
 
     match index {
-        Ok(index) => GetIndexesResponse::Ok(Json(vec![])),
-        Err(e) => GetIndexesResponse::Err(Json(GetIndexesResponseError {
+        Ok(index) => {
+            let schema = serde_json::to_value(index.schema()).unwrap();
+
+            GetIndexResponse::Ok(Json(IndexSchema {
+                index: index_name,
+                schema,
+            }))
+        }
+        Err(e) => GetIndexResponse::Err(Json(GetIndexesResponseError {
             error: format!("{}", e),
         })),
     }
