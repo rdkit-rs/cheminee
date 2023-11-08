@@ -20,7 +20,7 @@ async fn main() -> eyre::Result<()> {
     let app = Command::new("cheminee")
         .subcommand_required(true)
         .subcommand(command_line::fetch_pubchem::command())
-        .subcommand(command_line::index_pubchem_sdf::command())
+        .subcommand(command_line::index_sdf::command())
         .subcommand(command_line::stream_pubchem_sdf::command())
         .subcommand(command_line::basic_search::command())
         .subcommand(rest_api::command())
@@ -28,8 +28,8 @@ async fn main() -> eyre::Result<()> {
 
     let matches = app.get_matches();
     let matches = match matches.subcommand().unwrap() {
-        (command_line::index_pubchem_sdf::NAME, matches) => {
-            let writes = command_line::index_pubchem_sdf::action(matches)?;
+        (command_line::index_sdf::NAME, matches) => {
+            let writes = command_line::index_sdf::action(matches)?;
             log::info!("wrote: {}", writes);
             Ok(())
         }

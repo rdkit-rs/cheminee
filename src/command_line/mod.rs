@@ -1,6 +1,6 @@
 pub mod basic_search;
 pub mod fetch_pubchem;
-pub mod index_pubchem_sdf;
+pub mod index_sdf;
 pub mod stream_pubchem_sdf;
 pub mod substructure_search;
 

@@ -7,7 +7,7 @@ use tantivy::schema::Field;
 use super::prelude::*;
 use crate::search::compound_processing::process_cpd;
 
-pub const NAME: &str = "index-pubchem-sdf";
+pub const NAME: &str = "index-sdf";
 
 pub fn command() -> Command {
     Command::new(NAME)
