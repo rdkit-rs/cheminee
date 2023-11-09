@@ -2,7 +2,7 @@ pub use super::prelude::*;
 use crate::search::aggregate_query_hits;
 use crate::search::basic_search::basic_search;
 
-pub const NAME: &str = "search";
+pub const NAME: &str = "basic-search";
 
 pub fn command() -> Command {
     Command::new(NAME)

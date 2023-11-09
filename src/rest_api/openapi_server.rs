@@ -8,13 +8,13 @@ use poem_openapi::{
 };
 use poem_openapi_derive::OpenApi;
 
-use crate::rest_api::api::GetIndexResponse;
+use crate::rest_api::api::{BulkRequest, GetIndexResponse};
 use crate::{
     indexing::index_manager::IndexManager,
     rest_api::{
         api::{
             v1_get_index, v1_index_search_basic, v1_index_search_substructure, v1_list_indexes,
-            v1_list_schemas, v1_post_index, v1_post_index_bulk, v1_standardize, BulkRequest,
+            v1_list_schemas, v1_post_index, v1_post_index_bulk, v1_standardize,
             GetQuerySearchResponse, GetStructureSearchResponse, ListIndexesResponse,
             ListSchemasResponse, PostIndexResponse, PostIndexesBulkIndexResponse,
             StandardizeResponse,

@@ -1,6 +1,7 @@
 pub use super::prelude::*;
+use crate::command_line::split_path;
 use crate::indexing::index_manager::IndexManager;
-use std::path::Path;
+use std::ops::Deref;
 
 pub const NAME: &str = "create-index";
 
@@ -38,20 +39,14 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
         .get(schema_name.as_str())
         .ok_or(eyre::eyre!("The specified schema does not exist"))?;
 
-    let index_path_path = Path::new(index_path);
-    let storage_dir = index_path_path
-        .parent()
-        .ok_or(eyre::eyre!("Could not extract storage directory"))?
-        .to_str()
-        .ok_or(eyre::eyre!("Could not convert storage director to str"))?;
-    let index_name = index_path_path
-        .file_stem()
-        .ok_or(eyre::eyre!("Could not extract index name"))?
-        .to_str()
-        .ok_or(eyre::eyre!("Could not convert index name to str"))?;
-
-    let index_manager = IndexManager::new(storage_dir, true)?;
-    let _index = index_manager.create(index_name, schema, false, sort_by.map(|s| s.as_str()))?;
+    let (storage_dir, index_name) = split_path(index_path)?;
+    let index_manager = IndexManager::new(storage_dir.deref(), true)?;
+    let _index = index_manager.create(
+        index_name.deref(),
+        schema,
+        false,
+        sort_by.map(|s| s.as_str()),
+    )?;
 
     println!("New index created at {}", index_path);
     Ok(())

@@ -1,4 +1,5 @@
 use std::collections::{HashMap, HashSet};
+use std::ops::Deref;
 
 use poem_openapi_derive::Object;
 use rdkit::{
@@ -70,14 +71,21 @@ pub fn get_smiles_and_extra_data(
 
     let extra_data = doc.get_first(extra_data_field);
 
+    println!(
+        "{:?}",
+        serde_json::to_string(extra_data.unwrap().as_json().unwrap()).unwrap()
+    );
+
     let extra_data = match extra_data {
-        Some(extra_data) => extra_data
-            .as_text()
-            .ok_or(eyre::eyre!("Failed to stringify extra data"))?,
-        None => "",
+        Some(extra_data) => serde_json::to_string(
+            extra_data
+                .as_json()
+                .ok_or(eyre::eyre!("Failed to jsonify extra data"))?,
+        )?,
+        None => "".to_string(),
     };
 
-    Ok((smile.to_string(), extra_data.to_string()))
+    Ok((smile.to_string(), extra_data))
 }
 
 pub fn aggregate_query_hits(
@@ -95,7 +103,7 @@ pub fn aggregate_query_hits(
             get_smiles_and_extra_data(result, &searcher, smile_field, extra_data_field)?;
 
         final_results.push(QuerySearchHit {
-            extra_data: extra_data.into(),
+            extra_data: serde_json::from_str(extra_data.deref())?,
             smiles: smile.into(),
             query: query.into(),
         })

@@ -6,20 +6,8 @@ use rayon::prelude::*;
 use serde_json::{Map, Value};
 use tantivy::{schema::Field, Opstamp};
 
-use crate::{
-    indexing::{index_manager::IndexManager, KNOWN_DESCRIPTORS},
-    search::compound_processing::process_cpd,
-};
-
-#[derive(ApiResponse)]
-pub enum PostIndexesBulkIndexResponse {
-    #[oai(status = "200")]
-    Ok(Json<PostIndexBulkResponseOk>),
-    #[oai(status = "404")]
-    IndexDoesNotExist,
-    #[oai(status = "500")]
-    Err(Json<PostIndexBulkResponseError>),
-}
+use crate::indexing::{index_manager::IndexManager, KNOWN_DESCRIPTORS};
+use crate::search::compound_processing::process_cpd;
 
 #[derive(Object, Debug)]
 pub struct BulkRequest {
@@ -31,6 +19,16 @@ pub struct BulkRequestDoc {
     pub smile: String,
     /// This value can store an arbitrary JSON object like '{}'
     pub extra_data: Option<serde_json::Value>,
+}
+
+#[derive(ApiResponse)]
+pub enum PostIndexesBulkIndexResponse {
+    #[oai(status = "200")]
+    Ok(Json<PostIndexBulkResponseOk>),
+    #[oai(status = "404")]
+    IndexDoesNotExist,
+    #[oai(status = "500")]
+    Err(Json<PostIndexBulkResponseError>),
 }
 
 #[derive(Object, Debug)]
