@@ -1,5 +1,5 @@
 pub use super::prelude::*;
-use crate::command_line::split_path;
+use crate::command_line::indexing::split_path;
 use crate::indexing::index_manager::IndexManager;
 use std::ops::Deref;
 

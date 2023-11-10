@@ -4,7 +4,7 @@ use rdkit::{MolBlockIter, ROMol, RWMol};
 use serde_json::{Map, Value};
 use tantivy::schema::Field;
 
-use super::prelude::*;
+use super::super::prelude::*;
 use crate::search::compound_processing::process_cpd;
 
 pub const NAME: &str = "index-sdf";
