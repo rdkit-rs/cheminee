@@ -1,6 +1,6 @@
 use rdkit::MolBlockIter;
 
-use super::prelude::*;
+use super::super::prelude::*;
 
 pub const NAME: &str = "stream-pubchem-sdf";
 

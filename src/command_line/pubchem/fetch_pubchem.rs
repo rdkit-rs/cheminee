@@ -1,4 +1,4 @@
-use super::prelude::*;
+use super::super::prelude::*;
 use crate::pubchem::down_all_current_sdf;
 
 pub const NAME: &str = "fetch-pubchem";
