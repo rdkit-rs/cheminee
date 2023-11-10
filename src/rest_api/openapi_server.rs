@@ -1,27 +1,19 @@
-use std::path::PathBuf;
+use crate::indexing::index_manager::IndexManager;
+use crate::rest_api::api::{
+    v1_get_index, v1_index_search_basic, v1_index_search_substructure, v1_list_indexes,
+    v1_list_schemas, v1_post_index, v1_post_index_bulk, v1_standardize, BulkRequest,
+    GetIndexResponse, GetQuerySearchResponse, GetStructureSearchResponse, ListIndexesResponse,
+    ListSchemasResponse, PostIndexResponse, PostIndexesBulkIndexResponse, StandardizeResponse,
+};
+use crate::rest_api::models::Smile;
 
 use poem::{listener::TcpListener, EndpointExt, Route, Server};
 use poem_openapi::{
     param::{Path, Query},
     payload::Json,
-    ContactObject, OpenApiService,
+    ContactObject, OpenApi, OpenApiService,
 };
-use poem_openapi_derive::OpenApi;
-
-use crate::rest_api::api::{BulkRequest, GetIndexResponse};
-use crate::{
-    indexing::index_manager::IndexManager,
-    rest_api::{
-        api::{
-            v1_get_index, v1_index_search_basic, v1_index_search_substructure, v1_list_indexes,
-            v1_list_schemas, v1_post_index, v1_post_index_bulk, v1_standardize,
-            GetQuerySearchResponse, GetStructureSearchResponse, ListIndexesResponse,
-            ListSchemasResponse, PostIndexResponse, PostIndexesBulkIndexResponse,
-            StandardizeResponse,
-        },
-        models::Smile,
-    },
-};
+use std::path::PathBuf;
 
 const API_PREFIX: &str = "/api";
 

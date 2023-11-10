@@ -1,53 +1,14 @@
-use std::collections::HashMap;
-
+use crate::indexing::{index_manager::IndexManager, KNOWN_DESCRIPTORS};
+use crate::rest_api::api::{
+    BulkRequest, BulkRequestDoc, PostIndexBulkResponseError, PostIndexBulkResponseOk,
+    PostIndexBulkResponseOkStatus, PostIndexesBulkIndexResponse,
+};
+use crate::search::compound_processing::process_cpd;
 use poem_openapi::payload::Json;
-use poem_openapi_derive::{ApiResponse, Object};
 use rayon::prelude::*;
 use serde_json::{Map, Value};
-use tantivy::{schema::Field, Opstamp};
-
-use crate::indexing::{index_manager::IndexManager, KNOWN_DESCRIPTORS};
-use crate::search::compound_processing::process_cpd;
-
-#[derive(Object, Debug)]
-pub struct BulkRequest {
-    pub docs: Vec<BulkRequestDoc>,
-}
-
-#[derive(Object, Debug)]
-pub struct BulkRequestDoc {
-    pub smile: String,
-    /// This value can store an arbitrary JSON object like '{}'
-    pub extra_data: Option<serde_json::Value>,
-}
-
-#[derive(ApiResponse)]
-pub enum PostIndexesBulkIndexResponse {
-    #[oai(status = "200")]
-    Ok(Json<PostIndexBulkResponseOk>),
-    #[oai(status = "404")]
-    IndexDoesNotExist,
-    #[oai(status = "500")]
-    Err(Json<PostIndexBulkResponseError>),
-}
-
-#[derive(Object, Debug)]
-pub struct PostIndexBulkResponseOk {
-    pub statuses: Vec<PostIndexBulkResponseOkStatus>,
-    // pub errors: usize,
-    // pub seconds_taken: usize,
-}
-
-#[derive(Object, Debug)]
-pub struct PostIndexBulkResponseOkStatus {
-    opcode: Option<Opstamp>,
-    error: Option<String>,
-}
-
-#[derive(Object, Debug)]
-pub struct PostIndexBulkResponseError {
-    pub error: String,
-}
+use std::collections::HashMap;
+use tantivy::schema::Field;
 
 pub async fn v1_post_index_bulk(
     index_manager: &IndexManager,
