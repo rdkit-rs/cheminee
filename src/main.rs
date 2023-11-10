@@ -22,9 +22,9 @@ async fn main() -> eyre::Result<()> {
         .subcommand(command_line::fetch_pubchem::command())
         .subcommand(command_line::indexing::index_sdf::command())
         .subcommand(command_line::stream_pubchem_sdf::command())
-        .subcommand(command_line::basic_search::command())
+        .subcommand(command_line::search::basic_search::command())
         .subcommand(rest_api::command())
-        .subcommand(command_line::substructure_search::command())
+        .subcommand(command_line::search::substructure_search::command())
         .subcommand(command_line::indexing::create_index::command())
         .subcommand(command_line::indexing::delete_index::command())
         .subcommand(command_line::indexing::bulk_index::command());
@@ -39,13 +39,15 @@ async fn main() -> eyre::Result<()> {
         (command_line::stream_pubchem_sdf::NAME, matches) => {
             command_line::stream_pubchem_sdf::action(matches)
         }
-        (command_line::basic_search::NAME, matches) => command_line::basic_search::action(matches),
+        (command_line::search::basic_search::NAME, matches) => {
+            command_line::search::basic_search::action(matches)
+        }
         (command_line::fetch_pubchem::NAME, matches) => {
             command_line::fetch_pubchem::action(matches).await
         }
         (rest_api::NAME, matches) => rest_api::action(matches).await,
-        (command_line::substructure_search::NAME, matches) => {
-            command_line::substructure_search::action(matches)
+        (command_line::search::substructure_search::NAME, matches) => {
+            command_line::search::substructure_search::action(matches)
         }
         (command_line::indexing::create_index::NAME, matches) => {
             command_line::indexing::create_index::action(matches)

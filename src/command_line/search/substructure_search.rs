@@ -1,4 +1,4 @@
-pub use super::prelude::*;
+pub use super::super::prelude::*;
 use crate::search::{
     aggregate_search_hits, compound_processing::*, prepare_query_structure,
     substructure_search::substructure_search,
