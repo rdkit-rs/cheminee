@@ -1845,6 +1845,8 @@ dependencies = [
 [[package]]
 name = "rdkit"
 version = "0.4.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "dea0a8e4d088d0d055523289556e5b7e220984348a7cdca148dfcf9fd7d75661"
 dependencies = [
  "bitvec",
  "byteorder",
@@ -1858,6 +1860,8 @@ dependencies = [
 [[package]]
 name = "rdkit-sys"
 version = "0.4.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b0fcb3a26e7bde365a818646a50230d65f6703403ac467eb9066ac70d2f18ea7"
 dependencies = [
  "cxx",
  "cxx-build",
