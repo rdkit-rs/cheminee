@@ -95,7 +95,7 @@ pub fn aggregate_query_hits(
 
         final_results.push(QuerySearchHit {
             extra_data: extra_data.into(),
-            smiles: smile.into(),
+            smiles: smile,
             query: query.into(),
         })
     }
@@ -122,7 +122,7 @@ pub fn aggregate_search_hits(
 
         final_results.push(StructureSearchHit {
             extra_data: extra_data.into(),
-            smiles: smile.into(),
+            smiles: smile,
             score,
             query: query.into(),
             used_tautomers: tautomers_used,
