@@ -42,7 +42,6 @@ mod tests {
             .first()
             .expect("first_value")
             .assert_string("CCC=O");
-        println!("{:?}", json_value);
     }
 }
 
@@ -69,7 +68,7 @@ pub async fn v1_standardize(mol: Json<Vec<Smile>>) -> StandardizeResponse {
 
             match standardize {
                 Ok(romol) => StandardizedSmile {
-                    smile: Some(romol.as_smile()),
+                    smile: Some(romol.as_smiles()),
                     error: None,
                 },
                 Err(e) => StandardizedSmile {

@@ -77,7 +77,7 @@ pub fn substructure_search(
         if fp_match {
             let params = SubstructMatchParameters::default();
             let mol_substruct_match =
-                substruct_match(&ROMol::from_smile(smile)?, &query_mol, &params);
+                substruct_match(&ROMol::from_smiles(smile)?, &query_mol, &params);
             if !mol_substruct_match.is_empty() {
                 filtered_results2.insert(docaddr);
             }

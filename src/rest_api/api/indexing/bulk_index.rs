@@ -183,7 +183,7 @@ fn bulk_request_doc_to_tantivy_doc(
         };
 
     let mut doc = tantivy::doc!(
-        smile_field => tautomer.as_smile(),
+        smile_field => tautomer.as_smiles(),
         fingerprint_field => fingerprint.0.into_vec()
     );
 
