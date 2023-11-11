@@ -4,8 +4,7 @@ use poem_openapi_derive::Object;
 use rdkit::{
     detect_chemistry_problems, Fingerprint, MolSanitizeException, ROMol, SmilesParserParams,
 };
-use tantivy::schema::Field;
-use tantivy::{DocAddress, Searcher};
+use tantivy::{schema::Field, DocAddress, Searcher};
 
 use crate::search::compound_processing::process_cpd;
 
@@ -35,7 +34,7 @@ pub fn prepare_query_structure(
 pub fn validate_structure(smiles: &str) -> eyre::Result<Vec<MolSanitizeException>> {
     let mut parser_params = SmilesParserParams::default();
     parser_params.sanitize(false);
-    let mol = ROMol::from_smile_with_params(smiles, &parser_params)?;
+    let mol = ROMol::from_smiles_with_params(smiles, &parser_params)?;
     Ok(detect_chemistry_problems(&mol))
 }
 
@@ -96,7 +95,7 @@ pub fn aggregate_query_hits(
 
         final_results.push(QuerySearchHit {
             extra_data: extra_data.into(),
-            smiles: smile.into(),
+            smiles: smile,
             query: query.into(),
         })
     }
@@ -123,7 +122,7 @@ pub fn aggregate_search_hits(
 
         final_results.push(StructureSearchHit {
             extra_data: extra_data.into(),
-            smiles: smile.into(),
+            smiles: smile,
             score,
             query: query.into(),
             used_tautomers: tautomers_used,

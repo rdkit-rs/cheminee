@@ -77,7 +77,7 @@ pub fn substructure_search(
         if fp_match {
             let params = SubstructMatchParameters::default();
             let mol_substruct_match =
-                substruct_match(&ROMol::from_smile(smile)?, &query_mol, &params);
+                substruct_match(&ROMol::from_smiles(smile)?, query_mol, &params);
             if !mol_substruct_match.is_empty() {
                 filtered_results2.insert(docaddr);
             }
@@ -99,7 +99,7 @@ fn build_query(descriptors: &HashMap<String, f64>, extra_query: &String) -> Stri
     for (k, v) in descriptors {
         if DESCRIPTOR_ALLOW_LIST.contains(&k.as_str()) {
             let re = Regex::new(&format!("{k}:")).unwrap();
-            if !re.is_match(&extra_query) {
+            if !re.is_match(extra_query) {
                 query_parts.push(format!("{k}: [{v} TO 10000]"));
             }
         }

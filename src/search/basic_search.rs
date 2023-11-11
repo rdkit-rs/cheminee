@@ -1,4 +1,5 @@
 use std::collections::HashSet;
+
 use tantivy::{collector::TopDocs, query::QueryParser, DocAddress, Searcher};
 
 #[allow(clippy::ptr_arg)]

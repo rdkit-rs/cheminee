@@ -5,10 +5,10 @@ use rdkit::*;
 #[test]
 fn test_standardize_mol() {
     let smiles = "CC.Oc1c(cccc3CC(C(=O)[O-]))c3nc2c(C[NH+])cncc12.[Cl-]";
-    let romol = ROMol::from_smile(smiles).unwrap();
+    let romol = ROMol::from_smiles(smiles).unwrap();
     let canon_taut = standardize_mol(&romol).unwrap();
     assert_eq!(
-        canon_taut.as_smile(),
+        canon_taut.as_smiles(),
         "[N]Cc1cncc2c(=O)c3cccc(CCC(=O)O)c3[nH]c12"
     );
 }
@@ -18,13 +18,13 @@ fn test_standardize_smiles() {
     let smiles1 = "CC.Oc1c(cccc3CC(C(=O)[O-]))c3nc2c(C[NH+])cncc12.[Cl-]";
     let canon_taut1 = standardize_smiles(smiles1).unwrap();
     assert_eq!(
-        canon_taut1.as_smile(),
+        canon_taut1.as_smiles(),
         "[N]Cc1cncc2c(=O)c3cccc(CCC(=O)O)c3[nH]c12"
     );
 
     let smiles2 = "[Mg](OCC)OCC";
     let canon_taut2 = standardize_smiles(smiles2).unwrap();
-    assert_eq!(canon_taut2.as_smile(), "CCO");
+    assert_eq!(canon_taut2.as_smiles(), "CCO");
 }
 
 #[test]
@@ -38,7 +38,7 @@ fn test_standardize_bad_smiles() {
 #[test]
 fn test_get_tautomers() {
     let smiles = "Oc1c(cccc3)c3nc2ccncc12";
-    let romol = ROMol::from_smile(smiles).unwrap();
+    let romol = ROMol::from_smiles(smiles).unwrap();
     let tauts = get_tautomers(&romol);
     assert_eq!(tauts.len(), 3);
 }
@@ -63,8 +63,7 @@ fn test_process_cpd() {
         212, 65, 136, 9, 8, 0, 0, 67, 1, 130,
     ]);
 
-    println!("{:?}", descriptors);
-    assert_eq!(&(canon_taut.as_smile())[..], "O=c1c2ccccc2[nH]c2ccncc12");
+    assert_eq!(&(canon_taut.as_smiles())[..], "O=c1c2ccccc2[nH]c2ccncc12");
     assert_eq!(fingerprint.0, expected_fp);
     assert_eq!(*descriptors.get("exactmw").unwrap(), 196.063662876);
 }
@@ -72,7 +71,7 @@ fn test_process_cpd() {
 #[test]
 fn bad_mol_test() {
     let smiles = "F(C)(C)(C)(C)(C)";
-    let romol = ROMol::from_smile(smiles);
+    let romol = ROMol::from_smiles(smiles);
     assert!(romol.is_err());
 }
 
