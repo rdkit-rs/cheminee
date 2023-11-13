@@ -30,8 +30,8 @@ pub fn command() -> Command {
 }
 
 pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
-    let index_path = matches.get_one::<String>("index").unwrap();
-    let query = matches.get_one::<String>("query").unwrap();
+    let index_path = matches.get_one::<String>("index")?;
+    let query = matches.get_one::<String>("query")?;
     let limit = matches.get_one::<String>("limit");
 
     let limit = if let Some(limit) = limit {

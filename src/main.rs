@@ -61,7 +61,7 @@ async fn main() -> eyre::Result<()> {
         (unknown, _) => panic!("🤨: {}", unknown),
     };
 
-    matches.unwrap();
+    matches?;
 
     Ok(())
 }

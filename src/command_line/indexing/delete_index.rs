@@ -16,7 +16,7 @@ pub fn command() -> Command {
 }
 
 pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
-    let index_path = matches.get_one::<String>("index_path").unwrap();
+    let index_path = matches.get_one::<String>("index_path")?;
     let (storage_dir, index_name) = split_path(index_path)?;
 
     let index_manager = IndexManager::new(storage_dir, false)?;

@@ -31,8 +31,8 @@ pub fn command() -> Command {
 }
 
 pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
-    let index_path = matches.get_one::<String>("index_path").unwrap();
-    let schema_name = matches.get_one::<String>("schema_name").unwrap();
+    let index_path = matches.get_one::<String>("index_path")?;
+    let schema_name = matches.get_one::<String>("schema_name")?;
     let sort_by = matches.get_one::<String>("sort_by");
 
     let schema = crate::schema::LIBRARY

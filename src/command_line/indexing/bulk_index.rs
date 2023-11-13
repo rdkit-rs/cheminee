@@ -5,10 +5,7 @@ use crate::search::compound_processing::process_cpd;
 use bitvec::macros::internal::funty::Fundamental;
 use rayon::prelude::*;
 use serde_json::Value;
-use std::collections::HashMap;
-use std::fs::File;
-use std::io::BufReader;
-use std::ops::Deref;
+use std::{collections::HashMap, fs::File, io::BufReader, ops::Deref};
 use tantivy::schema::Field;
 
 pub const NAME: &str = "bulk-index";
@@ -32,8 +29,8 @@ pub fn command() -> Command {
 }
 
 pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
-    let index_path = matches.get_one::<String>("index_path").unwrap();
-    let json_path = matches.get_one::<String>("json_path").unwrap();
+    let index_path = matches.get_one::<String>("index_path")?;
+    let json_path = matches.get_one::<String>("json_path")?;
 
     let (storage_dir, index_name) = split_path(index_path)?;
     let index_manager = IndexManager::new(storage_dir.deref(), false)?;
@@ -42,9 +39,9 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
     let mut writer = index.writer(8 * 1024 * 1024)?;
     let schema = index.schema();
 
-    let smile_field = schema.get_field("smile").unwrap();
-    let fingerprint_field = schema.get_field("fingerprint").unwrap();
-    let extra_data_field = schema.get_field("extra_data").unwrap();
+    let smile_field = schema.get_field("smile")?;
+    let fingerprint_field = schema.get_field("fingerprint")?;
+    let extra_data_field = schema.get_field("extra_data")?;
     let descriptor_fields = KNOWN_DESCRIPTORS
         .iter()
         .map(|kd| (*kd, schema.get_field(kd).unwrap()))

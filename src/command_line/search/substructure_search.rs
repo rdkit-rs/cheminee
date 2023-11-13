@@ -46,8 +46,8 @@ pub fn command() -> Command {
 }
 
 pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
-    let index_path = matches.get_one::<String>("index").unwrap();
-    let smile = matches.get_one::<String>("smiles").unwrap();
+    let index_path = matches.get_one::<String>("index")?;
+    let smile = matches.get_one::<String>("smiles")?;
     let result_limit = matches.get_one::<String>("result_limit");
     let tautomer_limit = matches.get_one::<String>("tautomer_limit");
     let extra_query = matches.get_one::<String>("extra_query");
