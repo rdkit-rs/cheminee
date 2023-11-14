@@ -1,6 +1,5 @@
 use crate::command_line::prelude::*;
-use crate::search::aggregate_query_hits;
-use crate::search::basic_search::basic_search;
+use crate::search::{aggregate_query_hits, basic_search::basic_search};
 
 pub const NAME: &str = "basic-search";
 

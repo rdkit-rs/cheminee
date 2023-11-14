@@ -4,8 +4,7 @@ use poem_openapi_derive::Object;
 use rdkit::{
     detect_chemistry_problems, Fingerprint, MolSanitizeException, ROMol, SmilesParserParams,
 };
-use tantivy::schema::Field;
-use tantivy::{DocAddress, Searcher};
+use tantivy::{schema::Field, DocAddress, Searcher};
 
 use crate::search::compound_processing::process_cpd;
 
@@ -35,7 +34,7 @@ pub fn prepare_query_structure(
 pub fn validate_structure(smiles: &str) -> eyre::Result<Vec<MolSanitizeException>> {
     let mut parser_params = SmilesParserParams::default();
     parser_params.sanitize(false);
-    let mol = ROMol::from_smile_with_params(smiles, &parser_params)?;
+    let mol = ROMol::from_smiles_with_params(smiles, &parser_params)?;
     Ok(detect_chemistry_problems(&mol))
 }
 
@@ -58,22 +57,17 @@ pub struct StructureSearchHit {
 pub fn get_smiles_and_extra_data(
     docaddr: DocAddress,
     searcher: &Searcher,
-    smile_field: Field,
+    smiles_field: Field,
     extra_data_field: Field,
 ) -> eyre::Result<(String, String)> {
     let doc = searcher.doc(docaddr)?;
-    let smile = doc
-        .get_first(smile_field)
+    let smiles = doc
+        .get_first(smiles_field)
         .ok_or(eyre::eyre!("Tantivy smiles retrieval failed"))?
         .as_text()
         .ok_or(eyre::eyre!("Failed to stringify smiles"))?;
 
     let extra_data = doc.get_first(extra_data_field);
-
-    println!(
-        "{:?}",
-        serde_json::to_string(extra_data.unwrap().as_json().unwrap()).unwrap()
-    );
 
     let extra_data = match extra_data {
         Some(extra_data) => serde_json::to_string(
@@ -84,7 +78,7 @@ pub fn get_smiles_and_extra_data(
         None => "".to_string(),
     };
 
-    Ok((smile.to_string(), extra_data))
+    Ok((smiles.to_string(), extra_data.to_string()))
 }
 
 pub fn aggregate_query_hits(
@@ -130,7 +124,7 @@ pub fn aggregate_search_hits(
 
         final_results.push(StructureSearchHit {
             extra_data: extra_data.into(),
-            smiles: smile.into(),
+            smiles: smile,
             score,
             query: query.into(),
             used_tautomers: tautomers_used,

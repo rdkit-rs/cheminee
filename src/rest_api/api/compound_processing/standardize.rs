@@ -28,6 +28,8 @@ pub async fn v1_standardize(mol: Json<Vec<Smile>>) -> StandardizeResponse {
 
 #[cfg(test)]
 mod tests {
+    use poem::{handler, Route};
+
     use super::*;
     use crate::{indexing::index_manager::IndexManager, rest_api::openapi_server::Api};
     use poem::{handler, Route};

@@ -24,7 +24,7 @@ fn bench_tanimoto_distance(b: &mut Bencher) {
 #[bench]
 fn bench_fingerprint_generation(b: &mut Bencher) {
     let smiles = "[N]Cc1cncc2c(=O)c3cccc(CCC(=O)O)c3[nH]c12";
-    let romol = ROMol::from_smile(smiles).unwrap();
+    let romol = ROMol::from_smiles(smiles).unwrap();
 
     b.iter(|| romol.fingerprint());
 }

@@ -16,7 +16,7 @@ pub fn standardize_mol(romol: &ROMol) -> eyre::Result<ROMol> {
 }
 
 pub fn standardize_smiles(smi: &str) -> eyre::Result<ROMol> {
-    let romol = ROMol::from_smile(smi)?;
+    let romol = ROMol::from_smiles(smi)?;
     let canon_taut = standardize_mol(&romol)?;
     Ok(canon_taut)
 }

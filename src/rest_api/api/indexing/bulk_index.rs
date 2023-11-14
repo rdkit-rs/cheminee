@@ -123,7 +123,7 @@ fn bulk_request_doc_to_tantivy_doc(
     let (tautomer, fingerprint, descriptors) =
         process_cpd(&bulk_request_doc.smile).map_err(|err| err.to_string())?;
 
-    let json: serde_json::Value = serde_json::to_value(&descriptors).map_err(|x| x.to_string())?;
+    let json: serde_json::Value = serde_json::to_value(descriptors).map_err(|x| x.to_string())?;
     let jsonified_compound_descriptors: Map<String, Value> =
         if let serde_json::Value::Object(map) = json {
             map
@@ -132,7 +132,7 @@ fn bulk_request_doc_to_tantivy_doc(
         };
 
     let mut doc = tantivy::doc!(
-        smile_field => tautomer.as_smile(),
+        smile_field => tautomer.as_smiles(),
         fingerprint_field => fingerprint.0.into_vec()
     );
 

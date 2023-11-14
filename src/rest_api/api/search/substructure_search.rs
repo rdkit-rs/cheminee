@@ -79,7 +79,7 @@ pub fn v1_index_search_substructure(
         if tautomers.len() > 1 && tautomer_limit > 1 {
             for test_taut in tautomers {
                 // don't reuse the canonical tautomer
-                if test_taut.as_smile() == query_canon_taut.as_smile() {
+                if test_taut.as_smiles() == query_canon_taut.as_smiles() {
                     continue;
                 }
 

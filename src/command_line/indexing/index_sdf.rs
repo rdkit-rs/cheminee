@@ -91,7 +91,7 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<usize> {
             .map(|kd| (*kd, schema.get_field(kd).unwrap()))
             .collect::<HashMap<&str, Field>>();
 
-        let (canon_taut, fp, computed) = process_cpd(&mol.as_smile()[..]).unwrap();
+        let (canon_taut, fp, computed) = process_cpd(&mol.as_smiles()[..]).unwrap();
 
         let json: serde_json::Value = serde_json::to_value(&computed)?;
         let descriptions_map: Map<String, Value> = if let serde_json::Value::Object(map) = json {
@@ -101,7 +101,7 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<usize> {
         };
 
         let mut doc = doc!(
-            smile => canon_taut.as_smile(),
+            smile => canon_taut.as_smiles(),
             fingerprint => fp.0.into_vec()
         );
 
