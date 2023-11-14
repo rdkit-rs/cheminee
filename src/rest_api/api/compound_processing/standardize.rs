@@ -1,5 +1,5 @@
-use crate::rest_api::api::{StandardizeResponse, StandardizedSmile};
-use crate::{rest_api::models::Smile, search::compound_processing::standardize_smiles};
+use crate::rest_api::api::{StandardizeResponse, StandardizedSmiles};
+use crate::{rest_api::models::Smiles, search::compound_processing::standardize_smiles};
 use poem_openapi::payload::Json;
 use rayon::prelude::*;
 
@@ -11,11 +11,11 @@ pub async fn v1_standardize(mol: Json<Vec<Smile>>) -> StandardizeResponse {
             let standardize = standardize_smiles(&s.smile);
 
             match standardize {
-                Ok(romol) => StandardizedSmile {
+                Ok(romol) => StandardizedSmiles {
                     smile: Some(romol.as_smile()),
                     error: None,
                 },
-                Err(e) => StandardizedSmile {
+                Err(e) => StandardizedSmiles {
                     smile: Some(s.smile),
                     error: Some(e.to_string()),
                 },

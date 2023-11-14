@@ -5,7 +5,7 @@ use crate::rest_api::api::{
     GetIndexResponse, GetQuerySearchResponse, GetStructureSearchResponse, ListIndexesResponse,
     ListSchemasResponse, PostIndexResponse, PostIndexesBulkIndexResponse, StandardizeResponse,
 };
-use crate::rest_api::models::Smile;
+use crate::rest_api::models::Smiles;
 
 use poem::{listener::TcpListener, EndpointExt, Route, Server};
 use poem_openapi::{
@@ -80,7 +80,7 @@ pub struct Api {
 impl Api {
     #[oai(path = "/v1/standardize", method = "post")]
     /// Pass a list of SMILES through fragment_parent, uncharger, and canonicalization routines
-    pub async fn v1_standardize(&self, mol: Json<Vec<Smile>>) -> StandardizeResponse {
+    pub async fn v1_standardize(&self, mol: Json<Vec<Smiles>>) -> StandardizeResponse {
         v1_standardize(mol).await
     }
 
@@ -152,7 +152,7 @@ impl Api {
     pub async fn v1_index_search_substructure(
         &self,
         index: Path<String>,
-        smile: Query<String>,
+        smiles: Query<String>,
         result_limit: Query<Option<usize>>,
         tautomer_limit: Query<Option<usize>>,
         extra_query: Query<Option<String>>,
@@ -178,7 +178,7 @@ impl Api {
         v1_index_search_substructure(
             &self.index_manager,
             index.to_string(),
-            smile.0,
+            smiles.0,
             result_limit,
             tautomer_limit,
             &extra_query,

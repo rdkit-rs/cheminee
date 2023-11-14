@@ -49,7 +49,7 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
     let index_path = matches
         .get_one::<String>("index")
         .ok_or(eyre::eyre!("Failed to extract index path"))?;
-    let smile = matches
+    let smiles = matches
         .get_one::<String>("smiles")
         .ok_or(eyre::eyre!("Failed to extract SMILES"))?;
     let result_limit = matches.get_one::<String>("result_limit");
@@ -78,7 +78,7 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
     let reader = index.reader()?;
     let searcher = reader.searcher();
 
-    let (query_canon_taut, fingerprint, descriptors) = prepare_query_structure(smile)?;
+    let (query_canon_taut, fingerprint, descriptors) = prepare_query_structure(smiles)?;
 
     let mut results = substructure_search(
         &searcher,
@@ -142,7 +142,7 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
         }
     }
 
-    let final_results = aggregate_search_hits(searcher, results, used_tautomers, smile)?;
+    let final_results = aggregate_search_hits(searcher, results, used_tautomers, smiles)?;
 
     println!("{:#?}", final_results);
 

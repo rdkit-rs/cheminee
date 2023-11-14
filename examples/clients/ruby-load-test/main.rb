@@ -19,7 +19,7 @@ docs = []
 
 for i in (1..passes)
   for structure in structures
-    docs << {smile: structure, extra_data: {smile_again: structure, notice: "we're on pass #{i}"}}
+    docs << {smiles: structure, extra_data: {smiles_again: structure, notice: "we're on pass #{i}"}}
   end
 end
 

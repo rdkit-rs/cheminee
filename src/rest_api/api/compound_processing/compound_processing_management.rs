@@ -3,11 +3,11 @@ use poem_openapi::{payload::Json, ApiResponse, Object};
 #[derive(ApiResponse)]
 pub enum StandardizeResponse {
     #[oai(status = "200")]
-    Ok(Json<Vec<StandardizedSmile>>),
+    Ok(Json<Vec<StandardizedSmiles>>),
 }
 
 #[derive(Object, Debug)]
-pub struct StandardizedSmile {
+pub struct StandardizedSmiles {
     #[oai(skip_serializing_if_is_none)]
     pub smile: Option<String>,
     #[oai(skip_serializing_if_is_none)]

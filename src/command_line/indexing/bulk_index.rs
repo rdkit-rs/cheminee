@@ -43,7 +43,7 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
     let mut writer = index.writer(8 * 1024 * 1024)?;
     let schema = index.schema();
 
-    let smile_field = schema.get_field("smile")?;
+    let smiles_field = schema.get_field("smiles")?;
     let fingerprint_field = schema.get_field("fingerprint")?;
     let extra_data_field = schema.get_field("extra_data")?;
     let descriptor_fields = KNOWN_DESCRIPTORS
@@ -58,8 +58,8 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
     let _ = json_array
         .into_par_iter()
         .map(|ob| {
-            let smile = ob
-                .get("smile")
+            let smiles = ob
+                .get("smiles")
                 .ok_or(eyre::eyre!("Failed to extract smiles"))
                 .unwrap()
                 .to_string()
@@ -69,9 +69,9 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
             let extra_data = ob.get("extra_data");
 
             let doc = create_tantivy_doc(
-                smile.deref(),
+                smiles.deref(),
                 extra_data.cloned(),
-                smile_field,
+                smiles_field,
                 fingerprint_field,
                 &descriptor_fields,
                 extra_data_field,
@@ -84,12 +84,12 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
                     match write_operation {
                         Ok(_) => (),
                         Err(e) => {
-                            println!("Failed to index smiles {}: {}", smile, e);
+                            println!("Failed to index smiles {}: {}", smiles, e);
                         }
                     }
                 }
                 Err(e) => {
-                    println!("Failed to index smiles {}: {}", smile, e);
+                    println!("Failed to index smiles {}: {}", smiles, e);
                 }
             }
         })

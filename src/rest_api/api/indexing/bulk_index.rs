@@ -35,7 +35,7 @@ pub async fn v1_post_index_bulk(
 
     let schema = index.schema();
 
-    let smile_field = schema.get_field("smile").unwrap();
+    let smiles_field = schema.get_field("smiles").unwrap();
     let fingerprint_field = schema.get_field("fingerprint").unwrap();
     let extra_data_field = schema.get_field("extra_data").unwrap();
 
@@ -51,7 +51,7 @@ pub async fn v1_post_index_bulk(
             .map(|doc| {
                 bulk_request_doc_to_tantivy_doc(
                     doc,
-                    smile_field,
+                    smiles_field,
                     fingerprint_field,
                     &descriptors_fields,
                     extra_data_field,
@@ -115,13 +115,13 @@ pub async fn v1_post_index_bulk(
 
 fn bulk_request_doc_to_tantivy_doc(
     bulk_request_doc: BulkRequestDoc,
-    smile_field: Field,
+    smiles_field: Field,
     fingerprint_field: Field,
     descriptors_fields: &HashMap<&str, Field>,
     extra_data_field: Field,
 ) -> Result<tantivy::Document, String> {
     let (tautomer, fingerprint, descriptors) =
-        process_cpd(&bulk_request_doc.smile).map_err(|err| err.to_string())?;
+        process_cpd(&bulk_request_doc.smiles).map_err(|err| err.to_string())?;
 
     let json: serde_json::Value = serde_json::to_value(descriptors).map_err(|x| x.to_string())?;
     let jsonified_compound_descriptors: Map<String, Value> =
@@ -132,7 +132,7 @@ fn bulk_request_doc_to_tantivy_doc(
         };
 
     let mut doc = tantivy::doc!(
-        smile_field => tautomer.as_smiles(),
+        smiles_field => tautomer.as_smiles(),
         fingerprint_field => fingerprint.0.into_vec()
     );
 

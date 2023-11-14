@@ -10,7 +10,7 @@ use poem_openapi::payload::Json;
 pub fn v1_index_search_substructure(
     index_manager: &IndexManager,
     index: String,
-    smile: String,
+    smiles: String,
     result_limit: usize,
     tautomer_limit: usize,
     extra_query: &String,
@@ -36,7 +36,7 @@ pub fn v1_index_search_substructure(
 
     let searcher = reader.searcher();
 
-    let query_attributes = prepare_query_structure(&smile);
+    let query_attributes = prepare_query_structure(&smiles);
 
     let query_attributes = match query_attributes {
         Ok(query_attributes) => query_attributes,
@@ -120,7 +120,7 @@ pub fn v1_index_search_substructure(
         }
     }
 
-    let final_results = aggregate_search_hits(searcher, results, used_tautomers, &smile);
+    let final_results = aggregate_search_hits(searcher, results, used_tautomers, &smiles);
 
     let final_results = match final_results {
         Ok(final_results) => final_results,

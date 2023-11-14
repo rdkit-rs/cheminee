@@ -83,7 +83,7 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<usize> {
         let mol = mol.unwrap();
         let mol: ROMol = mol.to_ro_mol();
 
-        let smile = schema.get_field("smile").unwrap();
+        let smiles = schema.get_field("smiles").unwrap();
         let fingerprint = schema.get_field("fingerprint").unwrap();
 
         let descriptors_fields = KNOWN_DESCRIPTORS
@@ -101,7 +101,7 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<usize> {
         };
 
         let mut doc = doc!(
-            smile => canon_taut.as_smiles(),
+            smiles => canon_taut.as_smiles(),
             fingerprint => fp.0.into_vec()
         );
 

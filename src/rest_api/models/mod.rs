@@ -1,2 +1,2 @@
-mod smile;
-pub use smile::*;
+mod smiles;
+pub use smiles::*;
