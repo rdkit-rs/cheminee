@@ -3,8 +3,8 @@ use crate::command_line::prelude::*;
 use crate::indexing::index_manager::IndexManager;
 use crate::search::compound_processing::process_cpd;
 use bitvec::macros::internal::funty::Fundamental;
-use rayon::prelude::*;
 use serde_json::Value;
+use std::io::BufRead;
 use std::{collections::HashMap, fs::File, io::BufReader, ops::Deref};
 use tantivy::schema::Field;
 
@@ -53,47 +53,28 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
 
     let file = File::open(json_path)?;
     let reader = BufReader::new(file);
-    let json_array: Vec<Value> = serde_json::from_reader(reader)?;
 
-    let _ = json_array
-        .into_par_iter()
-        .map(|ob| {
-            let smiles = ob
-                .get("smiles")
-                .ok_or(eyre::eyre!("Failed to extract smiles"))
-                .unwrap()
-                .to_string()
-                // For some reason there are leading and trailing quotations marks messing up the parsing...
-                .replace("\"", "");
+    for result_line in reader.lines() {
+        let line = result_line?;
+        let record: serde_json::Value = serde_json::from_str(&line)?;
+        let smiles = record
+            .get("smiles")
+            .ok_or(eyre::eyre!("Failed to extract smiles"))?
+            .as_str()
+            .ok_or(eyre::eyre!("Failed to convert smiles to str"))?;
+        let extra_data = record.get("extra_data");
 
-            let extra_data = ob.get("extra_data");
+        let doc = create_tantivy_doc(
+            smiles,
+            extra_data.cloned(),
+            smiles_field,
+            fingerprint_field,
+            &descriptor_fields,
+            extra_data_field,
+        )?;
 
-            let doc = create_tantivy_doc(
-                smiles.deref(),
-                extra_data.cloned(),
-                smiles_field,
-                fingerprint_field,
-                &descriptor_fields,
-                extra_data_field,
-            );
-
-            match doc {
-                Ok(doc) => {
-                    let write_operation = writer.add_document(doc);
-
-                    match write_operation {
-                        Ok(_) => (),
-                        Err(e) => {
-                            println!("Failed to index smiles {}: {}", smiles, e);
-                        }
-                    }
-                }
-                Err(e) => {
-                    println!("Failed to index smiles {}: {}", smiles, e);
-                }
-            }
-        })
-        .collect::<Vec<_>>();
+        let _write_operation = writer.add_document(doc)?;
+    }
 
     let _commit = writer.commit()?;
 
