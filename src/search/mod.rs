@@ -1,5 +1,4 @@
 use std::collections::{HashMap, HashSet};
-use std::ops::Deref;
 
 use poem_openapi_derive::Object;
 use rdkit::{
@@ -103,7 +102,7 @@ pub fn aggregate_query_hits(
             get_smiles_and_extra_data(result, &searcher, smile_field, extra_data_field)?;
 
         final_results.push(QuerySearchHit {
-            extra_data: serde_json::from_str(extra_data.deref())?,
+            extra_data: serde_json::from_str(&extra_data)?,
             smiles: smile.into(),
             query: query.into(),
         })
