@@ -88,12 +88,12 @@ pub fn aggregate_query_hits(
 ) -> eyre::Result<Vec<QuerySearchHit>> {
     let mut final_results: Vec<QuerySearchHit> = Vec::new();
     let schema = searcher.schema();
-    let smile_field = schema.get_field("smile")?;
+    let smiles_field = schema.get_field("smiles")?;
     let extra_data_field = schema.get_field("extra_data")?;
 
     for result in results {
         let (smile, extra_data) =
-            get_smiles_and_extra_data(result, &searcher, smile_field, extra_data_field)?;
+            get_smiles_and_extra_data(result, &searcher, smiles_field, extra_data_field)?;
 
         final_results.push(QuerySearchHit {
             extra_data: serde_json::from_str(&extra_data)?,
