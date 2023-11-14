@@ -113,14 +113,14 @@ pub fn aggregate_search_hits(
 ) -> eyre::Result<Vec<StructureSearchHit>> {
     let mut final_results: Vec<StructureSearchHit> = Vec::new();
     let schema = searcher.schema();
-    let smile_field = schema.get_field("smile")?;
+    let smiles_field = schema.get_field("smiles")?;
     let extra_data_field = schema.get_field("extra_data")?;
 
     let score: f32 = 1.0; // every substructure match should get a 1
 
     for result in results {
         let (smile, extra_data) =
-            get_smiles_and_extra_data(result, &searcher, smile_field, extra_data_field)?;
+            get_smiles_and_extra_data(result, &searcher, smiles_field, extra_data_field)?;
 
         final_results.push(StructureSearchHit {
             extra_data: extra_data.into(),
