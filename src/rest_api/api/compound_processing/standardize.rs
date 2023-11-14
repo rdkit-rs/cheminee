@@ -3,20 +3,20 @@ use crate::{rest_api::models::Smiles, search::compound_processing::standardize_s
 use poem_openapi::payload::Json;
 use rayon::prelude::*;
 
-pub async fn v1_standardize(mol: Json<Vec<Smile>>) -> StandardizeResponse {
+pub async fn v1_standardize(mol: Json<Vec<Smiles>>) -> StandardizeResponse {
     let standardized_smiles = mol
         .0
         .into_par_iter()
         .map(|s| {
-            let standardize = standardize_smiles(&s.smile);
+            let standardize = standardize_smiles(&s.smiles);
 
             match standardize {
                 Ok(romol) => StandardizedSmiles {
-                    smile: Some(romol.as_smile()),
+                    smiles: Some(romol.as_smiles()),
                     error: None,
                 },
                 Err(e) => StandardizedSmiles {
-                    smile: Some(s.smile),
+                    smiles: Some(s.smiles),
                     error: Some(e.to_string()),
                 },
             }
@@ -28,16 +28,14 @@ pub async fn v1_standardize(mol: Json<Vec<Smile>>) -> StandardizeResponse {
 
 #[cfg(test)]
 mod tests {
-    use poem::{handler, Route};
-
-    use super::*;
+    use crate::rest_api::api::compound_processing::standardize::*;
     use crate::{indexing::index_manager::IndexManager, rest_api::openapi_server::Api};
     use poem::{handler, Route};
 
     #[handler]
     async fn index() -> StandardizeResponse {
-        let smiles = Json(vec![Smile {
-            smile: "CC=CO".to_string(), // smile:  "CCC=O".to_string(), -answer
+        let smiles = Json(vec![Smiles {
+            smiles: "CC=CO".to_string(), // smiles:  "CCC=O".to_string(), -answer
         }]);
         Api {
             index_manager: IndexManager::new("/tmp/blah", false).unwrap(),
@@ -57,11 +55,10 @@ mod tests {
 
         let json = resp.json().await;
         let json_value = json.value();
-        // json_value.object().get("smile").assert_string("CCC=O");
         json_value
             .array()
             .iter()
-            .map(|value| value.object().get("smile"))
+            .map(|value| value.object().get("smiles"))
             .collect::<Vec<_>>()
             .first()
             .expect("first_value")

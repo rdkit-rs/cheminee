@@ -9,7 +9,7 @@ pub enum StandardizeResponse {
 #[derive(Object, Debug)]
 pub struct StandardizedSmiles {
     #[oai(skip_serializing_if_is_none)]
-    pub smile: Option<String>,
+    pub smiles: Option<String>,
     #[oai(skip_serializing_if_is_none)]
     pub error: Option<String>,
 }

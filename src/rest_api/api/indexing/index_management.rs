@@ -62,7 +62,7 @@ pub struct BulkRequest {
 
 #[derive(Object, Debug)]
 pub struct BulkRequestDoc {
-    pub smile: String,
+    pub smiles: String,
     /// This value can store an arbitrary JSON object like '{}'
     pub extra_data: Option<serde_json::Value>,
 }

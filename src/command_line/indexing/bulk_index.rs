@@ -103,7 +103,7 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
 fn create_tantivy_doc(
     smile: &str,
     extra_data: Option<Value>,
-    smile_field: Field,
+    smiles_field: Field,
     fingerprint_field: Field,
     descriptor_fields: &HashMap<&str, Field>,
     extra_data_field: Field,
@@ -111,7 +111,7 @@ fn create_tantivy_doc(
     let (canon_taut, fingerprint, descriptors) = process_cpd(smile)?;
 
     let mut doc = doc!(
-        smile_field => canon_taut.as_smile(),
+        smiles_field => canon_taut.as_smiles(),
         fingerprint_field => fingerprint.0.into_vec()
     );
 
