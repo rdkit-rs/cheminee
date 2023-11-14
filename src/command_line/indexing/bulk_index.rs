@@ -1,5 +1,5 @@
-pub use super::prelude::*;
 use crate::command_line::indexing::split_path;
+use crate::command_line::prelude::*;
 use crate::indexing::index_manager::IndexManager;
 use crate::search::compound_processing::process_cpd;
 use bitvec::macros::internal::funty::Fundamental;
@@ -13,24 +13,28 @@ pub const NAME: &str = "bulk-index";
 pub fn command() -> Command {
     Command::new(NAME)
         .arg(
-            Arg::new("index_path")
+            Arg::new("index-path")
                 .required(true)
-                .long("index_path")
+                .long("index-path")
                 .short('i')
                 .num_args(1),
         )
         .arg(
-            Arg::new("json_path")
+            Arg::new("json-path")
                 .required(false)
-                .long("json_path")
+                .long("json-path")
                 .short('j')
                 .num_args(1),
         )
 }
 
 pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
-    let index_path = matches.get_one::<String>("index_path")?;
-    let json_path = matches.get_one::<String>("json_path")?;
+    let index_path = matches
+        .get_one::<String>("index-path")
+        .ok_or(eyre::eyre!("Failed to extract index path"))?;
+    let json_path = matches
+        .get_one::<String>("json-path")
+        .ok_or(eyre::eyre!("Failed to extract json path"))?;
 
     let (storage_dir, index_name) = split_path(index_path)?;
     let index_manager = IndexManager::new(storage_dir.deref(), false)?;

@@ -4,7 +4,7 @@ use rdkit::{MolBlockIter, ROMol, RWMol};
 use serde_json::{Map, Value};
 use tantivy::schema::Field;
 
-use super::super::prelude::*;
+use crate::command_line::prelude::*;
 use crate::search::compound_processing::process_cpd;
 
 pub const NAME: &str = "index-sdf";
@@ -35,8 +35,12 @@ pub fn command() -> Command {
 }
 
 pub fn action(matches: &ArgMatches) -> eyre::Result<usize> {
-    let sdf_path = matches.get_one::<String>("sdf").unwrap();
-    let index_dir = matches.get_one::<String>("index").unwrap();
+    let sdf_path = matches
+        .get_one::<String>("sdf")
+        .ok_or(eyre::eyre!("Failed to extract sdf path"))?;
+    let index_dir = matches
+        .get_one::<String>("index")
+        .ok_or(eyre::eyre!("Failed to extract index path"))?;
     let limit = matches.get_one::<String>("limit");
 
     log::info!(

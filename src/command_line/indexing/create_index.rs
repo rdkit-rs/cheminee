@@ -1,5 +1,5 @@
-pub use super::prelude::*;
 use crate::command_line::indexing::split_path;
+use crate::command_line::prelude::*;
 use crate::indexing::index_manager::IndexManager;
 use std::ops::Deref;
 
@@ -8,32 +8,36 @@ pub const NAME: &str = "create-index";
 pub fn command() -> Command {
     Command::new(NAME)
         .arg(
-            Arg::new("index_path")
+            Arg::new("index-path")
                 .required(true)
-                .long("index_path")
+                .long("index-path")
                 .short('i')
                 .num_args(1),
         )
         .arg(
-            Arg::new("schema_name")
+            Arg::new("schema-name")
                 .required(true)
-                .long("schema_name")
+                .long("schema-name")
                 .short('n')
                 .num_args(1),
         )
         .arg(
-            Arg::new("sort_by")
+            Arg::new("sort-by")
                 .required(false)
-                .long("sort_by")
+                .long("sort-by")
                 .short('s')
                 .num_args(1),
         )
 }
 
 pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
-    let index_path = matches.get_one::<String>("index_path")?;
-    let schema_name = matches.get_one::<String>("schema_name")?;
-    let sort_by = matches.get_one::<String>("sort_by");
+    let index_path = matches
+        .get_one::<String>("index-path")
+        .ok_or(eyre::eyre!("Failed to extract index path"))?;
+    let schema_name = matches
+        .get_one::<String>("schema-name")
+        .ok_or(eyre::eyre!("Failed to extract schema name"))?;
+    let sort_by = matches.get_one::<String>("sort-by");
 
     let schema = crate::schema::LIBRARY
         .get(schema_name.as_str())

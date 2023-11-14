@@ -1,4 +1,4 @@
-pub use super::super::prelude::*;
+use crate::command_line::prelude::*;
 use crate::search::{
     aggregate_search_hits, compound_processing::*, prepare_query_structure,
     substructure_search::substructure_search,
@@ -46,8 +46,12 @@ pub fn command() -> Command {
 }
 
 pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
-    let index_path = matches.get_one::<String>("index")?;
-    let smile = matches.get_one::<String>("smiles")?;
+    let index_path = matches
+        .get_one::<String>("index")
+        .ok_or(eyre::eyre!("Failed to extract index path"))?;
+    let smile = matches
+        .get_one::<String>("smiles")
+        .ok_or(eyre::eyre!("Failed to extract SMILES"))?;
     let result_limit = matches.get_one::<String>("result_limit");
     let tautomer_limit = matches.get_one::<String>("tautomer_limit");
     let extra_query = matches.get_one::<String>("extra_query");
