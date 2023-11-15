@@ -123,7 +123,7 @@ pub fn aggregate_search_hits(
             get_smiles_and_extra_data(result, &searcher, smiles_field, extra_data_field)?;
 
         final_results.push(StructureSearchHit {
-            extra_data: extra_data.into(),
+            extra_data: serde_json::from_str(&extra_data)?,
             smiles: smile,
             score,
             query: query.into(),
