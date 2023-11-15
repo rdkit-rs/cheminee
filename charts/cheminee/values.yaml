@@ -90,7 +90,5 @@ affinity: {}
 persistence:
   enabled: false
   storageSize: 10G
-  labels:
-    # Add default labels for the volumeClaimTemplate of the StatefulSet
-    enabled: false
+  labels: {}
   annotations: {}
