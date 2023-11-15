@@ -1,11 +1,9 @@
-use crate::command_line::indexing::split_path;
-use crate::command_line::prelude::*;
+use crate::command_line::{indexing::split_path, prelude::*};
 use crate::indexing::index_manager::IndexManager;
 use crate::search::compound_processing::process_cpd;
 use bitvec::macros::internal::funty::Fundamental;
-use serde_json::Value;
-use std::io::BufRead;
-use std::{collections::HashMap, fs::File, io::BufReader, ops::Deref};
+use rayon::prelude::*;
+use std::{collections::HashMap, fs::File, io::BufRead, io::BufReader, ops::Deref};
 use tantivy::schema::Field;
 
 pub const NAME: &str = "bulk-index";
@@ -53,43 +51,71 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
 
     let file = File::open(json_path)?;
     let reader = BufReader::new(file);
+    let chunksize = 1000;
+    let mut record_vec = Vec::with_capacity(chunksize);
 
     for result_line in reader.lines() {
         let line = result_line?;
         let record: serde_json::Value = serde_json::from_str(&line)?;
-        let smiles = record
-            .get("smiles")
-            .ok_or(eyre::eyre!("Failed to extract smiles"))?
-            .as_str()
-            .ok_or(eyre::eyre!("Failed to convert smiles to str"))?;
-        let extra_data = record.get("extra_data");
 
-        let doc = create_tantivy_doc(
-            smiles,
-            extra_data.cloned(),
-            smiles_field,
-            fingerprint_field,
-            &descriptor_fields,
-            extra_data_field,
-        )?;
+        record_vec.push(record);
+        if record_vec.len() == chunksize {
+            let _ = record_vec
+                .clone()
+                .into_par_iter()
+                .map(|r| {
+                    let doc = create_tantivy_doc(
+                        r,
+                        smiles_field,
+                        fingerprint_field,
+                        &descriptor_fields,
+                        extra_data_field,
+                    );
 
-        let _write_operation = writer.add_document(doc)?;
+                    match doc {
+                        Ok(doc) => {
+                            let write_operation = writer.add_document(doc);
+
+                            match write_operation {
+                                Ok(_) => (),
+                                Err(e) => {
+                                    println!("Failed doc creation: {:?}", e);
+                                }
+                            }
+                        }
+                        Err(e) => {
+                            println!("Failed doc creation: {:?}", e);
+                        }
+                    }
+
+                    ()
+                })
+                .collect::<Vec<_>>();
+
+            let _ = writer.commit();
+
+            record_vec.clear();
+        }
     }
-
-    let _commit = writer.commit()?;
 
     Ok(())
 }
 
 fn create_tantivy_doc(
-    smile: &str,
-    extra_data: Option<Value>,
+    record: serde_json::Value,
     smiles_field: Field,
     fingerprint_field: Field,
     descriptor_fields: &HashMap<&str, Field>,
     extra_data_field: Field,
 ) -> eyre::Result<tantivy::Document> {
-    let (canon_taut, fingerprint, descriptors) = process_cpd(smile)?;
+    let smiles = record
+        .get("smiles")
+        .ok_or(eyre::eyre!("Failed to extract smiles"))?
+        .as_str()
+        .ok_or(eyre::eyre!("Failed to convert smiles to str"))?;
+    let extra_data = record.get("extra_data").cloned();
+
+    let (canon_taut, fingerprint, descriptors) = process_cpd(smiles)?;
 
     let mut doc = doc!(
         smiles_field => canon_taut.as_smiles(),
