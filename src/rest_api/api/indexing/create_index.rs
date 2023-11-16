@@ -1,22 +1,7 @@
+use crate::indexing::index_manager::IndexManager;
+use crate::rest_api::api::{CreateIndexError, IndexMeta, PostIndexResponse};
+use crate::schema::LIBRARY;
 use poem_openapi::payload::Json;
-use poem_openapi_derive::{ApiResponse, Object};
-
-use crate::{indexing::index_manager::IndexManager, rest_api::api::IndexMeta, schema::LIBRARY};
-
-#[derive(ApiResponse)]
-pub enum PostIndexResponse {
-    #[oai(status = "200")]
-    Ok(Json<IndexMeta>),
-    #[oai(status = "404")]
-    SchemaDoesNotExist,
-    #[oai(status = "500")]
-    Err(Json<CreateIndexError>),
-}
-
-#[derive(Object, Debug)]
-pub struct CreateIndexError {
-    pub error: String,
-}
 
 pub fn v1_post_index(
     index_manager: &IndexManager,

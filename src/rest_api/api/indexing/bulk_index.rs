@@ -1,71 +1,20 @@
-use std::collections::HashMap;
-
+use crate::indexing::{index_manager::IndexManager, KNOWN_DESCRIPTORS};
+use crate::rest_api::api::{
+    BulkRequest, BulkRequestDoc, PostIndexBulkResponseError, PostIndexBulkResponseOk,
+    PostIndexBulkResponseOkStatus, PostIndexesBulkIndexResponse,
+};
+use crate::search::compound_processing::process_cpd;
 use poem_openapi::payload::Json;
-use poem_openapi_derive::{ApiResponse, Object};
 use rayon::prelude::*;
 use serde_json::{Map, Value};
-use tantivy::{schema::Field, Opstamp};
-
-use crate::{
-    indexing::{index_manager::IndexManager, KNOWN_DESCRIPTORS},
-    search::compound_processing::process_cpd,
-};
-
-#[derive(ApiResponse)]
-pub enum PostIndexesBulkIndexResponse {
-    #[oai(status = "200")]
-    Ok(Json<PostIndexBulkResponseOk>),
-    #[oai(status = "404")]
-    IndexDoesNotExist,
-    #[oai(status = "500")]
-    Err(Json<PostIndexBulkResponseError>),
-}
-
-#[derive(Object, Debug)]
-pub struct BulkRequest {
-    pub docs: Vec<BulkRequestDoc>,
-}
-
-#[derive(Object, Debug)]
-pub struct BulkRequestDoc {
-    pub smile: String,
-    /// This value can store an arbitrary JSON object like '{}'
-    pub extra_data: Option<serde_json::Value>,
-}
-
-#[derive(Object, Debug)]
-pub struct PostIndexBulkResponseOk {
-    pub statuses: Vec<PostIndexBulkResponseOkStatus>,
-    // pub errors: usize,
-    // pub seconds_taken: usize,
-}
-
-#[derive(Object, Debug)]
-pub struct PostIndexBulkResponseOkStatus {
-    opcode: Option<Opstamp>,
-    error: Option<String>,
-}
-
-#[derive(Object, Debug)]
-pub struct PostIndexBulkResponseError {
-    pub error: String,
-}
+use std::collections::HashMap;
+use tantivy::schema::Field;
 
 pub async fn v1_post_index_bulk(
     index_manager: &IndexManager,
     index: String,
     bulk_request: BulkRequest,
 ) -> PostIndexesBulkIndexResponse {
-    match index_manager.exists(&index) {
-        Ok(None) => return PostIndexesBulkIndexResponse::IndexDoesNotExist,
-        Err(e) => {
-            return PostIndexesBulkIndexResponse::Err(Json(PostIndexBulkResponseError {
-                error: e.to_string(),
-            }))
-        }
-        _ => (),
-    }
-
     let index = match index_manager.open(&index) {
         Ok(index) => index,
         Err(e) => {
@@ -86,7 +35,7 @@ pub async fn v1_post_index_bulk(
 
     let schema = index.schema();
 
-    let smile_field = schema.get_field("smile").unwrap();
+    let smiles_field = schema.get_field("smiles").unwrap();
     let fingerprint_field = schema.get_field("fingerprint").unwrap();
     let extra_data_field = schema.get_field("extra_data").unwrap();
 
@@ -102,7 +51,7 @@ pub async fn v1_post_index_bulk(
             .map(|doc| {
                 bulk_request_doc_to_tantivy_doc(
                     doc,
-                    smile_field,
+                    smiles_field,
                     fingerprint_field,
                     &descriptors_fields,
                     extra_data_field,
@@ -166,13 +115,13 @@ pub async fn v1_post_index_bulk(
 
 fn bulk_request_doc_to_tantivy_doc(
     bulk_request_doc: BulkRequestDoc,
-    smile_field: Field,
+    smiles_field: Field,
     fingerprint_field: Field,
     descriptors_fields: &HashMap<&str, Field>,
     extra_data_field: Field,
 ) -> Result<tantivy::Document, String> {
     let (tautomer, fingerprint, descriptors) =
-        process_cpd(&bulk_request_doc.smile).map_err(|err| err.to_string())?;
+        process_cpd(&bulk_request_doc.smiles).map_err(|err| err.to_string())?;
 
     let json: serde_json::Value = serde_json::to_value(descriptors).map_err(|x| x.to_string())?;
     let jsonified_compound_descriptors: Map<String, Value> =
@@ -183,7 +132,7 @@ fn bulk_request_doc_to_tantivy_doc(
         };
 
     let mut doc = tantivy::doc!(
-        smile_field => tautomer.as_smiles(),
+        smiles_field => tautomer.as_smiles(),
         fingerprint_field => fingerprint.0.into_vec()
     );
 

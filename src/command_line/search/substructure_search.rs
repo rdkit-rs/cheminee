@@ -1,4 +1,4 @@
-pub use super::prelude::*;
+use crate::command_line::prelude::*;
 use crate::search::{
     aggregate_search_hits, compound_processing::*, prepare_query_structure,
     substructure_search::substructure_search,
@@ -46,8 +46,12 @@ pub fn command() -> Command {
 }
 
 pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
-    let index_path = matches.get_one::<String>("index").unwrap();
-    let smile = matches.get_one::<String>("smiles").unwrap();
+    let index_path = matches
+        .get_one::<String>("index")
+        .ok_or(eyre::eyre!("Failed to extract index path"))?;
+    let smiles = matches
+        .get_one::<String>("smiles")
+        .ok_or(eyre::eyre!("Failed to extract SMILES"))?;
     let result_limit = matches.get_one::<String>("result_limit");
     let tautomer_limit = matches.get_one::<String>("tautomer_limit");
     let extra_query = matches.get_one::<String>("extra_query");
@@ -74,7 +78,7 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
     let reader = index.reader()?;
     let searcher = reader.searcher();
 
-    let (query_canon_taut, fingerprint, descriptors) = prepare_query_structure(smile)?;
+    let (query_canon_taut, fingerprint, descriptors) = prepare_query_structure(smiles)?;
 
     let mut results = substructure_search(
         &searcher,
@@ -138,7 +142,7 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
         }
     }
 
-    let final_results = aggregate_search_hits(searcher, results, used_tautomers, smile)?;
+    let final_results = aggregate_search_hits(searcher, results, used_tautomers, smiles)?;
 
     println!("{:#?}", final_results);
 

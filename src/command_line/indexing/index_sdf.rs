@@ -4,14 +4,20 @@ use rdkit::{MolBlockIter, ROMol, RWMol};
 use serde_json::{Map, Value};
 use tantivy::schema::Field;
 
-use super::prelude::*;
+use crate::command_line::prelude::*;
 use crate::search::compound_processing::process_cpd;
 
-pub const NAME: &str = "index-pubchem-sdf";
+pub const NAME: &str = "index-sdf";
 
 pub fn command() -> Command {
     Command::new(NAME)
-        .arg(Arg::new("sdf").required(true).long("sdf").num_args(1))
+        .arg(
+            Arg::new("sdf")
+                .required(true)
+                .long("sdf")
+                .short('s')
+                .num_args(1),
+        )
         .arg(
             Arg::new("index")
                 .required(true)
@@ -19,12 +25,22 @@ pub fn command() -> Command {
                 .short('i')
                 .num_args(1),
         )
-        .arg(Arg::new("limit").required(false).long("limit").num_args(1))
+        .arg(
+            Arg::new("limit")
+                .required(false)
+                .long("limit")
+                .short('l')
+                .num_args(1),
+        )
 }
 
 pub fn action(matches: &ArgMatches) -> eyre::Result<usize> {
-    let sdf_path = matches.get_one::<String>("sdf").unwrap();
-    let index_dir = matches.get_one::<String>("index").unwrap();
+    let sdf_path = matches
+        .get_one::<String>("sdf")
+        .ok_or(eyre::eyre!("Failed to extract sdf path"))?;
+    let index_dir = matches
+        .get_one::<String>("index")
+        .ok_or(eyre::eyre!("Failed to extract index path"))?;
     let limit = matches.get_one::<String>("limit");
 
     log::info!(
@@ -67,7 +83,7 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<usize> {
         let mol = mol.unwrap();
         let mol: ROMol = mol.to_ro_mol();
 
-        let smile = schema.get_field("smile").unwrap();
+        let smiles = schema.get_field("smiles").unwrap();
         let fingerprint = schema.get_field("fingerprint").unwrap();
 
         let descriptors_fields = KNOWN_DESCRIPTORS
@@ -85,7 +101,7 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<usize> {
         };
 
         let mut doc = doc!(
-            smile => canon_taut.as_smiles(),
+            smiles => canon_taut.as_smiles(),
             fingerprint => fp.0.into_vec()
         );
 

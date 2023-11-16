@@ -1,11 +1,8 @@
 mod indexing;
 pub use indexing::*;
 
-mod index_management;
-pub use index_management::*;
-
 mod search;
 pub use search::*;
 
-mod standardize;
-pub use standardize::*;
+mod compound_processing;
+pub use compound_processing::*;

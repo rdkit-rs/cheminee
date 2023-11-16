@@ -1,20 +1,16 @@
-use poem_openapi::payload::Json;
-
-use crate::{
-    indexing::index_manager::IndexManager,
-    rest_api::api::{GetStructureSearchResponse, StructureResponseError},
-    search::{
-        aggregate_search_hits,
-        compound_processing::{get_cpd_properties, get_tautomers},
-        prepare_query_structure,
-        substructure_search::substructure_search,
-    },
+use crate::indexing::index_manager::IndexManager;
+use crate::rest_api::api::{GetStructureSearchResponse, StructureResponseError};
+use crate::search::{
+    compound_processing::{get_cpd_properties, get_tautomers},
+    substructure_search::substructure_search,
+    {aggregate_search_hits, prepare_query_structure},
 };
+use poem_openapi::payload::Json;
 
 pub fn v1_index_search_substructure(
     index_manager: &IndexManager,
     index: String,
-    smile: String,
+    smiles: String,
     result_limit: usize,
     tautomer_limit: usize,
     extra_query: &String,
@@ -40,7 +36,7 @@ pub fn v1_index_search_substructure(
 
     let searcher = reader.searcher();
 
-    let query_attributes = prepare_query_structure(&smile);
+    let query_attributes = prepare_query_structure(&smiles);
 
     let query_attributes = match query_attributes {
         Ok(query_attributes) => query_attributes,
@@ -124,7 +120,7 @@ pub fn v1_index_search_substructure(
         }
     }
 
-    let final_results = aggregate_search_hits(searcher, results, used_tautomers, &smile);
+    let final_results = aggregate_search_hits(searcher, results, used_tautomers, &smiles);
 
     let final_results = match final_results {
         Ok(final_results) => final_results,

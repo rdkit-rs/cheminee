@@ -1,26 +1,19 @@
-use std::path::PathBuf;
+use crate::indexing::index_manager::IndexManager;
+use crate::rest_api::api::{
+    v1_get_index, v1_index_search_basic, v1_index_search_substructure, v1_list_indexes,
+    v1_list_schemas, v1_post_index, v1_post_index_bulk, v1_standardize, BulkRequest,
+    GetIndexResponse, GetQuerySearchResponse, GetStructureSearchResponse, ListIndexesResponse,
+    ListSchemasResponse, PostIndexResponse, PostIndexesBulkIndexResponse, StandardizeResponse,
+};
+use crate::rest_api::models::Smiles;
 
 use poem::{listener::TcpListener, EndpointExt, Route, Server};
 use poem_openapi::{
     param::{Path, Query},
     payload::Json,
-    ContactObject, OpenApiService,
+    ContactObject, OpenApi, OpenApiService,
 };
-use poem_openapi_derive::OpenApi;
-
-use crate::{
-    indexing::index_manager::IndexManager,
-    rest_api::{
-        api::{
-            v1_get_index, v1_index_search_basic, v1_index_search_substructure, v1_list_indexes,
-            v1_list_schemas, v1_post_index, v1_post_index_bulk, v1_standardize, BulkRequest,
-            GetIndexesResponse, GetQuerySearchResponse, GetStructureSearchResponse,
-            ListIndexesResponse, ListSchemasResponse, PostIndexResponse,
-            PostIndexesBulkIndexResponse, StandardizeResponse,
-        },
-        models::Smile,
-    },
-};
+use std::path::PathBuf;
 
 const API_PREFIX: &str = "/api";
 
@@ -87,7 +80,7 @@ pub struct Api {
 impl Api {
     #[oai(path = "/v1/standardize", method = "post")]
     /// Pass a list of SMILES through fragment_parent, uncharger, and canonicalization routines
-    pub async fn v1_standardize(&self, mol: Json<Vec<Smile>>) -> StandardizeResponse {
+    pub async fn v1_standardize(&self, mol: Json<Vec<Smiles>>) -> StandardizeResponse {
         v1_standardize(mol).await
     }
 
@@ -105,7 +98,7 @@ impl Api {
 
     #[oai(path = "/v1/indexes/:index", method = "get")]
     /// Get extended information about an index
-    pub async fn v1_get_index(&self, index: Path<String>) -> GetIndexesResponse {
+    pub async fn v1_get_index(&self, index: Path<String>) -> GetIndexResponse {
         v1_get_index(&self.index_manager, index.to_string())
     }
 
@@ -159,7 +152,7 @@ impl Api {
     pub async fn v1_index_search_substructure(
         &self,
         index: Path<String>,
-        smile: Query<String>,
+        smiles: Query<String>,
         result_limit: Query<Option<usize>>,
         tautomer_limit: Query<Option<usize>>,
         extra_query: Query<Option<String>>,
@@ -185,7 +178,7 @@ impl Api {
         v1_index_search_substructure(
             &self.index_manager,
             index.to_string(),
-            smile.0,
+            smiles.0,
             result_limit,
             tautomer_limit,
             &extra_query,

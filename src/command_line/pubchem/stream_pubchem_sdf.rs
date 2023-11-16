@@ -1,6 +1,5 @@
+use crate::command_line::prelude::*;
 use rdkit::MolBlockIter;
-
-use super::prelude::*;
 
 pub const NAME: &str = "stream-pubchem-sdf";
 
@@ -11,7 +10,9 @@ pub fn command() -> Command {
 }
 
 pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
-    let path = matches.get_one::<String>("sdf").unwrap();
+    let path = matches
+        .get_one::<String>("sdf")
+        .ok_or(eyre::eyre!("Failed to extract output path"))?;
     let limit = matches.get_one::<String>("limit");
 
     let mol_iter = MolBlockIter::from_gz_file(path, true, false, false)

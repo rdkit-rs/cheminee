@@ -45,7 +45,7 @@ pub fn substructure_search(
     let tantivy_limit = 10 * result_limit;
     let filtered_results1 = basic_search(searcher, &query, tantivy_limit)?;
 
-    let smile_field = schema.get_field("smile")?;
+    let smiles_field = schema.get_field("smiles")?;
     let fingerprint_field = schema.get_field("fingerprint")?;
 
     let mut filtered_results2: HashSet<DocAddress> = HashSet::new();
@@ -57,8 +57,8 @@ pub fn substructure_search(
 
         let doc = searcher.doc(docaddr)?;
 
-        let smile = doc
-            .get_first(smile_field)
+        let smiles = doc
+            .get_first(smiles_field)
             .ok_or(eyre::eyre!("Tantivy smiles retrieval failed"))?
             .as_text()
             .ok_or(eyre::eyre!("Failed to stringify smiles"))?;
@@ -77,7 +77,7 @@ pub fn substructure_search(
         if fp_match {
             let params = SubstructMatchParameters::default();
             let mol_substruct_match =
-                substruct_match(&ROMol::from_smiles(smile)?, query_mol, &params);
+                substruct_match(&ROMol::from_smiles(smiles)?, query_mol, &params);
             if !mol_substruct_match.is_empty() {
                 filtered_results2.insert(docaddr);
             }
@@ -129,17 +129,17 @@ mod tests {
 
     #[test]
     fn test_fake_index() {
-        let test_smile = "C";
+        let test_smiles = "C";
 
-        let (query_mol, query_fingerprint, query_descriptors) = process_cpd(test_smile).unwrap();
+        let (query_mol, query_fingerprint, query_descriptors) = process_cpd(test_smiles).unwrap();
 
         let mut builder = SchemaBuilder::new();
 
-        let smile_field = builder.add_text_field("smile", TEXT | STORED);
+        let smiles_field = builder.add_text_field("smiles", TEXT | STORED);
         let fingerprint_field = builder.add_bytes_field("fingerprint", FAST | STORED);
 
         let mut doc = doc!(
-            smile_field => test_smile,
+            smiles_field => test_smiles,
             fingerprint_field => query_fingerprint.0.clone().into_vec()
         );
 

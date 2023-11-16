@@ -1,7 +1,7 @@
-pub use super::prelude::*;
+use crate::command_line::prelude::*;
 use crate::search::{aggregate_query_hits, basic_search::basic_search};
 
-pub const NAME: &str = "search";
+pub const NAME: &str = "basic-search";
 
 pub fn command() -> Command {
     Command::new(NAME)
@@ -29,8 +29,12 @@ pub fn command() -> Command {
 }
 
 pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
-    let index_path = matches.get_one::<String>("index").unwrap();
-    let query = matches.get_one::<String>("query").unwrap();
+    let index_path = matches
+        .get_one::<String>("index")
+        .ok_or(eyre::eyre!("Failed to extract index path"))?;
+    let query = matches
+        .get_one::<String>("query")
+        .ok_or(eyre::eyre!("Failed to extract query"))?;
     let limit = matches.get_one::<String>("limit");
 
     let limit = if let Some(limit) = limit {

@@ -1,10 +1,7 @@
+use crate::indexing::index_manager::IndexManager;
+use crate::rest_api::api::{GetQuerySearchResponse, QueryResponseError};
+use crate::search::{aggregate_query_hits, basic_search::basic_search};
 use poem_openapi::payload::Json;
-
-use crate::{
-    indexing::index_manager::IndexManager,
-    rest_api::api::{GetQuerySearchResponse, QueryResponseError},
-    search::{aggregate_query_hits, basic_search::basic_search},
-};
 
 pub fn v1_index_search_basic(
     index_manager: &IndexManager,
