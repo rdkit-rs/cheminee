@@ -2,6 +2,12 @@ use std::collections::HashMap;
 
 use rdkit::*;
 
+pub fn update_atom_hcount(atom: &mut Atom, chg: i32, num_h: i32) {
+    atom.set_formal_charge(chg);
+    atom.set_num_explicit_hs(num_h);
+    atom.update_property_cache(true);
+}
+
 pub fn standardize_mol(romol: &ROMol) -> eyre::Result<ROMol> {
     let rwmol = romol.as_rw_mol(false, 1);
     let cleanup_params = CleanupParameters::default();

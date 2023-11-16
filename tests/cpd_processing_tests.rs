@@ -3,6 +3,17 @@ use cheminee::search::compound_processing::*;
 use rdkit::*;
 
 #[test]
+fn test_update_atom_hcount() {
+    let smiles = "[H]N([H])([H])";
+    let mut romol = ROMol::from_smiles(smiles).unwrap();
+    let nitrogen = &mut romol.atom_with_idx(0);
+    update_atom_hcount(nitrogen, 1, 4);
+    set_hybridization(&mut romol);
+
+    assert_eq!(romol.as_smiles(), "[NH4+]");
+}
+
+#[test]
 fn test_standardize_mol() {
     let smiles = "CC.Oc1c(cccc3CC(C(=O)[O-]))c3nc2c(C[NH+])cncc12.[Cl-]";
     let romol = ROMol::from_smiles(smiles).unwrap();
@@ -81,11 +92,3 @@ fn test_remove_organic_brackets() {
     let new_smiles = remove_organic_brackets(smiles);
     assert_eq!(&new_smiles, "CCCC(F)(Br)([Na])");
 }
-
-// TODO: Javier fix this?
-// #[test]
-// fn test_fix_repeating_smiles() {
-//     let smiles = "CC(C)(C)OC(=O)NC(CC1=CSC=N1)C(=O)OCC(C)(C)OC(=O)NC(CC1=CSC=N1)C(=O)O.[Na+]";
-//     let fixed_smiles = fix_repeating_smiles(smiles);
-//     assert_eq!(&fixed_smiles, "CC(C)(C)OC(=O)NC(CC1=CSC=N1)C(=O)O");
-// }
