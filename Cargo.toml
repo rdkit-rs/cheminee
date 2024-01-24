@@ -4,6 +4,9 @@ version = "0.1.13"
 edition = "2021"
 description = "Molecule indexing and search"
 license = "MIT"
+documentation = "https://github.com/rdkit-rs/cheminee"
+repository = "https://github.com/rdkit-rs/cheminee"
+homepage = "https://rdkit-rs.github.io"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
