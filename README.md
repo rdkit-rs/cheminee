@@ -56,7 +56,7 @@ For example:
     cargo run -- substructure-search -i /tmp/cheminee/scaffolds-index0 -s CCC -r 10 -t 10 -e "exactmw: [20 TO 200]"
 
 Similar to basic search, "i" refers to the index path, "s" refers to the query SMILES, "r" refers to the number of desired results,
-"t" refers to the number of tautomers to be used for the query SMILES (if applicable), and "e" refers to the 
+"t" refers to the number of tautomers to be used for the query SMILES (if applicable), and "e" refers to the
 "extra query" which is a composite query for chemical descriptors as in the basic search implementation.
 
 
@@ -70,6 +70,12 @@ Logging in to ghcr.io:
 
     # generate a personal access token in your github settings
     echo ghp_123 | docker login ghcr.io -u your_gh_username --password-stdin
+
+You'll want to build and run the multi-stage docker container:
+```sh
+docker build . -f Dockerfile.multi-stage --tag cheminee
+docker run --rm --name cheminee cheminee
+```
 
 Cutting A New Release
 ---

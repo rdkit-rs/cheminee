@@ -18,4 +18,4 @@ RUN apt-get update && apt-get install -y ca-certificates && \
 
 COPY --from=builder /code/target/release/cheminee /usr/local/bin/cheminee
 
-CMD ["cheminee", "rest-api-server"]
+ENTRYPOINT ["cheminee", "rest-api-server"]
