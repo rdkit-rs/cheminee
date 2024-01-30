@@ -25,7 +25,7 @@ To boot up the API server, you can run the following:
 
     cargo run --color=always --release --package cheminee --bin cheminee -- rest-api-server
 
-The simplest way to test out the API is by going to localhost:3000 in your browser and testing out the
+The simplest way to test out the API is by going to localhost:4001 in your browser and testing out the
 functionality of the different endpoints.
 
 This repo is also set to automatically update a ruby gem whenever a new release is published. That gem is "cheminee-ruby".

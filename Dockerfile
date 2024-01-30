@@ -6,4 +6,4 @@ RUN apt-get update && apt-get install -y ca-certificates && \
 
 COPY target/release/cheminee /usr/local/bin/cheminee
 
-CMD ["cheminee", "rest-api-server"]
+CMD ["cheminee", "rest-api-server", "--bind=0.0.0.0:4001"]

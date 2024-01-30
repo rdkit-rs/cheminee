@@ -7,9 +7,9 @@ use clap::{Arg, ArgAction};
 pub const NAME: &str = "rest-api-server";
 pub fn command() -> clap::Command {
     clap::Command::new("rest-api-server").arg(
-        Arg::new("bind").num_args(1).required(false).short('b').long("bind").default_value("localhost:3000")
+        Arg::new("bind").num_args(1).required(false).short('b').long("bind").default_value("localhost:4001")
     ).arg(
-        Arg::new("server-url").num_args(1).required(false).short('u').long("server-url").default_value("http://localhost:3000")
+        Arg::new("server-url").num_args(1).required(false).short('u').long("server-url").default_value("http://localhost:4001")
     ).arg(
         Arg::new("index-storage-directory").num_args(1).required(false).short('s').long("index-storage-directory").default_value("/tmp/cheminee")
     ).arg(
