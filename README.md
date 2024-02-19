@@ -8,6 +8,7 @@ The chemistry search stack. Index chemical structures and include arbitrary extr
 
 See [rdkit-sys](https://github.com/tureus/rdkit-sys) for more on how the bindings work.
 
+Tested on Rust Stabe 1.76 (`rustup default 1.76`)
 
 Intended Functionality
 ---
