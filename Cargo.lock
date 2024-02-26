@@ -270,7 +270,7 @@ checksum = "baf1de4339761588bc0619e3cbc0120ee582ebb74b53b4efbf79117bd2da40fd"
 
 [[package]]
 name = "cheminee"
-version = "0.1.13"
+version = "0.1.17"
 dependencies = [
  "bitvec",
  "clap",
@@ -1844,9 +1844,9 @@ dependencies = [
 
 [[package]]
 name = "rdkit"
-version = "0.4.4"
+version = "0.4.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d82b3c7610ce2fcc07bcc524dac0e15c8ae36ad17b249b215a7437dc1b100a9a"
+checksum = "d2a8a8674655d8dc068ea8ac0f0b063e313d1ed1414cb6643930b91a46b10714"
 dependencies = [
  "bitvec",
  "byteorder",
@@ -1859,9 +1859,9 @@ dependencies = [
 
 [[package]]
 name = "rdkit-sys"
-version = "0.4.4"
+version = "0.4.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6c9db9a5f84ddc7df46272a77aff74dd95db733887468392c01ad7d0ee45b894"
+checksum = "3d0a30e5c7f9216d39439c14f46e91c47c1ea35716da9d0e05598d2d60d6ee3f"
 dependencies = [
  "cxx",
  "cxx-build",

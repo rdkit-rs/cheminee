@@ -8,6 +8,7 @@ The chemistry search stack. Index chemical structures and include arbitrary extr
 
 See [rdkit-sys](https://github.com/tureus/rdkit-sys) for more on how the bindings work.
 
+Tested on Rust Stabe 1.76 (`rustup default 1.76`)
 
 Intended Functionality
 ---
@@ -25,7 +26,7 @@ To boot up the API server, you can run the following:
 
     cargo run --color=always --release --package cheminee --bin cheminee -- rest-api-server
 
-The simplest way to test out the API is by going to localhost:3000 in your browser and testing out the
+The simplest way to test out the API is by going to localhost:4001 in your browser and testing out the
 functionality of the different endpoints.
 
 This repo is also set to automatically update a ruby gem whenever a new release is published. That gem is "cheminee-ruby".
@@ -56,7 +57,7 @@ For example:
     cargo run -- substructure-search -i /tmp/cheminee/scaffolds-index0 -s CCC -r 10 -t 10 -e "exactmw: [20 TO 200]"
 
 Similar to basic search, "i" refers to the index path, "s" refers to the query SMILES, "r" refers to the number of desired results,
-"t" refers to the number of tautomers to be used for the query SMILES (if applicable), and "e" refers to the 
+"t" refers to the number of tautomers to be used for the query SMILES (if applicable), and "e" refers to the
 "extra query" which is a composite query for chemical descriptors as in the basic search implementation.
 
 
@@ -70,6 +71,12 @@ Logging in to ghcr.io:
 
     # generate a personal access token in your github settings
     echo ghp_123 | docker login ghcr.io -u your_gh_username --password-stdin
+
+You'll want to build and run the multi-stage docker container:
+```sh
+docker build . -f Dockerfile.multi-stage --tag cheminee
+docker run --rm --name cheminee cheminee
+```
 
 Cutting A New Release
 ---
