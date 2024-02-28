@@ -1,11 +1,12 @@
 use crate::indexing::index_manager::IndexManager;
 use crate::rest_api::api::{
-    v1_get_index, v1_index_search_basic, v1_index_search_substructure, v1_list_indexes,
-    v1_list_schemas, v1_post_index, v1_post_index_bulk, v1_standardize, BulkRequest,
-    GetIndexResponse, GetQuerySearchResponse, GetStructureSearchResponse, ListIndexesResponse,
-    ListSchemasResponse, PostIndexResponse, PostIndexesBulkIndexResponse, StandardizeResponse,
+    v1_convert_mol_block_to_smiles, v1_get_index, v1_index_search_basic,
+    v1_index_search_substructure, v1_list_indexes, v1_list_schemas, v1_post_index,
+    v1_post_index_bulk, v1_standardize, BulkRequest, ConvertedSmilesResponse, GetIndexResponse,
+    GetQuerySearchResponse, GetStructureSearchResponse, ListIndexesResponse, ListSchemasResponse,
+    PostIndexResponse, PostIndexesBulkIndexResponse, StandardizeResponse,
 };
-use crate::rest_api::models::Smiles;
+use crate::rest_api::models::{MolBlock, Smiles};
 
 use poem::{listener::TcpListener, EndpointExt, Route, Server};
 use poem_openapi::{
@@ -82,6 +83,16 @@ impl Api {
     /// Pass a list of SMILES through fragment_parent, uncharger, and canonicalization routines
     pub async fn v1_standardize(&self, mol: Json<Vec<Smiles>>) -> StandardizeResponse {
         v1_standardize(mol).await
+    }
+
+    #[oai(path = "/v1/convert/mol_block_to_smiles", method = "post")]
+    /// Pass a list of SMILES through fragment_parent, uncharger, and canonicalization routines
+    pub async fn v1_convert_mol_block_to_smiles(
+        &self,
+        sanitize: Query<String>,
+        mol: Json<Vec<MolBlock>>,
+    ) -> ConvertedSmilesResponse {
+        v1_convert_mol_block_to_smiles(sanitize.0, mol).await
     }
 
     #[oai(path = "/v1/schemas", method = "get")]
