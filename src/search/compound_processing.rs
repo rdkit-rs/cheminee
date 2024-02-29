@@ -111,7 +111,7 @@ pub fn fix_chemistry_problems(smi: &str) -> eyre::Result<ROMol> {
     problems = detect_chemistry_problems(&romol);
 
     if problems.len() == 0 {
-        Ok(romol)
+        Ok(ROMol::from_smiles(fixed_smi.as_str())?)
     } else {
         Err(eyre::eyre!(
             "Problems still exist after attempted molecule fix: {:?}",
