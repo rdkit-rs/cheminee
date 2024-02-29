@@ -10,7 +10,8 @@ pub fn update_atom_hcount(atom: &mut Atom, chg: i32, num_h: i32) {
     atom.update_property_cache(true);
 }
 
-pub fn neutralize_atoms(romol: &mut ROMol) {
+pub fn neutralize_atoms(romol: &ROMol) -> ROMol {
+    let mut neutralized_romol = romol.clone();
     let pattern =
         RWMol::from_smarts("[+1!h0!$([*]~[-1,-2,-3,-4]),-1!$([*]~[+1,+2,+3,+4])]").unwrap();
     let params = SubstructMatchParameters::new();
@@ -23,7 +24,7 @@ pub fn neutralize_atoms(romol: &mut ROMol) {
 
     if atom_match_pos.len() > 0 {
         for atom_idx in atom_match_pos {
-            let mut atom = romol.atom_with_idx(atom_idx);
+            let mut atom = neutralized_romol.atom_with_idx(atom_idx);
 
             // Do not modify charged aromatic atoms
             if atom.get_is_aromatic() {
@@ -32,9 +33,11 @@ pub fn neutralize_atoms(romol: &mut ROMol) {
             let chg = atom.get_formal_charge();
             let hcount = atom.get_total_num_hs() as i32;
             update_atom_hcount(&mut atom, 0, hcount - chg);
-            set_hybridization(romol);
+            set_hybridization(&mut neutralized_romol);
         }
     }
+
+    neutralized_romol
 }
 
 pub fn remove_hypervalent_silicon(smi: &str) -> String {
@@ -86,6 +89,7 @@ pub fn fix_chemistry_problems(smi: &str) -> eyre::Result<ROMol> {
     let mut romol = ROMol::from_smiles_with_params(fixed_smi.as_str(), &parser_params)?;
     let mut problems = detect_chemistry_problems(&romol);
 
+    // Fix smiles AND romol for each problem
     for problem in problems {
         match problem {
             AtomValenceException { atom_idx } => {
@@ -96,6 +100,7 @@ pub fn fix_chemistry_problems(smi: &str) -> eyre::Result<ROMol> {
                     romol = ROMol::from_smiles_with_params(fixed_smi.as_str(), &parser_params)?;
                 } else if ["C", "N", "O"].contains(&atom_symbol) {
                     add_formal_charge(&mut romol, atom_idx);
+                    fixed_smi = romol.as_smiles();
                 }
             }
             KekulizeException => {
@@ -111,6 +116,7 @@ pub fn fix_chemistry_problems(smi: &str) -> eyre::Result<ROMol> {
     problems = detect_chemistry_problems(&romol);
 
     if problems.len() == 0 {
+        // Rebuild romol to force sanitization
         Ok(ROMol::from_smiles(fixed_smi.as_str())?)
     } else {
         Err(eyre::eyre!(
@@ -122,15 +128,14 @@ pub fn fix_chemistry_problems(smi: &str) -> eyre::Result<ROMol> {
 
 pub fn standardize_mol(romol: &ROMol) -> eyre::Result<ROMol> {
     let rwmol = romol.as_rw_mol(false, 1);
+
     let cleanup_params = CleanupParameters::default();
     let parent_rwmol = fragment_parent(&rwmol, &cleanup_params, false);
 
-    let uncharger = Uncharger::new(false);
-    let uncharged_mol = uncharger.uncharge(&parent_rwmol.to_ro_mol());
-
     let te = TautomerEnumerator::new();
-    let canon_taut = te.canonicalize(&uncharged_mol);
-    Ok(canon_taut)
+    let canon_taut = te.canonicalize(&parent_rwmol.to_ro_mol());
+    let neutralized_canon = neutralize_atoms(&canon_taut);
+    Ok(neutralized_canon)
 }
 
 pub fn standardize_smiles(smi: &str, attempt_fix: bool) -> eyre::Result<ROMol> {

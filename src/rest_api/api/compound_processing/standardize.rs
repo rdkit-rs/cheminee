@@ -39,6 +39,7 @@ mod tests {
     use crate::rest_api::api::compound_processing::standardize::*;
     use crate::{indexing::index_manager::IndexManager, rest_api::openapi_server::Api};
     use poem::{handler, Route};
+    use poem_openapi::param::Query;
 
     #[handler]
     async fn index() -> StandardizeResponse {
@@ -48,7 +49,7 @@ mod tests {
         Api {
             index_manager: IndexManager::new("/tmp/blah", false).unwrap(),
         }
-        .v1_standardize(smiles)
+        .v1_standardize(smiles, Query(Some("true".to_string())))
         .await
     }
 

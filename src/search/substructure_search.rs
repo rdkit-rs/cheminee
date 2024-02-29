@@ -131,7 +131,8 @@ mod tests {
     fn test_fake_index() {
         let test_smiles = "C";
 
-        let (query_mol, query_fingerprint, query_descriptors) = process_cpd(test_smiles).unwrap();
+        let (query_mol, query_fingerprint, query_descriptors) =
+            process_cpd(test_smiles, false).unwrap();
 
         let mut builder = SchemaBuilder::new();
 
