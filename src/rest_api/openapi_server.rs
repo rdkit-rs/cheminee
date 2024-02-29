@@ -80,8 +80,12 @@ pub struct Api {
 impl Api {
     #[oai(path = "/v1/standardize", method = "post")]
     /// Pass a list of SMILES through fragment_parent, uncharger, and canonicalization routines
-    pub async fn v1_standardize(&self, mol: Json<Vec<Smiles>>) -> StandardizeResponse {
-        v1_standardize(mol).await
+    pub async fn v1_standardize(
+        &self,
+        mol: Json<Vec<Smiles>>,
+        attempt_fix: Query<Option<String>>,
+    ) -> StandardizeResponse {
+        v1_standardize(mol, attempt_fix.0.as_deref()).await
     }
 
     #[oai(path = "/v1/schemas", method = "get")]

@@ -120,8 +120,9 @@ fn bulk_request_doc_to_tantivy_doc(
     descriptors_fields: &HashMap<&str, Field>,
     extra_data_field: Field,
 ) -> Result<tantivy::Document, String> {
+    // By default, do not attempt to fix problematic molecules
     let (tautomer, fingerprint, descriptors) =
-        process_cpd(&bulk_request_doc.smiles).map_err(|err| err.to_string())?;
+        process_cpd(&bulk_request_doc.smiles, false).map_err(|err| err.to_string())?;
 
     let json: serde_json::Value = serde_json::to_value(descriptors).map_err(|x| x.to_string())?;
     let jsonified_compound_descriptors: Map<String, Value> =

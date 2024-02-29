@@ -3,12 +3,20 @@ use crate::{rest_api::models::Smiles, search::compound_processing::standardize_s
 use poem_openapi::payload::Json;
 use rayon::prelude::*;
 
-pub async fn v1_standardize(mol: Json<Vec<Smiles>>) -> StandardizeResponse {
+pub async fn v1_standardize(
+    mol: Json<Vec<Smiles>>,
+    attempt_fix: Option<&str>,
+) -> StandardizeResponse {
+    let attempt_fix = match attempt_fix {
+        Some("true") => true,
+        _ => false,
+    };
+
     let standardized_smiles = mol
         .0
         .into_par_iter()
         .map(|s| {
-            let standardize = standardize_smiles(&s.smiles);
+            let standardize = standardize_smiles(&s.smiles, attempt_fix);
 
             match standardize {
                 Ok(romol) => StandardizedSmiles {

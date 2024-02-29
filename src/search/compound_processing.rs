@@ -133,8 +133,12 @@ pub fn standardize_mol(romol: &ROMol) -> eyre::Result<ROMol> {
     Ok(canon_taut)
 }
 
-pub fn standardize_smiles(smi: &str) -> eyre::Result<ROMol> {
-    let romol = ROMol::from_smiles(smi)?;
+pub fn standardize_smiles(smi: &str, attempt_fix: bool) -> eyre::Result<ROMol> {
+    let romol = match attempt_fix {
+        true => fix_chemistry_problems(smi)?,
+        false => ROMol::from_smiles(smi)?,
+    };
+
     let canon_taut = standardize_mol(&romol)?;
     Ok(canon_taut)
 }
@@ -153,8 +157,11 @@ pub fn get_cpd_properties(romol: &ROMol) -> eyre::Result<(Fingerprint, HashMap<S
     Ok((rdkit_fp, computed))
 }
 
-pub fn process_cpd(smi: &str) -> eyre::Result<(ROMol, Fingerprint, HashMap<String, f64>)> {
-    let canon_taut = standardize_smiles(smi)?;
+pub fn process_cpd(
+    smi: &str,
+    attempt_fix: bool,
+) -> eyre::Result<(ROMol, Fingerprint, HashMap<String, f64>)> {
+    let canon_taut = standardize_smiles(smi, attempt_fix)?;
     let (rdkit_fp, computed) = get_cpd_properties(&canon_taut)?;
 
     Ok((canon_taut, rdkit_fp, computed))
