@@ -14,6 +14,43 @@ fn test_update_atom_hcount() {
 }
 
 #[test]
+fn test_neutralize_atoms() {
+    let charged_phe = "C1=CC=C(C=C1)C[C@@H](C(=O)[O-])[NH3+]";
+    let mut romol = ROMol::from_smiles(charged_phe).unwrap();
+    neutralize_atoms(&mut romol);
+    assert_eq!(romol.as_smiles(), "N[C@@H](Cc1ccccc1)C(=O)O");
+}
+
+#[test]
+fn test_remove_hypervalent_silicon() {
+    let smiles = "[Si-2].CCC";
+    let fixed_smiles = remove_hypervalent_silicon(smiles);
+    assert_eq!(fixed_smiles, "CCC");
+}
+
+#[test]
+fn test_add_formal_charge() {
+    let smiles = "CN([C])([C])([C])";
+    let mut parser_params = SmilesParserParams::default();
+    parser_params.sanitize(false);
+    let mut romol = ROMol::from_smiles_with_params(smiles, &parser_params).unwrap();
+
+    add_formal_charge(&mut romol, 1);
+    assert_eq!(romol.as_smiles(), "C[N+](C)(C)C");
+}
+
+#[test]
+fn test_fix_chemistry_problems() {
+    let smiles1 = "F[Si-2](F)(F)(F)(F)F.CC";
+    let romol1 = fix_chemistry_problems(smiles1).unwrap();
+    assert_eq!(romol1.as_smiles(), "CC");
+
+    let smiles2 = "C[N](C)(C)C";
+    let romol2 = fix_chemistry_problems(smiles2).unwrap();
+    assert_eq!(romol2.as_smiles(), "C[N+](C)(C)C");
+}
+
+#[test]
 fn test_standardize_mol() {
     let smiles = "CC.Oc1c(cccc3CC(C(=O)[O-]))c3nc2c(C[NH+])cncc12.[Cl-]";
     let romol = ROMol::from_smiles(smiles).unwrap();
