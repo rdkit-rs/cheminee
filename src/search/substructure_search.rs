@@ -100,7 +100,7 @@ fn build_query(descriptors: &HashMap<String, f64>, extra_query: &String) -> Stri
         if DESCRIPTOR_ALLOW_LIST.contains(&k.as_str()) {
             let re = Regex::new(&format!("{k}:")).unwrap();
             if !re.is_match(extra_query) {
-                query_parts.push(format!("{k}: [{v} TO 10000]"));
+                query_parts.push(format!("{k}:[{v} TO 10000]"));
             }
         }
     }
