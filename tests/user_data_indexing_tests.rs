@@ -14,13 +14,13 @@ fn test_json_data() {
         .schema(schema)
         .create_in_ram()
         .unwrap();
-    let mut writer = index.writer(3 * 1024 * 1024).unwrap();
+    let mut writer = index.writer(15_000_000).unwrap();
     let doc_1 = tantivy::doc!(
-        extra_data => serde_json::from_str::<serde_json::Value>(r#"{"org_ids": [1,2,3]}"#).unwrap()
+        extra_data => serde_json::from_str::<serde_json::Value>(r#"{"org_ids":[1,2,3]}"#).unwrap()
     );
     writer.add_document(doc_1.clone()).unwrap();
     let doc_2 = tantivy::doc!(
-        extra_data => serde_json::from_str::<serde_json::Value>(r#"{"org_ids": [3,4,5]}"#).unwrap()
+        extra_data => serde_json::from_str::<serde_json::Value>(r#"{"org_ids":[3,4,5]}"#).unwrap()
     );
     writer.add_document(doc_2.clone()).unwrap();
     writer.commit().unwrap();

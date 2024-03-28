@@ -100,7 +100,7 @@ fn build_query(descriptors: &HashMap<String, f64>, extra_query: &String) -> Stri
         if DESCRIPTOR_ALLOW_LIST.contains(&k.as_str()) {
             let re = Regex::new(&format!("{k}:")).unwrap();
             if !re.is_match(extra_query) {
-                query_parts.push(format!("{k}: [{v} TO 10000]"));
+                query_parts.push(format!("{k}:[{v} TO 10000]"));
             }
         }
     }
@@ -124,14 +124,15 @@ mod tests {
     fn test_build_query() {
         let descriptors: HashMap<_, _> = [("NumAtoms".to_string(), 10.0)].into_iter().collect();
         let query = super::build_query(&descriptors, &"".to_string());
-        assert_eq!(query, "NumAtoms: [10 TO 10000]");
+        assert_eq!(query, "NumAtoms:[10 TO 10000]");
     }
 
     #[test]
     fn test_fake_index() {
         let test_smiles = "C";
 
-        let (query_mol, query_fingerprint, query_descriptors) = process_cpd(test_smiles).unwrap();
+        let (query_mol, query_fingerprint, query_descriptors) =
+            process_cpd(test_smiles, false).unwrap();
 
         let mut builder = SchemaBuilder::new();
 

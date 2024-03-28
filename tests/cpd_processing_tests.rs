@@ -3,6 +3,67 @@ use cheminee::search::compound_processing::*;
 use rdkit::*;
 
 #[test]
+fn test_update_atom_hcount() {
+    let smiles = "[H]N([H])([H])";
+    let mut romol = ROMol::from_smiles(smiles).unwrap();
+    let nitrogen = &mut romol.atom_with_idx(0);
+    update_atom_hcount(nitrogen, 1, 4);
+    set_hybridization(&mut romol);
+
+    assert_eq!(romol.as_smiles(), "[NH4+]");
+}
+
+#[test]
+fn test_neutralize_atoms() {
+    let charged_phe = "C1=CC=C(C=C1)C[C@@H](C(=O)[O-])[NH3+]";
+    let romol = ROMol::from_smiles(charged_phe).unwrap();
+    let neutralized_romol = neutralize_atoms(&romol);
+    assert_eq!(neutralized_romol.as_smiles(), "N[C@@H](Cc1ccccc1)C(=O)O");
+}
+
+#[test]
+fn test_remove_hypervalent_silicon() {
+    let smiles = "[Si-2].CCC";
+    let fixed_smiles = remove_hypervalent_silicon(smiles);
+    assert_eq!(fixed_smiles, "CCC");
+}
+
+#[test]
+fn test_add_formal_charge() {
+    let smiles = "CN([C])([C])([C])";
+    let mut parser_params = SmilesParserParams::default();
+    parser_params.set_sanitize(false);
+    let mut romol = ROMol::from_smiles_with_params(smiles, &parser_params).unwrap();
+
+    add_formal_charge(&mut romol, 1);
+    assert_eq!(romol.as_smiles(), "C[N+](C)(C)C");
+}
+
+#[test]
+fn test_fix_chemistry_problems() {
+    let smiles1 = "F[Si-2](F)(F)(F)(F)F.CC";
+    let romol1 = fix_chemistry_problems(smiles1).unwrap();
+    assert_eq!(romol1.as_smiles(), "CC");
+
+    let smiles2 = "C[N](C)(C)C";
+    let romol2 = fix_chemistry_problems(smiles2).unwrap();
+    assert_eq!(romol2.as_smiles(), "C[N+](C)(C)C");
+}
+
+#[test]
+fn test_build_romol_from_really_bad_smiles() {
+    let smiles = "smiles";
+    let romol = ROMol::from_smiles(smiles);
+    assert!(romol.is_err());
+
+    let mut parser_params = SmilesParserParams::default();
+    parser_params.set_sanitize(false);
+
+    let romol = ROMol::from_smiles_with_params(smiles, &parser_params);
+    assert!(romol.is_err());
+}
+
+#[test]
 fn test_standardize_mol() {
     let smiles = "CC.Oc1c(cccc3CC(C(=O)[O-]))c3nc2c(C[NH+])cncc12.[Cl-]";
     let romol = ROMol::from_smiles(smiles).unwrap();
@@ -16,14 +77,14 @@ fn test_standardize_mol() {
 #[test]
 fn test_standardize_smiles() {
     let smiles1 = "CC.Oc1c(cccc3CC(C(=O)[O-]))c3nc2c(C[NH+])cncc12.[Cl-]";
-    let canon_taut1 = standardize_smiles(smiles1).unwrap();
+    let canon_taut1 = standardize_smiles(smiles1, false).unwrap();
     assert_eq!(
         canon_taut1.as_smiles(),
         "[N]Cc1cncc2c(=O)c3cccc(CCC(=O)O)c3[nH]c12"
     );
 
     let smiles2 = "[Mg](OCC)OCC";
-    let canon_taut2 = standardize_smiles(smiles2).unwrap();
+    let canon_taut2 = standardize_smiles(smiles2, false).unwrap();
     assert_eq!(canon_taut2.as_smiles(), "CCO");
 }
 
@@ -32,7 +93,7 @@ fn test_standardize_bad_smiles() {
     tracing_subscriber::fmt().with_env_filter("trace").init();
 
     let smiles = "smiles";
-    assert!(standardize_smiles(smiles).is_err());
+    assert!(standardize_smiles(smiles, false).is_err());
 }
 
 #[test]
@@ -46,7 +107,7 @@ fn test_get_tautomers() {
 #[test]
 fn test_process_cpd() {
     let smiles = "Oc1c(cccc3)c3nc2ccncc12";
-    let (canon_taut, fingerprint, descriptors) = process_cpd(smiles).unwrap();
+    let (canon_taut, fingerprint, descriptors) = process_cpd(smiles, false).unwrap();
 
     // Sorry this is ugly but it's faster than the bitvec! macro
     let expected_fp: BitVec<u8, Lsb0> = bitvec::vec::BitVec::from_slice(&[
@@ -81,11 +142,3 @@ fn test_remove_organic_brackets() {
     let new_smiles = remove_organic_brackets(smiles);
     assert_eq!(&new_smiles, "CCCC(F)(Br)([Na])");
 }
-
-// TODO: Javier fix this?
-// #[test]
-// fn test_fix_repeating_smiles() {
-//     let smiles = "CC(C)(C)OC(=O)NC(CC1=CSC=N1)C(=O)OCC(C)(C)OC(=O)NC(CC1=CSC=N1)C(=O)O.[Na+]";
-//     let fixed_smiles = fix_repeating_smiles(smiles);
-//     assert_eq!(&fixed_smiles, "CC(C)(C)OC(=O)NC(CC1=CSC=N1)C(=O)O");
-// }

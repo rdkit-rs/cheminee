@@ -90,8 +90,8 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<usize> {
             .iter()
             .map(|kd| (*kd, schema.get_field(kd).unwrap()))
             .collect::<HashMap<&str, Field>>();
-
-        let (canon_taut, fp, computed) = process_cpd(&mol.as_smiles()[..]).unwrap();
+        // By default, do not attempt to fix problematic molecules
+        let (canon_taut, fp, computed) = process_cpd(mol.as_smiles().as_str(), false).unwrap();
 
         let json: serde_json::Value = serde_json::to_value(&computed)?;
         let descriptions_map: Map<String, Value> = if let serde_json::Value::Object(map) = json {

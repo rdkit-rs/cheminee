@@ -115,7 +115,8 @@ fn create_tantivy_doc(
         .ok_or(eyre::eyre!("Failed to convert smiles to str"))?;
     let extra_data = record.get("extra_data").cloned();
 
-    let (canon_taut, fingerprint, descriptors) = process_cpd(smiles)?;
+    // By default, do not attempt to fix problematic molecules
+    let (canon_taut, fingerprint, descriptors) = process_cpd(smiles, false)?;
 
     let mut doc = doc!(
         smiles_field => canon_taut.as_smiles(),

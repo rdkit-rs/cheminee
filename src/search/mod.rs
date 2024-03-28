@@ -27,14 +27,15 @@ pub fn prepare_query_structure(
         return Err(eyre::eyre!("Failed structure validation"));
     };
 
-    let (query_canon_taut, fingerprint, descriptors) = process_cpd(smiles)?;
+    let (query_canon_taut, fingerprint, descriptors) = process_cpd(smiles, false)?;
     Ok((query_canon_taut, fingerprint, descriptors))
 }
 
 pub fn validate_structure(smiles: &str) -> eyre::Result<Vec<MolSanitizeException>> {
     let mut parser_params = SmilesParserParams::default();
-    parser_params.sanitize(false);
-    let mol = ROMol::from_smiles_with_params(smiles, &parser_params)?;
+    parser_params.set_sanitize(false);
+    let mol =
+        ROMol::from_smiles_with_params(smiles, &parser_params).map_err(|e| eyre::eyre!("{}", e))?;
     Ok(detect_chemistry_problems(&mol))
 }
 

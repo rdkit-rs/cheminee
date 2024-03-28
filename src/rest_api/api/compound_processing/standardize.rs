@@ -3,12 +3,20 @@ use crate::{rest_api::models::Smiles, search::compound_processing::standardize_s
 use poem_openapi::payload::Json;
 use rayon::prelude::*;
 
-pub async fn v1_standardize(mol: Json<Vec<Smiles>>) -> StandardizeResponse {
+pub async fn v1_standardize(
+    mol: Json<Vec<Smiles>>,
+    attempt_fix: Option<&str>,
+) -> StandardizeResponse {
+    let attempt_fix = match attempt_fix {
+        Some(_) => true,
+        _ => false,
+    };
+
     let standardized_smiles = mol
         .0
         .into_par_iter()
         .map(|s| {
-            let standardize = standardize_smiles(&s.smiles);
+            let standardize = standardize_smiles(&s.smiles, attempt_fix);
 
             match standardize {
                 Ok(romol) => StandardizedSmiles {
@@ -31,6 +39,7 @@ mod tests {
     use crate::rest_api::api::compound_processing::standardize::*;
     use crate::{indexing::index_manager::IndexManager, rest_api::openapi_server::Api};
     use poem::{handler, Route};
+    use poem_openapi::param::Query;
 
     #[handler]
     async fn index() -> StandardizeResponse {
@@ -40,7 +49,7 @@ mod tests {
         Api {
             index_manager: IndexManager::new("/tmp/blah", false).unwrap(),
         }
-        .v1_standardize(smiles)
+        .v1_standardize(smiles, Query(Some("true".to_string())))
         .await
     }
 
