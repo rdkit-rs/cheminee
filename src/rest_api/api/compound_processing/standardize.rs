@@ -8,7 +8,7 @@ pub async fn v1_standardize(
     attempt_fix: Option<&str>,
 ) -> StandardizeResponse {
     let attempt_fix = match attempt_fix {
-        Some("true") => true,
+        Some(_) => true,
         _ => false,
     };
 
