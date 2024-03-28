@@ -124,7 +124,7 @@ mod tests {
     fn test_build_query() {
         let descriptors: HashMap<_, _> = [("NumAtoms".to_string(), 10.0)].into_iter().collect();
         let query = super::build_query(&descriptors, &"".to_string());
-        assert_eq!(query, "NumAtoms: [10 TO 10000]");
+        assert_eq!(query, "NumAtoms:[10 TO 10000]");
     }
 
     #[test]
