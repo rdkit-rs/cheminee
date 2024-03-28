@@ -84,7 +84,7 @@ pub fn add_formal_charge(romol: &mut ROMol, atom_idx: u32) {
 pub fn fix_chemistry_problems(smi: &str) -> eyre::Result<ROMol> {
     let mut fixed_smi = smi.to_string();
     let mut parser_params = SmilesParserParams::default();
-    parser_params.sanitize(false);
+    parser_params.set_sanitize(false);
 
     let mut romol = ROMol::from_smiles_with_params(fixed_smi.as_str(), &parser_params)?;
     let mut problems = detect_chemistry_problems(&romol);

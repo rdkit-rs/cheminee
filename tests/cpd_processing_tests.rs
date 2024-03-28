@@ -32,7 +32,7 @@ fn test_remove_hypervalent_silicon() {
 fn test_add_formal_charge() {
     let smiles = "CN([C])([C])([C])";
     let mut parser_params = SmilesParserParams::default();
-    parser_params.sanitize(false);
+    parser_params.set_sanitize(false);
     let mut romol = ROMol::from_smiles_with_params(smiles, &parser_params).unwrap();
 
     add_formal_charge(&mut romol, 1);
@@ -57,7 +57,7 @@ fn test_build_romol_from_really_bad_smiles() {
     assert!(romol.is_err());
 
     let mut parser_params = SmilesParserParams::default();
-    parser_params.sanitize(false);
+    parser_params.set_sanitize(false);
 
     let romol = ROMol::from_smiles_with_params(smiles, &parser_params);
     assert!(romol.is_err());

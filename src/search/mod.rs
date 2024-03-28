@@ -33,7 +33,7 @@ pub fn prepare_query_structure(
 
 pub fn validate_structure(smiles: &str) -> eyre::Result<Vec<MolSanitizeException>> {
     let mut parser_params = SmilesParserParams::default();
-    parser_params.sanitize(false);
+    parser_params.set_sanitize(false);
     let mol = ROMol::from_smiles_with_params(smiles, &parser_params)?;
     Ok(detect_chemistry_problems(&mol))
 }
