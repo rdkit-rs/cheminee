@@ -16,20 +16,23 @@ clap = "4"
 eyre = "0"
 lazy_static = "1.4"
 log = "0"
-poem =  { version="1", features=["test"] }
-poem-openapi = { version="2", features=["swagger-ui"] }
+poem = { version = "1", features = ["test"] }
+poem-openapi = { version = "2", features = ["swagger-ui"] }
 poem-openapi-derive = "2"
 rand = "0.8.5"
 rayon = "1"
-rdkit = { version="0.4.7" }
+rdkit = { version = "0.4.7" }
 regex = "1"
 reqwest = "0"
 serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1" }
-tantivy = "0.20.2"
+tantivy = "0.21.1"
 tokio = { version = "1", features = ["full"] }
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
-zstd-sys = { version = "2", features = ["bindgen"] }
 
 [dev-dependencies]
 tempdir = "0"
+
+[patch.crates-io]
+tantivy-common = { git = "https://github.com/quickwit-oss/tantivy.git", rev = "9ebc5ed053b5d7a61e9693ca7b2dec64ce244093" }
+tantivy-sstable = { git = "https://github.com/quickwit-oss/tantivy.git", rev = "9ebc5ed053b5d7a61e9693ca7b2dec64ce244093" }

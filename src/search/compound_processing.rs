@@ -86,7 +86,8 @@ pub fn fix_chemistry_problems(smi: &str) -> eyre::Result<ROMol> {
     let mut parser_params = SmilesParserParams::default();
     parser_params.set_sanitize(false);
 
-    let mut romol = ROMol::from_smiles_with_params(fixed_smi.as_str(), &parser_params)?;
+    let mut romol = ROMol::from_smiles_with_params(fixed_smi.as_str(), &parser_params)
+        .map_err(|e| eyre::eyre!("{}", e))?;
     let mut problems = detect_chemistry_problems(&romol);
 
     // Fix smiles AND romol for each problem
@@ -97,7 +98,8 @@ pub fn fix_chemistry_problems(smi: &str) -> eyre::Result<ROMol> {
                 if atom_symbol == "Si" {
                     let new_smi = remove_hypervalent_silicon(fixed_smi.as_str());
                     fixed_smi = new_smi.clone();
-                    romol = ROMol::from_smiles_with_params(fixed_smi.as_str(), &parser_params)?;
+                    romol = ROMol::from_smiles_with_params(fixed_smi.as_str(), &parser_params)
+                        .map_err(|e| eyre::eyre!("{}", e))?;
                 } else if ["C", "N", "O"].contains(&atom_symbol) {
                     add_formal_charge(&mut romol, atom_idx);
                     fixed_smi = romol.as_smiles();
@@ -106,7 +108,8 @@ pub fn fix_chemistry_problems(smi: &str) -> eyre::Result<ROMol> {
             KekulizeException => {
                 if fixed_smi.contains(&"[c-]") {
                     fixed_smi = fixed_smi.replace("[c-]", "[cH-]");
-                    romol = ROMol::from_smiles_with_params(fixed_smi.as_str(), &parser_params)?;
+                    romol = ROMol::from_smiles_with_params(fixed_smi.as_str(), &parser_params)
+                        .map_err(|e| eyre::eyre!("{}", e))?;
                 }
             }
             _ => {}
