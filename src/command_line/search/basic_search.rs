@@ -48,7 +48,6 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
     let searcher = reader.searcher();
 
     let results = basic_search(&searcher, query, limit)?;
-
     let final_results = aggregate_query_hits(searcher, results, query)?;
 
     println!("{:#?}", final_results);

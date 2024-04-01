@@ -5,7 +5,7 @@ use tantivy::schema::{JsonObjectOptions, Schema, SchemaBuilder, FAST, STORED, TE
 use crate::indexing::KNOWN_DESCRIPTORS;
 
 lazy_static::lazy_static! {
-    pub static ref LIBRARY: HashMap<&'static str, tantivy::schema::Schema> = [("descriptor_v1", descriptor_v1_schema())].into_iter().collect();
+    pub static ref LIBRARY: HashMap<&'static str, tantivy::schema::Schema> = [("descriptor_v1", descriptor_v1_schema()), ("scaffold", scaffold_schema())].into_iter().collect();
 }
 
 fn descriptor_v1_schema() -> Schema {
@@ -25,5 +25,14 @@ fn descriptor_v1_schema() -> Schema {
         JsonObjectOptions::from(TEXT | STORED).set_expand_dots_enabled();
     builder.add_json_field("extra_data", json_options);
 
+    builder.build()
+}
+
+fn scaffold_schema() -> Schema {
+    let mut builder = SchemaBuilder::new();
+    builder.add_text_field("smiles", TEXT | STORED);
+    let json_options: JsonObjectOptions =
+        JsonObjectOptions::from(TEXT | STORED).set_expand_dots_enabled();
+    builder.add_json_field("extra_data", json_options);
     builder.build()
 }
