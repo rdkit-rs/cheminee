@@ -10,6 +10,7 @@ use crate::search::compound_processing::process_cpd;
 
 pub mod basic_search;
 pub mod compound_processing;
+pub mod scaffold_search;
 pub mod structure_matching;
 pub mod substructure_search;
 pub mod superstructure_search;
