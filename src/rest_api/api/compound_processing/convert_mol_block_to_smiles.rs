@@ -50,13 +50,11 @@ pub async fn v1_convert_mol_block_to_smiles(
 
 #[cfg(test)]
 mod tests {
-    use super::ConvertedSmilesResponse;
     use super::*;
     use crate::indexing::index_manager::IndexManager;
     use crate::rest_api::openapi_server::Api;
     use poem::{handler, Route};
     use poem_openapi::param::Query;
-    use poem_openapi::payload::Json;
 
     const MOL_BLOCK: &'static str = r#"
   -OEChem-05172223082D
