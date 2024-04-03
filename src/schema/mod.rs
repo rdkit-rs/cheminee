@@ -31,8 +31,6 @@ fn descriptor_v1_schema() -> Schema {
 fn scaffold_schema() -> Schema {
     let mut builder = SchemaBuilder::new();
     builder.add_text_field("smiles", TEXT | STORED);
-    let json_options: JsonObjectOptions =
-        JsonObjectOptions::from(TEXT | STORED).set_expand_dots_enabled();
-    builder.add_json_field("extra_data", json_options);
+    builder.add_u64_field("id", FAST | STORED);
     builder.build()
 }

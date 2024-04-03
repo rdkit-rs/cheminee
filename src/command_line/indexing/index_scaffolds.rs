@@ -25,7 +25,7 @@ pub fn command() -> Command {
         )
 }
 
-pub fn action(matches: &ArgMatches) -> eyre::Result<usize> {
+pub fn action(matches: &ArgMatches) -> eyre::Result<u64> {
     let json_path = matches
         .get_one::<String>("json-path")
         .ok_or(eyre::eyre!("Failed to extract json path"))?;
@@ -43,11 +43,11 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<usize> {
     let mut writer = index.writer(15_000_000)?;
 
     let smiles_field = schema.get_field("smiles")?;
-    let extra_data_field = schema.get_field("extra_data")?;
+    let id_field = schema.get_field("id")?;
 
     let file = File::open(json_path)?;
     let reader = BufReader::new(file);
-    let mut scaffold_id = 0;
+    let mut scaffold_id: u64 = 0;
     for result_line in reader.lines() {
         let line = result_line?;
         let record: serde_json::Value = serde_json::from_str(&line)?;
@@ -56,15 +56,14 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<usize> {
             .ok_or(eyre::eyre!("Failed to extract smiles"))?
             .as_str()
             .ok_or(eyre::eyre!("Failed to convert smiles to str"))?;
-        let extra_data = record.get("extra_data").cloned();
 
         let romol = standardize_smiles(raw_smiles, true);
         match romol {
             Ok(romol) => {
-                let mut doc = doc!(smiles_field => romol.as_smiles());
-                if let Some(extra_data) = extra_data {
-                    doc.add_field_value(extra_data_field, extra_data);
-                }
+                let doc = doc!(
+                    smiles_field => romol.as_smiles(),
+                    id_field => scaffold_id
+                );
 
                 let write_operation = writer.add_document(doc);
                 match write_operation {
