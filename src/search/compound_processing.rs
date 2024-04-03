@@ -2,7 +2,11 @@ use bitvec::macros::internal::funty::Fundamental;
 use std::collections::HashMap;
 
 use rdkit::MolSanitizeException::{AtomValenceException, KekulizeException};
-use rdkit::*;
+use rdkit::{
+    detect_chemistry_problems, fragment_parent, set_hybridization, substruct_match, Atom,
+    CleanupParameters, Fingerprint, HybridizationType, Properties, ROMol, RWMol,
+    SmilesParserParams, SubstructMatchParameters, TautomerEnumerator,
+};
 
 pub fn update_atom_hcount(atom: &mut Atom, chg: i32, num_h: i32) {
     atom.set_formal_charge(chg);
@@ -10,7 +14,7 @@ pub fn update_atom_hcount(atom: &mut Atom, chg: i32, num_h: i32) {
     atom.update_property_cache(true);
 }
 
-pub fn neutralize_atoms(romol: &ROMol) -> ROMol {
+pub fn neutralize_atoms(romol: &ROMol) -> eyre::Result<ROMol> {
     let mut neutralized_romol = romol.clone();
     let pattern =
         RWMol::from_smarts("[+1!h0!$([*]~[-1,-2,-3,-4]),-1!$([*]~[+1,+2,+3,+4])]").unwrap();
@@ -30,14 +34,21 @@ pub fn neutralize_atoms(romol: &ROMol) -> ROMol {
             if atom.get_is_aromatic() {
                 continue;
             }
+
+            let hybridization_type = atom.get_hybridization_type();
             let chg = atom.get_formal_charge();
             let hcount = atom.get_total_num_hs() as i32;
+
+            if hybridization_type == HybridizationType::SP3 && chg < 0 {
+                continue;
+            }
+
             update_atom_hcount(&mut atom, 0, hcount - chg);
             set_hybridization(&mut neutralized_romol);
         }
     }
 
-    neutralized_romol
+    Ok(neutralized_romol)
 }
 
 pub fn remove_hypervalent_silicon(smi: &str) -> String {
@@ -131,13 +142,11 @@ pub fn fix_chemistry_problems(smi: &str) -> eyre::Result<ROMol> {
 
 pub fn standardize_mol(romol: &ROMol) -> eyre::Result<ROMol> {
     let rwmol = romol.as_rw_mol(false, 1);
-
     let cleanup_params = CleanupParameters::default();
     let parent_rwmol = fragment_parent(&rwmol, &cleanup_params, false);
-
     let te = TautomerEnumerator::new();
     let canon_taut = te.canonicalize(&parent_rwmol.to_ro_mol());
-    let neutralized_canon = neutralize_atoms(&canon_taut);
+    let neutralized_canon = neutralize_atoms(&canon_taut)?;
     Ok(neutralized_canon)
 }
 

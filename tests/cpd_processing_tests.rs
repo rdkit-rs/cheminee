@@ -17,8 +17,15 @@ fn test_update_atom_hcount() {
 fn test_neutralize_atoms() {
     let charged_phe = "C1=CC=C(C=C1)C[C@@H](C(=O)[O-])[NH3+]";
     let romol = ROMol::from_smiles(charged_phe).unwrap();
-    let neutralized_romol = neutralize_atoms(&romol);
+    let neutralized_romol = neutralize_atoms(&romol).unwrap();
     assert_eq!(neutralized_romol.as_smiles(), "N[C@@H](Cc1ccccc1)C(=O)O");
+}
+
+#[test]
+fn test_neutralize_atoms_with_boron() {
+    let smiles = "OC(=O)C(N)CCCC[B-](O)(O)O";
+    let romol = ROMol::from_smiles(smiles).unwrap();
+    let _ = neutralize_atoms(&romol).unwrap();
 }
 
 #[test]
