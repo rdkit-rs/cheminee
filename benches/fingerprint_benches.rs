@@ -9,10 +9,10 @@ use test::Bencher;
 #[bench]
 fn bench_tanimoto_distance(b: &mut Bencher) {
     let smiles1 = "[N]Cc1cncc2c(=O)c3cccc(CCC(=O)O)c3[nH]c12";
-    let (_proc_smiles1, fingerprint1, _descriptors1) = process_cpd(smiles1).unwrap();
+    let (_proc_smiles1, fingerprint1, _descriptors1) = process_cpd(smiles1, false).unwrap();
 
     let smiles2 = "CCc1cccc2c(=O)c3cncc(CN)c3[nH]c12";
-    let (_proc_smiles2, fingerprint2, _descriptors2) = process_cpd(smiles2).unwrap();
+    let (_proc_smiles2, fingerprint2, _descriptors2) = process_cpd(smiles2, false).unwrap();
 
     b.iter(|| fingerprint1.tanimoto_distance(&fingerprint2));
 }
