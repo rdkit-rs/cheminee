@@ -143,7 +143,7 @@ pub fn fix_chemistry_problems(smi: &str) -> eyre::Result<ROMol> {
 pub fn standardize_mol(romol: &ROMol) -> eyre::Result<ROMol> {
     let rwmol = romol.as_rw_mol(false, 1);
     let cleanup_params = CleanupParameters::default();
-    let parent_rwmol = fragment_parent(&rwmol, &cleanup_params, false);
+    let parent_rwmol = fragment_parent(&rwmol, &cleanup_params, true);
     let te = TautomerEnumerator::new();
     let canon_taut = te.canonicalize(&parent_rwmol.to_ro_mol());
     let neutralized_canon = neutralize_atoms(&canon_taut)?;
