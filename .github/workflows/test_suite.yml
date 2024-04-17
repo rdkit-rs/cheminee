@@ -36,7 +36,7 @@ jobs:
 
       - name: Install rdkit
         run: |
-          ~/miniconda3/bin/conda install conda-forge::rdkit 
+          conda install conda-forge::rdkit 
           sudo apt-get update
           sudo apt-get install -y build-essential libssl-dev libboost1.74-dev libboost-serialization1.74-dev pkg-config
 
