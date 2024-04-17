@@ -45,4 +45,4 @@ jobs:
           components: rustfmt, clippy
 
       - name: Cargo Test
-        run: CONDA_PREFIX=~/miniconda3 RUST_WRAPPER=$SCCACHE_PATH cargo test
+        run: CONDA_PREFIX=~/miniconda3 LD_LIBRARY_PATH=~/miniconda3/lib RUST_WRAPPER=$SCCACHE_PATH cargo test
