@@ -9,6 +9,7 @@ jobs:
   test:
     env:
       ARCH: amd64
+      CARGO_FEATURE_DYNAMIC_LINKING_FROM_CONDA: yes
     runs-on: buildjet-16vcpu-ubuntu-2204
     permissions:
       contents: read
@@ -28,9 +29,14 @@ jobs:
 
       - name: Install rdkit
         run: |
-          sudo bash -c "echo 'deb [trusted=yes] https://rdkit-rs-debian.s3.amazonaws.com jammy main' > /etc/apt/sources.list.d/rdkit-rs.list"
-          sudo apt-get update
-          sudo apt-get install -y build-essential librdkit-dev libssl-dev libboost1.74-dev libboost-serialization1.74-dev pkg-config
+          mkdir ~/miniconda3
+          wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O ~/miniconda3/miniconda.sh
+          bash ~/miniconda3/miniconda.sh -b -u -p ~/miniconda3
+          rm -rf ~/miniconda3/miniconda.sh
+
+#          sudo bash -c "echo 'deb [trusted=yes] https://rdkit-rs-debian.s3.amazonaws.com jammy main' > /etc/apt/sources.list.d/rdkit-rs.list"
+#          sudo apt-get update
+#          sudo apt-get install -y build-essential librdkit-dev libssl-dev libboost1.74-dev libboost-serialization1.74-dev pkg-config
 
       - name: Install latest stable
         uses: actions-rs/toolchain@v1
