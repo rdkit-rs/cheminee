@@ -34,8 +34,6 @@ jobs:
           bash ~/miniconda3/miniconda.sh -b -u -p ~/miniconda3
           rm -rf ~/miniconda3/miniconda.sh
           ~/miniconda3/bin/conda install conda-forge::rdkit 
-
-#          sudo bash -c "echo 'deb [trusted=yes] https://rdkit-rs-debian.s3.amazonaws.com jammy main' > /etc/apt/sources.list.d/rdkit-rs.list"
           sudo apt-get update
           sudo apt-get install -y build-essential libssl-dev libboost1.74-dev libboost-serialization1.74-dev pkg-config
 
