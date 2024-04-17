@@ -33,6 +33,7 @@ jobs:
           wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O ~/miniconda3/miniconda.sh
           bash ~/miniconda3/miniconda.sh -b -u -p ~/miniconda3
           rm -rf ~/miniconda3/miniconda.sh
+          ~/miniconda3/bin/conda install conda-forge::rdkit 
 
 #          sudo bash -c "echo 'deb [trusted=yes] https://rdkit-rs-debian.s3.amazonaws.com jammy main' > /etc/apt/sources.list.d/rdkit-rs.list"
 #          sudo apt-get update
@@ -46,4 +47,4 @@ jobs:
           components: rustfmt, clippy
 
       - name: Cargo Test
-        run: RUST_WRAPPER=$SCCACHE_PATH cargo test
+        run: CONDA_PREFIX=~/miniconda3 RUST_WRAPPER=$SCCACHE_PATH cargo test
