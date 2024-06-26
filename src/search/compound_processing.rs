@@ -8,10 +8,15 @@ use rdkit::{
     SmilesParserParams, SubstructMatchParameters, TautomerEnumerator,
 };
 
-pub fn update_atom_hcount(atom: &mut Atom, chg: i32, num_h: i32) {
+pub fn update_atom_hcount(atom: &mut Atom, chg: i32, num_h: i32) -> eyre::Result<()> {
     atom.set_formal_charge(chg);
     atom.set_num_explicit_hs(num_h);
-    atom.update_property_cache(true);
+    let update = atom.update_property_cache(true);
+
+    match update {
+        Err(e) => Err(eyre::eyre!("Caught exception: {}", e)),
+        Ok(_) => Ok(()),
+    }
 }
 
 pub fn neutralize_atoms(romol: &ROMol) -> eyre::Result<ROMol> {
@@ -43,7 +48,7 @@ pub fn neutralize_atoms(romol: &ROMol) -> eyre::Result<ROMol> {
                 continue;
             }
 
-            update_atom_hcount(&mut atom, 0, hcount - chg);
+            let _ = update_atom_hcount(&mut atom, 0, hcount - chg)?;
             set_hybridization(&mut neutralized_romol);
         }
     }
@@ -145,7 +150,7 @@ pub fn standardize_mol(romol: &ROMol) -> eyre::Result<ROMol> {
     let cleanup_params = CleanupParameters::default();
     let parent_rwmol = fragment_parent(&rwmol, &cleanup_params, true);
     let te = TautomerEnumerator::new();
-    let canon_taut = te.canonicalize(&parent_rwmol.to_ro_mol());
+    let canon_taut = te.canonicalize(&parent_rwmol.to_ro_mol())?;
     let neutralized_canon = neutralize_atoms(&canon_taut)?;
     Ok(neutralized_canon)
 }
