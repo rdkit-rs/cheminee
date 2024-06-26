@@ -1,49 +1,40 @@
 use rdkit::{substruct_match, ROMol, SubstructMatchParameters};
-use tantivy::collector::TopDocs;
-use tantivy::query::QueryParser;
-use tantivy::schema::Field;
-use tantivy::{DocAddress, Index, Searcher};
+use std::fs::File;
+use std::io::{BufRead, BufReader};
 
-pub fn get_scaffold_docs(index: &Index, searcher: &Searcher) -> eyre::Result<Vec<DocAddress>> {
-    let query_parser = QueryParser::for_index(index, vec![]);
-    let query = query_parser.parse_query("*")?;
-    let arbitrary_collector = &TopDocs::with_limit(10_000);
-    let all_scaffolds = searcher
-        .search(&query, arbitrary_collector)?
-        .into_iter()
-        .map(|result| result.1)
-        .collect::<Vec<DocAddress>>();
+pub fn get_scaffolds() -> eyre::Result<Vec<(ROMol, u64)>> {
+    let file = File::open("src/indexing/standardized_scaffolds_20240405.json")?;
+    let reader = BufReader::new(file);
+    let mut scaffold_vec = Vec::with_capacity(1000);
 
-    Ok(all_scaffolds)
+    for result_line in reader.lines() {
+        let line = result_line?;
+        let record: serde_json::Value = serde_json::from_str(&line)?;
+        let smiles = record
+            .get("smiles")
+            .ok_or(eyre::eyre!("Failed to extract smiles"))?
+            .as_str()
+            .ok_or(eyre::eyre!("Failed to convert smiles to str"))?;
+        let scaffold_id = record
+            .get("scaffold_id")
+            .ok_or(eyre::eyre!("Failed to extract scaffold id"))?
+            .as_u64()
+            .ok_or(eyre::eyre!("Failed to convert scaffold id to integer"))?;
+
+        let romol = ROMol::from_smiles(smiles)?;
+
+        scaffold_vec.push((romol, scaffold_id));
+    }
+    Ok(scaffold_vec)
 }
 
-pub fn scaffold_search(
-    query_mol: &ROMol,
-    scaffold_docs: &Vec<DocAddress>,
-    smiles_field: Field,
-    id_field: Field,
-    searcher: &Searcher,
-) -> eyre::Result<Vec<u64>> {
-    let mut matching_scaffolds: Vec<u64> = Vec::with_capacity(scaffold_docs.len());
-    for docaddr in scaffold_docs {
-        let doc = searcher.doc(*docaddr)?;
-
-        let scaffold_smiles = doc
-            .get_first(smiles_field)
-            .ok_or(eyre::eyre!("Tantivy smiles retrieval failed"))?
-            .as_text()
-            .ok_or(eyre::eyre!("Failed to stringify smiles"))?;
-        let scaffold_id = doc
-            .get_first(id_field)
-            .ok_or(eyre::eyre!("Tantivy id retrieval failed"))?
-            .as_u64()
-            .ok_or(eyre::eyre!("Failed to convert id to u64"))?;
-
+pub fn scaffold_search(query_mol: &ROMol, scaffolds: &Vec<(ROMol, u64)>) -> eyre::Result<Vec<u64>> {
+    let mut matching_scaffolds: Vec<u64> = Vec::with_capacity(scaffolds.len());
+    for scaffold in scaffolds {
         let params = SubstructMatchParameters::default();
-        let mol_substruct_match =
-            substruct_match(&query_mol, &ROMol::from_smiles(scaffold_smiles)?, &params);
+        let mol_substruct_match = substruct_match(&query_mol, &scaffold.0, &params);
         if !mol_substruct_match.is_empty() {
-            matching_scaffolds.push(scaffold_id);
+            matching_scaffolds.push(scaffold.1);
         }
     }
 

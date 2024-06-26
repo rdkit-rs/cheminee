@@ -3,7 +3,6 @@ use std::path::Path;
 pub mod bulk_index;
 pub mod create_index;
 pub mod delete_index;
-pub mod index_scaffolds;
 pub mod index_sdf;
 
 pub mod prelude {

@@ -6,7 +6,7 @@ use tantivy::schema::Field;
 
 use crate::command_line::prelude::*;
 use crate::search::compound_processing::process_cpd;
-use crate::search::scaffold_search::{get_scaffold_docs, scaffold_search};
+use crate::search::scaffold_search::{get_scaffolds, scaffold_search};
 
 pub const NAME: &str = "index-sdf";
 
@@ -83,20 +83,9 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<usize> {
         .map(|kd| (*kd, schema.get_field(kd).unwrap()))
         .collect::<HashMap<&str, Field>>();
 
-    // Get all available scaffold docs
-    let scaffold_index = open_index("tmp/scaffold-index")?;
-    let scaffold_schema = scaffold_index.schema();
-    let scaffold_reader = scaffold_index.reader()?;
-    let scaffold_searcher = scaffold_reader.searcher();
-    let scaffold_docs = get_scaffold_docs(&scaffold_index, &scaffold_searcher)?;
-    let scaffold_smiles_field = scaffold_schema.get_field("smiles")?;
-    let scaffold_id_field = scaffold_schema.get_field("id")?;
-
+    let scaffolds = get_scaffolds()?;
     let mut counter = 0;
     for mol in mol_iter {
-        if counter % 100_000 == 0 {
-            log::debug!("wrote 100000 docs");
-        }
         if mol.is_err() {
             continue;
         }
@@ -140,13 +129,7 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<usize> {
             }
         }
 
-        let scaffold_matches = scaffold_search(
-            &canon_taut,
-            &scaffold_docs,
-            scaffold_smiles_field,
-            scaffold_id_field,
-            &scaffold_searcher,
-        )?;
+        let scaffold_matches = scaffold_search(&canon_taut, &scaffolds)?;
 
         if !scaffold_matches.is_empty() {
             let scaffold_json: serde_json::Value = serde_json::from_str(
@@ -160,7 +143,7 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<usize> {
 
         if counter > 0 && counter % 10_000 == 0 {
             index_writer.commit()?;
-            println!("Wrote 10000 cpds");
+            println!("{:?} compounds written so far", counter);
         }
 
         counter += 1;

@@ -23,7 +23,6 @@ async fn main() -> eyre::Result<()> {
         .subcommand(command_line::indexing::create_index::command())
         .subcommand(command_line::indexing::delete_index::command())
         .subcommand(command_line::indexing::index_sdf::command())
-        .subcommand(command_line::indexing::index_scaffolds::command())
         .subcommand(command_line::pubchem::fetch_pubchem::command())
         .subcommand(command_line::pubchem::stream_pubchem_sdf::command())
         .subcommand(command_line::search::basic_search::command())
@@ -43,11 +42,6 @@ async fn main() -> eyre::Result<()> {
         }
         (command_line::indexing::index_sdf::NAME, matches) => {
             let writes = command_line::indexing::index_sdf::action(matches)?;
-            log::info!("wrote: {}", writes);
-            Ok(())
-        }
-        (command_line::indexing::index_scaffolds::NAME, matches) => {
-            let writes = command_line::indexing::index_scaffolds::action(matches)?;
             log::info!("wrote: {}", writes);
             Ok(())
         }
