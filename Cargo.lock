@@ -221,15 +221,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "bitpacking"
-version = "0.9.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4c1d3e2bfd8d06048a179f7b17afc3188effa10385e7b00dc65af6aae732ea92"
-dependencies = [
- "crunchy",
-]
-
-[[package]]
 name = "bitvec"
 version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -299,7 +290,7 @@ checksum = "baf1de4339761588bc0619e3cbc0120ee582ebb74b53b4efbf79117bd2da40fd"
 
 [[package]]
 name = "cheminee"
-version = "0.1.18"
+version = "0.1.19"
 dependencies = [
  "bitvec",
  "clap",
@@ -320,6 +311,7 @@ dependencies = [
  "tempdir",
  "tokio",
  "tracing-subscriber",
+ "zstd-sys",
 ]
 
 [[package]]
@@ -1628,7 +1620,8 @@ checksum = "b15813163c1d831bf4a13c3610c05c0d03b39feb07f7e09fa234dac9b15aaf39"
 [[package]]
 name = "ownedbytes"
 version = "0.6.0"
-source = "git+https://github.com/quickwit-oss/tantivy.git?rev=9ebc5ed053b5d7a61e9693ca7b2dec64ce244093#9ebc5ed053b5d7a61e9693ca7b2dec64ce244093"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6e8a72b918ae8198abb3a18c190288123e1d442b6b9a7d709305fd194688b4b7"
 dependencies = [
  "stable_deref_trait",
 ]
@@ -2515,8 +2508,8 @@ dependencies = [
  "aho-corasick",
  "arc-swap",
  "async-trait",
- "base64 0.21.7",
- "bitpacking 0.8.4",
+ "base64",
+ "bitpacking",
  "byteorder",
  "census",
  "crc32fast",
@@ -2544,10 +2537,10 @@ dependencies = [
  "serde_json",
  "sketches-ddsketch",
  "smallvec",
- "tantivy-bitpacker 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "tantivy-bitpacker",
  "tantivy-columnar",
  "tantivy-common",
- "tantivy-fst 0.4.0",
+ "tantivy-fst",
  "tantivy-query-grammar",
  "tantivy-stacker",
  "tantivy-tokenizer-api",
@@ -2564,15 +2557,7 @@ version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cecb164321482301f514dd582264fa67f70da2d7eb01872ccd71e35e0d96655a"
 dependencies = [
- "bitpacking 0.8.4",
-]
-
-[[package]]
-name = "tantivy-bitpacker"
-version = "0.5.0"
-source = "git+https://github.com/quickwit-oss/tantivy.git?rev=9ebc5ed053b5d7a61e9693ca7b2dec64ce244093#9ebc5ed053b5d7a61e9693ca7b2dec64ce244093"
-dependencies = [
- "bitpacking 0.9.2",
+ "bitpacking",
 ]
 
 [[package]]
@@ -2585,7 +2570,7 @@ dependencies = [
  "fnv",
  "itertools",
  "serde",
- "tantivy-bitpacker 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "tantivy-bitpacker",
  "tantivy-common",
  "tantivy-sstable",
  "tantivy-stacker",
@@ -2594,7 +2579,8 @@ dependencies = [
 [[package]]
 name = "tantivy-common"
 version = "0.6.0"
-source = "git+https://github.com/quickwit-oss/tantivy.git?rev=9ebc5ed053b5d7a61e9693ca7b2dec64ce244093#9ebc5ed053b5d7a61e9693ca7b2dec64ce244093"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "af4a3a975e604a2aba6b1106a04505e1e7a025e6def477fab6e410b4126471e1"
 dependencies = [
  "async-trait",
  "byteorder",
@@ -2637,11 +2623,11 @@ dependencies = [
 [[package]]
 name = "tantivy-sstable"
 version = "0.2.0"
-source = "git+https://github.com/quickwit-oss/tantivy.git?rev=9ebc5ed053b5d7a61e9693ca7b2dec64ce244093#9ebc5ed053b5d7a61e9693ca7b2dec64ce244093"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fc0c1bb43e5e8b8e05eb8009610344dbf285f06066c844032fbb3e546b3c71df"
 dependencies = [
- "tantivy-bitpacker 0.5.0 (git+https://github.com/quickwit-oss/tantivy.git?rev=9ebc5ed053b5d7a61e9693ca7b2dec64ce244093)",
  "tantivy-common",
- "tantivy-fst 0.5.0",
+ "tantivy-fst",
  "zstd",
 ]
 
@@ -3434,19 +3420,20 @@ checksum = "ced3678a2879b30306d323f4542626697a464a97c0a07c9aebf7ebca65cd4dde"
 
 [[package]]
 name = "zstd"
-version = "0.13.1"
+version = "0.12.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2d789b1514203a1120ad2429eae43a7bd32b90976a7bb8a05f7ec02fa88cc23a"
+checksum = "1a27595e173641171fc74a1232b7b1c7a7cb6e18222c11e9dfb9888fa424c53c"
 dependencies = [
  "zstd-safe",
 ]
 
 [[package]]
 name = "zstd-safe"
-version = "7.1.0"
+version = "6.0.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1cd99b45c6bc03a018c8b8a86025678c87e55526064e38f9df301989dce7ec0a"
+checksum = "ee98ffd0b48ee95e6c5168188e44a54550b1564d9d530ee21d5f0eaed1069581"
 dependencies = [
+ "libc",
  "zstd-sys",
 ]
 
