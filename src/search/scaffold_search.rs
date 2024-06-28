@@ -1,14 +1,10 @@
 use rdkit::{substruct_match, ROMol, SubstructMatchParameters};
-use std::fs::File;
-use std::io::{BufRead, BufReader};
 
+const SCAFFOLDS: &'static str = include_str!("../../assets/standardized_scaffolds_20240405.json");
 pub fn get_scaffolds() -> eyre::Result<Vec<(ROMol, u64)>> {
-    let file = File::open("src/indexing/standardized_scaffolds_20240405.json")?;
-    let reader = BufReader::new(file);
     let mut scaffold_vec = Vec::with_capacity(1000);
 
-    for result_line in reader.lines() {
-        let line = result_line?;
+    for line in SCAFFOLDS.lines() {
         let record: serde_json::Value = serde_json::from_str(&line)?;
         let smiles = record
             .get("smiles")
