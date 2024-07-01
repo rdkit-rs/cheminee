@@ -151,24 +151,3 @@ fn create_tantivy_doc(
 
     Ok(doc)
 }
-
-fn combine_json_objects(obj1: Option<Value>, obj2: Option<Value>) -> Option<Value> {
-    match (obj1, obj2) {
-        (Some(obj1), Some(obj2)) => {
-            if let (Value::Object(mut obj1_map), Value::Object(obj2_map)) =
-                (obj1.clone(), obj2.clone())
-            {
-                for (key, value) in obj2_map {
-                    obj1_map.insert(key, value);
-                }
-                return Some(Value::Object(obj1_map));
-            } else if let Value::Object(obj1_map) = obj1 {
-                return Some(Value::Object(obj1_map));
-            }
-            Some(obj2)
-        }
-        (Some(obj1), None) => Some(obj1),
-        (None, Some(obj2)) => Some(obj2),
-        (None, None) => None,
-    }
-}
