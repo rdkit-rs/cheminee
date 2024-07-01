@@ -1,8 +1,10 @@
 use crate::command_line::{indexing::split_path, prelude::*};
 use crate::indexing::index_manager::IndexManager;
 use crate::search::compound_processing::process_cpd;
+use crate::search::scaffold_search::{get_scaffolds, scaffold_search};
 use bitvec::macros::internal::funty::Fundamental;
 use rayon::prelude::*;
+use serde_json::Value;
 use std::{collections::HashMap, fs::File, io::BufRead, io::BufReader, ops::Deref};
 use tantivy::schema::Field;
 
@@ -56,7 +58,7 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
 
     for result_line in reader.lines() {
         let line = result_line?;
-        let record: serde_json::Value = serde_json::from_str(&line)?;
+        let record = serde_json::from_str(&line)?;
 
         record_vec.push(record);
         if record_vec.len() == chunksize {
@@ -123,8 +125,17 @@ fn create_tantivy_doc(
         fingerprint_field => fingerprint.0.into_vec()
     );
 
-    if let Some(extra_data) = extra_data {
-        doc.add_field_value(extra_data_field, extra_data);
+    let scaffolds = get_scaffolds()?;
+    let scaffold_matches = scaffold_search(&canon_taut, &scaffolds)?;
+    let mut scaffold_json = Value::Null;
+    if !scaffold_matches.is_empty() {
+        scaffold_json =
+            serde_json::from_str(format!(r#"{{ "scaffolds": {:?} }}"#, scaffold_matches).as_str())?;
+    }
+
+    let extra_data_json = combine_json_objects(Some(scaffold_json), extra_data);
+    if let Some(extra_data_json) = extra_data_json {
+        doc.add_field_value(extra_data_field, extra_data_json);
     }
 
     for field in KNOWN_DESCRIPTORS {
@@ -139,4 +150,25 @@ fn create_tantivy_doc(
     }
 
     Ok(doc)
+}
+
+fn combine_json_objects(obj1: Option<Value>, obj2: Option<Value>) -> Option<Value> {
+    match (obj1, obj2) {
+        (Some(obj1), Some(obj2)) => {
+            if let (Value::Object(mut obj1_map), Value::Object(obj2_map)) =
+                (obj1.clone(), obj2.clone())
+            {
+                for (key, value) in obj2_map {
+                    obj1_map.insert(key, value);
+                }
+                return Some(Value::Object(obj1_map));
+            } else if let Value::Object(obj1_map) = obj1 {
+                return Some(Value::Object(obj1_map));
+            }
+            Some(obj2)
+        }
+        (Some(obj1), None) => Some(obj1),
+        (None, Some(obj2)) => Some(obj2),
+        (None, None) => None,
+    }
 }
