@@ -25,7 +25,7 @@ pub async fn v1_post_index_bulk(
         }
     };
 
-    let mut writer = match index.writer(8 * 1024 * 1024) {
+    let mut writer = match index.writer(16 * 1024 * 1024) {
         Ok(writer) => writer,
         Err(e) => {
             return PostIndexesBulkIndexResponse::Err(Json(PostIndexBulkResponseError {
@@ -150,6 +150,7 @@ fn bulk_request_doc_to_tantivy_doc(
 
     let extra_data_json = combine_json_objects(Some(scaffold_json), bulk_request_doc.extra_data);
     if let Some(extra_data_json) = extra_data_json {
+        println!("{:?}", extra_data_json);
         doc.add_field_value(extra_data_field, extra_data_json);
     }
 
