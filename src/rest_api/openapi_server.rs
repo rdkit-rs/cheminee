@@ -194,7 +194,6 @@ impl Api {
         // by default, we will use scaffold-based indexing
         let use_scaffolds = if let Some(use_scaffolds) = use_scaffolds.0 {
             match use_scaffolds.as_str() {
-                "false" => false,
                 "true" => true,
                 _ => false,
             }

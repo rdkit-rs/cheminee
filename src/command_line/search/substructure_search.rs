@@ -86,7 +86,6 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
     // by default, we will use scaffold-based indexing
     let use_scaffolds = if let Some(use_scaffolds) = use_scaffolds {
         match use_scaffolds.as_str() {
-            "false" => false,
             "true" => true,
             _ => false,
         }
