@@ -35,7 +35,6 @@ impl IndexManager {
         sort_by: Option<&str>,
     ) -> eyre::Result<tantivy::Index> {
         let builder = Self::build_builder(schema, sort_by)?;
-
         let index_path = self.storage_dir.join(name);
 
         if !index_path.exists() {
@@ -49,7 +48,7 @@ impl IndexManager {
                     std::fs::remove_dir_all(&index_path)?;
                     std::fs::create_dir(&index_path)?;
 
-                    let builder = Self::build_builder(schema, None)?;
+                    let builder = Self::build_builder(schema, sort_by)?;
                     builder.create_in_dir(&index_path)?
                 } else {
                     return Err(eyre::eyre!(
