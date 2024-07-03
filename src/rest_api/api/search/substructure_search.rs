@@ -14,7 +14,7 @@ pub fn v1_index_search_substructure(
     smiles: String,
     result_limit: usize,
     tautomer_limit: usize,
-    extra_query: &String,
+    extra_query: &str,
     use_scaffolds: bool,
 ) -> GetStructureSearchResponse {
     let index = match index_manager.open(&index) {
@@ -65,7 +65,7 @@ pub fn v1_index_search_substructure(
         Vec::new()
     };
 
-    let matching_scaffolds = if scaffolds.len() > 0 {
+    let matching_scaffolds = if !scaffolds.is_empty() {
         let scaffold_matches = scaffold_search(&query_canon_taut, &scaffolds);
         match scaffold_matches {
             Ok(scaffold_matches) => scaffold_matches,
@@ -123,7 +123,7 @@ pub fn v1_index_search_substructure(
 
                 let (taut_fingerprint, taut_descriptors) = taut_attributes;
 
-                let matching_scaffolds = if scaffolds.len() > 0 {
+                let matching_scaffolds = if !scaffolds.is_empty() {
                     let scaffold_matches = scaffold_search(&test_taut, &scaffolds);
                     match scaffold_matches {
                         Ok(scaffold_matches) => scaffold_matches,

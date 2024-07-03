@@ -31,7 +31,7 @@ pub fn neutralize_atoms(romol: &ROMol) -> eyre::Result<ROMol> {
         .map(|v| v[0].mol_atom_idx.as_u32())
         .collect::<Vec<_>>();
 
-    if atom_match_pos.len() > 0 {
+    if !atom_match_pos.is_empty() {
         for atom_idx in atom_match_pos {
             let mut atom = neutralized_romol.atom_with_idx(atom_idx);
 
@@ -48,7 +48,7 @@ pub fn neutralize_atoms(romol: &ROMol) -> eyre::Result<ROMol> {
                 continue;
             }
 
-            let _ = update_atom_hcount(&mut atom, 0, hcount - chg)?;
+            update_atom_hcount(&mut atom, 0, hcount - chg)?;
             set_hybridization(&mut neutralized_romol);
         }
     }
@@ -58,8 +58,8 @@ pub fn neutralize_atoms(romol: &ROMol) -> eyre::Result<ROMol> {
 
 pub fn remove_hypervalent_silicon(smi: &str) -> String {
     let hyperval_si = "[Si-";
-    if smi.contains(hyperval_si) && smi.contains(".") {
-        smi.split(".")
+    if smi.contains(hyperval_si) && smi.contains('.') {
+        smi.split('.')
             .map(|f| match f.contains(hyperval_si) {
                 true => "",
                 false => f,
@@ -113,7 +113,7 @@ pub fn fix_chemistry_problems(smi: &str) -> eyre::Result<ROMol> {
                 let atom_symbol = &romol.atom_with_idx(atom_idx).symbol()[..];
                 if atom_symbol == "Si" {
                     let new_smi = remove_hypervalent_silicon(fixed_smi.as_str());
-                    fixed_smi = new_smi.clone();
+                    fixed_smi.clone_from(&new_smi);
                     romol = ROMol::from_smiles_with_params(fixed_smi.as_str(), &parser_params)
                         .map_err(|e| eyre::eyre!("{}", e))?;
                 } else if ["C", "N", "O"].contains(&atom_symbol) {
@@ -122,7 +122,7 @@ pub fn fix_chemistry_problems(smi: &str) -> eyre::Result<ROMol> {
                 }
             }
             KekulizeException => {
-                if fixed_smi.contains(&"[c-]") {
+                if fixed_smi.contains("[c-]") {
                     fixed_smi = fixed_smi.replace("[c-]", "[cH-]");
                     romol = ROMol::from_smiles_with_params(fixed_smi.as_str(), &parser_params)
                         .map_err(|e| eyre::eyre!("{}", e))?;
@@ -134,7 +134,7 @@ pub fn fix_chemistry_problems(smi: &str) -> eyre::Result<ROMol> {
 
     problems = detect_chemistry_problems(&romol);
 
-    if problems.len() == 0 {
+    if problems.is_empty() {
         // Rebuild romol to force sanitization
         Ok(ROMol::from_smiles(fixed_smi.as_str())?)
     } else {

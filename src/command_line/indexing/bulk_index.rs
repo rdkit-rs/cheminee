@@ -89,8 +89,6 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
                             println!("Failed doc creation: {:?}", e);
                         }
                     }
-
-                    ()
                 })
                 .collect::<Vec<_>>();
 

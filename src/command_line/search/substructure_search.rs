@@ -85,10 +85,7 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
 
     // by default, we will use scaffold-based indexing
     let use_scaffolds = if let Some(use_scaffolds) = use_scaffolds {
-        match use_scaffolds.as_str() {
-            "true" => true,
-            _ => false,
-        }
+        matches!(use_scaffolds.as_str(), "true")
     } else {
         true
     };
@@ -105,7 +102,7 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
         Vec::new()
     };
 
-    let matching_scaffolds = if scaffolds.len() > 0 {
+    let matching_scaffolds = if !scaffolds.is_empty() {
         scaffold_search(&query_canon_taut, &scaffolds)?
     } else {
         Vec::new()
@@ -146,7 +143,7 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
 
                 let (taut_fingerprint, taut_descriptors) = taut_attributes;
 
-                let matching_scaffolds = if scaffolds.len() > 0 {
+                let matching_scaffolds = if !scaffolds.is_empty() {
                     scaffold_search(&test_taut, &scaffolds)?
                 } else {
                     Vec::new()

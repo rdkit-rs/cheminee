@@ -37,7 +37,7 @@ pub fn substructure_search(
     query_fingerprint: &BitSlice<u8, Lsb0>,
     query_descriptors: &HashMap<String, f64>,
     result_limit: usize,
-    extra_query: &String,
+    extra_query: &str,
 ) -> eyre::Result<HashSet<DocAddress>> {
     let schema = searcher.schema();
     let query = build_query(query_descriptors, extra_query, scaffold_matches);
@@ -90,7 +90,7 @@ pub fn substructure_search(
 
 fn build_query(
     descriptors: &HashMap<String, f64>,
-    extra_query: &String,
+    extra_query: &str,
     matching_scaffolds: &Vec<u64>,
 ) -> String {
     let mut query_parts = Vec::with_capacity(descriptors.len());

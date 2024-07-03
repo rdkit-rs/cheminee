@@ -94,12 +94,12 @@ pub fn aggregate_query_hits(
     let extra_data_field = schema.get_field("extra_data")?;
 
     for result in results {
-        let (smile, extra_data) =
+        let (smiles, extra_data) =
             get_smiles_and_extra_data(result, &searcher, smiles_field, extra_data_field)?;
 
         final_results.push(QuerySearchHit {
             extra_data,
-            smiles: smile.into(),
+            smiles,
             query: query.into(),
         })
     }

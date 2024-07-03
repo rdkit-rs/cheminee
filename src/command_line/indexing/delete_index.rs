@@ -22,7 +22,7 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
     let (storage_dir, index_name) = split_path(index_path)?;
 
     let index_manager = IndexManager::new(storage_dir, false)?;
-    let _ = index_manager.delete(index_name.deref())?;
+    index_manager.delete(index_name.deref())?;
 
     println!("Deleted index {}", index_path);
     Ok(())
