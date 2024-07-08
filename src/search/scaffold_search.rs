@@ -27,29 +27,6 @@ lazy_static::lazy_static! {
     .collect();
 }
 
-// pub fn get_scaffolds() -> Vec<(ROMol, u64)> {
-//     let mut scaffold_vec = Vec::with_capacity(1000);
-//
-//     for line in SCAFFOLDS.lines() {
-//         let record: serde_json::Value = serde_json::from_str(line)?;
-//         let smiles = record
-//             .get("smiles")
-//             .ok_or(eyre::eyre!("Failed to extract smiles"))?
-//             .as_str()
-//             .ok_or(eyre::eyre!("Failed to convert smiles to str"))?;
-//         let scaffold_id = record
-//             .get("scaffold_id")
-//             .ok_or(eyre::eyre!("Failed to extract scaffold id"))?
-//             .as_u64()
-//             .ok_or(eyre::eyre!("Failed to convert scaffold id to integer"))?;
-//
-//         let romol = ROMol::from_smiles(smiles)?;
-//
-//         scaffold_vec.push((romol, scaffold_id));
-//     }
-//     Ok(scaffold_vec)
-// }
-
 pub fn scaffold_search(
     query_mol: &ROMol,
     scaffolds: &Vec<(Arc<Mutex<ROMol>>, u64)>,
