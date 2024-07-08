@@ -171,6 +171,7 @@ impl Api {
         result_limit: Query<Option<usize>>,
         tautomer_limit: Query<Option<usize>>,
         extra_query: Query<Option<String>>,
+        use_scaffolds: Query<Option<String>>,
     ) -> GetStructureSearchResponse {
         let result_limit = if let Some(result_limit) = result_limit.0 {
             result_limit
@@ -190,6 +191,13 @@ impl Api {
             "".to_string()
         };
 
+        // by default, we will use scaffold-based indexing
+        let use_scaffolds = if let Some(use_scaffolds) = use_scaffolds.0 {
+            matches!(use_scaffolds.as_str(), "true")
+        } else {
+            true
+        };
+
         v1_index_search_substructure(
             &self.index_manager,
             index.to_string(),
@@ -197,6 +205,7 @@ impl Api {
             result_limit,
             tautomer_limit,
             &extra_query,
+            use_scaffolds,
         )
     }
 }

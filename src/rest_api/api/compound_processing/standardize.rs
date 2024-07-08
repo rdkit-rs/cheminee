@@ -7,10 +7,7 @@ pub async fn v1_standardize(
     mol: Json<Vec<Smiles>>,
     attempt_fix: Option<&str>,
 ) -> StandardizeResponse {
-    let attempt_fix = match attempt_fix {
-        Some(_) => true,
-        _ => false,
-    };
+    let attempt_fix = attempt_fix.is_some();
 
     let standardized_smiles = mol
         .0
@@ -72,6 +69,5 @@ mod tests {
             .first()
             .expect("first_value")
             .assert_string("CCC=O");
-        println!("{:?}", json_value);
     }
 }

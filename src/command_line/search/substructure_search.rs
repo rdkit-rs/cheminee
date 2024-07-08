@@ -1,4 +1,5 @@
 use crate::command_line::prelude::*;
+use crate::search::scaffold_search::{scaffold_search, PARSED_SCAFFOLDS};
 use crate::search::{
     aggregate_search_hits, compound_processing::*, prepare_query_structure,
     substructure_search::substructure_search,
@@ -43,6 +44,13 @@ pub fn command() -> Command {
                 .short('e')
                 .num_args(1),
         )
+        .arg(
+            Arg::new("use_scaffolds")
+                .required(false)
+                .long("use_scaffolds")
+                .short('u')
+                .num_args(1),
+        )
 }
 
 pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
@@ -55,6 +63,7 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
     let result_limit = matches.get_one::<String>("result_limit");
     let tautomer_limit = matches.get_one::<String>("tautomer_limit");
     let extra_query = matches.get_one::<String>("extra_query");
+    let use_scaffolds = matches.get_one::<String>("use_scaffolds");
 
     let result_limit = if let Some(result_limit) = result_limit {
         result_limit.parse::<usize>()?
@@ -74,15 +83,35 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
         "".to_string()
     };
 
+    // by default, we will use scaffold-based indexing
+    let use_scaffolds = if let Some(use_scaffolds) = use_scaffolds {
+        matches!(use_scaffolds.as_str(), "true")
+    } else {
+        true
+    };
+
     let index = open_index(index_path)?;
     let reader = index.reader()?;
     let searcher = reader.searcher();
 
     let (query_canon_taut, fingerprint, descriptors) = prepare_query_structure(smiles)?;
 
+    let scaffolds = if use_scaffolds {
+        &PARSED_SCAFFOLDS
+    } else {
+        &Vec::new()
+    };
+
+    let matching_scaffolds = if !scaffolds.is_empty() {
+        scaffold_search(&query_canon_taut, &scaffolds)?
+    } else {
+        Vec::new()
+    };
+
     let mut results = substructure_search(
         &searcher,
         &query_canon_taut,
+        &matching_scaffolds,
         fingerprint.0.as_bitslice(),
         &descriptors,
         result_limit,
@@ -114,9 +143,16 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
 
                 let (taut_fingerprint, taut_descriptors) = taut_attributes;
 
+                let matching_scaffolds = if !scaffolds.is_empty() {
+                    scaffold_search(&test_taut, &scaffolds)?
+                } else {
+                    Vec::new()
+                };
+
                 let taut_results = substructure_search(
                     &searcher,
                     &test_taut,
+                    &matching_scaffolds,
                     taut_fingerprint.0.as_bitslice(),
                     &taut_descriptors,
                     result_limit,

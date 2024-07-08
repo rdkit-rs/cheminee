@@ -10,6 +10,7 @@ use crate::search::compound_processing::process_cpd;
 
 pub mod basic_search;
 pub mod compound_processing;
+pub mod scaffold_search;
 pub mod structure_matching;
 pub mod substructure_search;
 pub mod superstructure_search;
@@ -41,14 +42,14 @@ pub fn validate_structure(smiles: &str) -> eyre::Result<Vec<MolSanitizeException
 
 #[derive(Object, Debug)]
 pub struct QuerySearchHit {
-    pub extra_data: serde_json::Value,
+    pub extra_data: String,
     pub smiles: String,
     pub query: String,
 }
 
 #[derive(Object, Debug)]
 pub struct StructureSearchHit {
-    pub extra_data: serde_json::Value,
+    pub extra_data: String,
     pub smiles: String,
     pub score: f32,
     pub query: String,
@@ -93,12 +94,12 @@ pub fn aggregate_query_hits(
     let extra_data_field = schema.get_field("extra_data")?;
 
     for result in results {
-        let (smile, extra_data) =
+        let (smiles, extra_data) =
             get_smiles_and_extra_data(result, &searcher, smiles_field, extra_data_field)?;
 
         final_results.push(QuerySearchHit {
-            extra_data: serde_json::from_str(&extra_data)?,
-            smiles: smile.into(),
+            extra_data,
+            smiles,
             query: query.into(),
         })
     }
@@ -124,7 +125,7 @@ pub fn aggregate_search_hits(
             get_smiles_and_extra_data(result, &searcher, smiles_field, extra_data_field)?;
 
         final_results.push(StructureSearchHit {
-            extra_data: serde_json::from_str(&extra_data)?,
+            extra_data,
             smiles: smile,
             score,
             query: query.into(),

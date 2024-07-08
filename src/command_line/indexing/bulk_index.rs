@@ -1,8 +1,10 @@
 use crate::command_line::{indexing::split_path, prelude::*};
 use crate::indexing::index_manager::IndexManager;
 use crate::search::compound_processing::process_cpd;
+use crate::search::scaffold_search::{scaffold_search, PARSED_SCAFFOLDS};
 use bitvec::macros::internal::funty::Fundamental;
 use rayon::prelude::*;
+use serde_json::Value;
 use std::{collections::HashMap, fs::File, io::BufRead, io::BufReader, ops::Deref};
 use tantivy::schema::Field;
 
@@ -38,7 +40,7 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
     let index_manager = IndexManager::new(storage_dir.deref(), false)?;
 
     let index = index_manager.open(index_name.deref())?;
-    let mut writer = index.writer(8 * 1024 * 1024)?;
+    let mut writer = index.writer(16 * 1024 * 1024)?;
     let schema = index.schema();
 
     let smiles_field = schema.get_field("smiles")?;
@@ -56,7 +58,7 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
 
     for result_line in reader.lines() {
         let line = result_line?;
-        let record: serde_json::Value = serde_json::from_str(&line)?;
+        let record = serde_json::from_str(&line)?;
 
         record_vec.push(record);
         if record_vec.len() == chunksize {
@@ -87,8 +89,6 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
                             println!("Failed doc creation: {:?}", e);
                         }
                     }
-
-                    ()
                 })
                 .collect::<Vec<_>>();
 
@@ -123,8 +123,16 @@ fn create_tantivy_doc(
         fingerprint_field => fingerprint.0.into_vec()
     );
 
-    if let Some(extra_data) = extra_data {
-        doc.add_field_value(extra_data_field, extra_data);
+    let scaffold_matches = scaffold_search(&canon_taut, &PARSED_SCAFFOLDS)?;
+    let mut scaffold_json = Value::Null;
+    if !scaffold_matches.is_empty() {
+        scaffold_json =
+            serde_json::from_str(format!(r#"{{ "scaffolds": {:?} }}"#, scaffold_matches).as_str())?;
+    }
+
+    let extra_data_json = combine_json_objects(Some(scaffold_json), extra_data);
+    if let Some(extra_data_json) = extra_data_json {
+        doc.add_field_value(extra_data_field, extra_data_json);
     }
 
     for field in KNOWN_DESCRIPTORS {

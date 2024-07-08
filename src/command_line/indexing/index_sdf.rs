@@ -6,6 +6,7 @@ use tantivy::schema::Field;
 
 use crate::command_line::prelude::*;
 use crate::search::compound_processing::process_cpd;
+use crate::search::scaffold_search::{scaffold_search, PARSED_SCAFFOLDS};
 
 pub const NAME: &str = "index-sdf";
 
@@ -58,7 +59,7 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<usize> {
     }
     std::fs::create_dir(index_dir)?;
 
-    let mol_iter = MolBlockIter::from_gz_file(sdf_path, true, false, false)
+    let mol_iter = MolBlockIter::from_gz_file(sdf_path, false, false, false)
         .map_err(|e| eyre::eyre!("could not read gz file: {:?}", e))?;
 
     let mol_iter: Box<dyn Iterator<Item = Result<RWMol, String>>> = if let Some(limit) = limit {
@@ -67,69 +68,86 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<usize> {
         Box::new(mol_iter)
     };
 
-    let schema = crate::schema::LIBRARY.get("descriptor_v1").unwrap();
+    let schema = crate::schema::LIBRARY
+        .get("descriptor_v1")
+        .ok_or(eyre::eyre!("Failed to extract schema"))?;
     let index = create_or_reset_index(index_dir, schema)?;
-
     let mut index_writer = index.writer_with_num_threads(1, 50 * 1024 * 1024)?;
+
+    // Get all relevant descriptor fields
+    let smiles_field = schema.get_field("smiles")?;
+    let fingerprint_field = schema.get_field("fingerprint")?;
+    let extra_data_field = schema.get_field("extra_data")?;
+    let descriptors_fields = KNOWN_DESCRIPTORS
+        .iter()
+        .map(|kd| (*kd, schema.get_field(kd).unwrap()))
+        .collect::<HashMap<&str, Field>>();
 
     let mut counter = 0;
     for mol in mol_iter {
-        if counter % 100 == 0 {
-            log::debug!("wrote 100 docs");
-        }
         if mol.is_err() {
             continue;
         }
+
         let mol = mol.unwrap();
         let mol: ROMol = mol.to_ro_mol();
 
-        let smiles = schema.get_field("smiles").unwrap();
-        let fingerprint = schema.get_field("fingerprint").unwrap();
-
-        let descriptors_fields = KNOWN_DESCRIPTORS
-            .iter()
-            .map(|kd| (*kd, schema.get_field(kd).unwrap()))
-            .collect::<HashMap<&str, Field>>();
         // By default, do not attempt to fix problematic molecules
-        let (canon_taut, fp, computed) = process_cpd(mol.as_smiles().as_str(), false).unwrap();
+        let process_result = process_cpd(mol.as_smiles().as_str(), false);
+        if process_result.is_err() {
+            continue;
+        }
+
+        let (canon_taut, fp, computed) = process_result.unwrap();
 
         let json: serde_json::Value = serde_json::to_value(&computed)?;
-        let descriptions_map: Map<String, Value> = if let serde_json::Value::Object(map) = json {
+        let descriptors_map: Map<String, Value> = if let serde_json::Value::Object(map) = json {
             map
         } else {
-            panic!("not an object")
+            panic!("not an object");
         };
 
         let mut doc = doc!(
-            smiles => canon_taut.as_smiles(),
-            fingerprint => fp.0.into_vec()
+            smiles_field => canon_taut.as_smiles(),
+            fingerprint_field => fp.0.into_vec()
         );
 
         for field in KNOWN_DESCRIPTORS {
-            if let Some(serde_json::Value::Number(val)) = descriptions_map.get(field) {
+            if let Some(serde_json::Value::Number(val)) = descriptors_map.get(field) {
+                let current_field = *descriptors_fields
+                    .get(field)
+                    .ok_or(eyre::eyre!("Failed to extract field"))?;
+                let current_value = val
+                    .as_f64()
+                    .ok_or(eyre::eyre!("Failed to convert descriptor to float"))?;
                 if field.starts_with("Num") || field.starts_with("lipinski") {
-                    let int = val.as_f64().unwrap() as i64;
-                    doc.add_field_value(*descriptors_fields.get(field).unwrap(), int);
+                    doc.add_field_value(current_field, current_value as i64);
                 } else {
-                    doc.add_field_value(
-                        *descriptors_fields.get(field).unwrap(),
-                        val.as_f64().unwrap(),
-                    );
+                    doc.add_field_value(current_field, current_value);
                 };
             }
         }
 
+        let scaffold_matches = scaffold_search(&canon_taut, &PARSED_SCAFFOLDS)?;
+
+        if !scaffold_matches.is_empty() {
+            let scaffold_json: serde_json::Value = serde_json::from_str(
+                format!(r#"{{ "scaffolds": {:?} }}"#, scaffold_matches).as_str(),
+            )?;
+
+            doc.add_field_value(extra_data_field, scaffold_json);
+        }
+
         index_writer.add_document(doc)?;
 
-        if counter % 20_000 == 0 {
+        if counter > 0 && counter % 10_000 == 0 {
             index_writer.commit()?;
+            println!("{:?} compounds written so far", counter);
         }
 
         counter += 1;
     }
 
-    log::debug!("committing");
     index_writer.commit()?;
-
     Ok(counter)
 }

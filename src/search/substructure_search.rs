@@ -33,13 +33,14 @@ const DESCRIPTOR_ALLOW_LIST: [&str; 20] = [
 pub fn substructure_search(
     searcher: &Searcher,
     query_mol: &ROMol,
+    scaffold_matches: &Vec<u64>,
     query_fingerprint: &BitSlice<u8, Lsb0>,
     query_descriptors: &HashMap<String, f64>,
     result_limit: usize,
-    extra_query: &String,
+    extra_query: &str,
 ) -> eyre::Result<HashSet<DocAddress>> {
     let schema = searcher.schema();
-    let query = build_query(query_descriptors, extra_query);
+    let query = build_query(query_descriptors, extra_query, scaffold_matches);
 
     // Note: in the end, we want a limit for the FINAL number of matches to return
     let tantivy_limit = 10 * result_limit;
@@ -87,13 +88,21 @@ pub fn substructure_search(
     Ok(filtered_results2)
 }
 
-fn build_query(descriptors: &HashMap<String, f64>, extra_query: &String) -> String {
+fn build_query(
+    descriptors: &HashMap<String, f64>,
+    extra_query: &str,
+    matching_scaffolds: &Vec<u64>,
+) -> String {
     let mut query_parts = Vec::with_capacity(descriptors.len());
 
     if !extra_query.is_empty() {
         for subquery in extra_query.split(" AND ") {
             query_parts.push(subquery.to_string());
         }
+    }
+
+    for s in matching_scaffolds {
+        query_parts.push(format!("extra_data.scaffolds:{s}"))
     }
 
     for (k, v) in descriptors {
@@ -123,7 +132,7 @@ mod tests {
     #[test]
     fn test_build_query() {
         let descriptors: HashMap<_, _> = [("NumAtoms".to_string(), 10.0)].into_iter().collect();
-        let query = super::build_query(&descriptors, &"".to_string());
+        let query = super::build_query(&descriptors, &"".to_string(), &Vec::new());
         assert_eq!(query, "NumAtoms:[10 TO 10000]");
     }
 
@@ -175,6 +184,7 @@ mod tests {
         let results = super::substructure_search(
             &searcher,
             &query_mol,
+            &Vec::new(),
             query_fingerprint.0.as_bitslice(),
             &query_descriptors,
             10,

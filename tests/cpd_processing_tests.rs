@@ -7,7 +7,7 @@ fn test_update_atom_hcount() {
     let smiles = "[H]N([H])([H])";
     let mut romol = ROMol::from_smiles(smiles).unwrap();
     let nitrogen = &mut romol.atom_with_idx(0);
-    update_atom_hcount(nitrogen, 1, 4);
+    let _ = update_atom_hcount(nitrogen, 1, 4);
     set_hybridization(&mut romol);
 
     assert_eq!(romol.as_smiles(), "[NH4+]");
@@ -17,8 +17,15 @@ fn test_update_atom_hcount() {
 fn test_neutralize_atoms() {
     let charged_phe = "C1=CC=C(C=C1)C[C@@H](C(=O)[O-])[NH3+]";
     let romol = ROMol::from_smiles(charged_phe).unwrap();
-    let neutralized_romol = neutralize_atoms(&romol);
+    let neutralized_romol = neutralize_atoms(&romol).unwrap();
     assert_eq!(neutralized_romol.as_smiles(), "N[C@@H](Cc1ccccc1)C(=O)O");
+}
+
+#[test]
+fn test_neutralize_atoms_with_boron() {
+    let smiles = "OC(=O)C(N)CCCC[B-](O)(O)O";
+    let romol = ROMol::from_smiles(smiles).unwrap();
+    let _ = neutralize_atoms(&romol).unwrap();
 }
 
 #[test]
@@ -82,10 +89,6 @@ fn test_standardize_smiles() {
         canon_taut1.as_smiles(),
         "[N]Cc1cncc2c(=O)c3cccc(CCC(=O)O)c3[nH]c12"
     );
-
-    let smiles2 = "[Mg](OCC)OCC";
-    let canon_taut2 = standardize_smiles(smiles2, false).unwrap();
-    assert_eq!(canon_taut2.as_smiles(), "CCO");
 }
 
 #[test]

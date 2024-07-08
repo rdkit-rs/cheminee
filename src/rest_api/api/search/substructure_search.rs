@@ -1,5 +1,6 @@
 use crate::indexing::index_manager::IndexManager;
 use crate::rest_api::api::{GetStructureSearchResponse, StructureResponseError};
+use crate::search::scaffold_search::{scaffold_search, PARSED_SCAFFOLDS};
 use crate::search::{
     compound_processing::{get_cpd_properties, get_tautomers},
     substructure_search::substructure_search,
@@ -13,7 +14,8 @@ pub fn v1_index_search_substructure(
     smiles: String,
     result_limit: usize,
     tautomer_limit: usize,
-    extra_query: &String,
+    extra_query: &str,
+    use_scaffolds: bool,
 ) -> GetStructureSearchResponse {
     let index = match index_manager.open(&index) {
         Ok(index) => index,
@@ -49,9 +51,30 @@ pub fn v1_index_search_substructure(
 
     let (query_canon_taut, fingerprint, descriptors) = query_attributes;
 
+    let scaffolds = if use_scaffolds {
+        &PARSED_SCAFFOLDS
+    } else {
+        &Vec::new()
+    };
+
+    let matching_scaffolds = if !scaffolds.is_empty() {
+        let scaffold_matches = scaffold_search(&query_canon_taut, &scaffolds);
+        match scaffold_matches {
+            Ok(scaffold_matches) => scaffold_matches,
+            Err(e) => {
+                return GetStructureSearchResponse::Err(Json(StructureResponseError {
+                    error: e.to_string(),
+                }))
+            }
+        }
+    } else {
+        Vec::new()
+    };
+
     let results = substructure_search(
         &searcher,
         &query_canon_taut,
+        &matching_scaffolds,
         fingerprint.0.as_bitslice(),
         &descriptors,
         result_limit,
@@ -92,9 +115,24 @@ pub fn v1_index_search_substructure(
 
                 let (taut_fingerprint, taut_descriptors) = taut_attributes;
 
+                let matching_scaffolds = if !scaffolds.is_empty() {
+                    let scaffold_matches = scaffold_search(&test_taut, &scaffolds);
+                    match scaffold_matches {
+                        Ok(scaffold_matches) => scaffold_matches,
+                        Err(e) => {
+                            return GetStructureSearchResponse::Err(Json(StructureResponseError {
+                                error: e.to_string(),
+                            }))
+                        }
+                    }
+                } else {
+                    Vec::new()
+                };
+
                 let taut_results = substructure_search(
                     &searcher,
                     &test_taut,
+                    &matching_scaffolds,
                     taut_fingerprint.0.as_bitslice(),
                     &taut_descriptors,
                     result_limit,
