@@ -1,7 +1,7 @@
 use crate::command_line::{indexing::split_path, prelude::*};
 use crate::indexing::index_manager::IndexManager;
 use crate::search::compound_processing::process_cpd;
-use crate::search::scaffold_search::{get_scaffolds, scaffold_search};
+use crate::search::scaffold_search::{scaffold_search, PARSED_SCAFFOLDS};
 use bitvec::macros::internal::funty::Fundamental;
 use rayon::prelude::*;
 use serde_json::Value;
@@ -123,8 +123,7 @@ fn create_tantivy_doc(
         fingerprint_field => fingerprint.0.into_vec()
     );
 
-    let scaffolds = get_scaffolds()?;
-    let scaffold_matches = scaffold_search(&canon_taut, &scaffolds)?;
+    let scaffold_matches = scaffold_search(&canon_taut, &PARSED_SCAFFOLDS)?;
     let mut scaffold_json = Value::Null;
     if !scaffold_matches.is_empty() {
         scaffold_json =

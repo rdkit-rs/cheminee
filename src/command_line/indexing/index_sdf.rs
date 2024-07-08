@@ -6,7 +6,7 @@ use tantivy::schema::Field;
 
 use crate::command_line::prelude::*;
 use crate::search::compound_processing::process_cpd;
-use crate::search::scaffold_search::{get_scaffolds, scaffold_search};
+use crate::search::scaffold_search::{scaffold_search, PARSED_SCAFFOLDS};
 
 pub const NAME: &str = "index-sdf";
 
@@ -83,7 +83,6 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<usize> {
         .map(|kd| (*kd, schema.get_field(kd).unwrap()))
         .collect::<HashMap<&str, Field>>();
 
-    let scaffolds = get_scaffolds()?;
     let mut counter = 0;
     for mol in mol_iter {
         if mol.is_err() {
@@ -129,7 +128,7 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<usize> {
             }
         }
 
-        let scaffold_matches = scaffold_search(&canon_taut, &scaffolds)?;
+        let scaffold_matches = scaffold_search(&canon_taut, &PARSED_SCAFFOLDS)?;
 
         if !scaffold_matches.is_empty() {
             let scaffold_json: serde_json::Value = serde_json::from_str(

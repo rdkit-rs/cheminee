@@ -4,7 +4,7 @@ use crate::rest_api::api::{
     PostIndexBulkResponseOkStatus, PostIndexesBulkIndexResponse,
 };
 use crate::search::compound_processing::process_cpd;
-use crate::search::scaffold_search::{get_scaffolds, scaffold_search};
+use crate::search::scaffold_search::{scaffold_search, PARSED_SCAFFOLDS};
 use poem_openapi::payload::Json;
 use rayon::prelude::*;
 use serde_json::{Map, Value};
@@ -138,7 +138,7 @@ fn bulk_request_doc_to_tantivy_doc(
         fingerprint_field => fingerprint.0.into_vec()
     );
 
-    let scaffolds = get_scaffolds().map_err(|err| err.to_string())?;
+    let scaffolds = &PARSED_SCAFFOLDS;
     let scaffold_matches = scaffold_search(&tautomer, &scaffolds).map_err(|err| err.to_string())?;
 
     let mut scaffold_json = Value::Null;

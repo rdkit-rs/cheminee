@@ -1,6 +1,6 @@
 use crate::indexing::index_manager::IndexManager;
 use crate::rest_api::api::{GetStructureSearchResponse, StructureResponseError};
-use crate::search::scaffold_search::{get_scaffolds, scaffold_search};
+use crate::search::scaffold_search::{scaffold_search, PARSED_SCAFFOLDS};
 use crate::search::{
     compound_processing::{get_cpd_properties, get_tautomers},
     substructure_search::substructure_search,
@@ -52,17 +52,9 @@ pub fn v1_index_search_substructure(
     let (query_canon_taut, fingerprint, descriptors) = query_attributes;
 
     let scaffolds = if use_scaffolds {
-        let all_scaffolds = get_scaffolds();
-        match all_scaffolds {
-            Ok(all_scaffolds) => all_scaffolds,
-            Err(e) => {
-                return GetStructureSearchResponse::Err(Json(StructureResponseError {
-                    error: e.to_string(),
-                }))
-            }
-        }
+        &PARSED_SCAFFOLDS
     } else {
-        Vec::new()
+        &Vec::new()
     };
 
     let matching_scaffolds = if !scaffolds.is_empty() {

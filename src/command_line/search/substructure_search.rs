@@ -1,5 +1,5 @@
 use crate::command_line::prelude::*;
-use crate::search::scaffold_search::{get_scaffolds, scaffold_search};
+use crate::search::scaffold_search::{scaffold_search, PARSED_SCAFFOLDS};
 use crate::search::{
     aggregate_search_hits, compound_processing::*, prepare_query_structure,
     substructure_search::substructure_search,
@@ -97,9 +97,9 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
     let (query_canon_taut, fingerprint, descriptors) = prepare_query_structure(smiles)?;
 
     let scaffolds = if use_scaffolds {
-        get_scaffolds()?
+        &PARSED_SCAFFOLDS
     } else {
-        Vec::new()
+        &Vec::new()
     };
 
     let matching_scaffolds = if !scaffolds.is_empty() {

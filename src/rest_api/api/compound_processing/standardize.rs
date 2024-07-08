@@ -69,6 +69,5 @@ mod tests {
             .first()
             .expect("first_value")
             .assert_string("CCC=O");
-        println!("{:?}", json_value);
     }
 }
