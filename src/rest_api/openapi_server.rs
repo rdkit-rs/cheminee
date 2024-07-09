@@ -1,6 +1,6 @@
 use crate::indexing::index_manager::IndexManager;
 use crate::rest_api::api::{
-    v1_convert_mol_block_to_smiles, v1_get_index, v1_index_search_basic,
+    v1_convert_mol_block_to_smiles, v1_get_index, v1_index_search_basic, v1_index_search_identity,
     v1_index_search_substructure, v1_list_indexes, v1_list_schemas, v1_post_index,
     v1_post_index_bulk, v1_standardize, BulkRequest, ConvertedSmilesResponse, GetIndexResponse,
     GetQuerySearchResponse, GetStructureSearchResponse, ListIndexesResponse, ListSchemasResponse,
@@ -204,6 +204,37 @@ impl Api {
             smiles.0,
             result_limit,
             tautomer_limit,
+            &extra_query,
+            use_scaffolds,
+        )
+    }
+
+    #[oai(path = "/v1/indexes/:index/search/identity", method = "get")]
+    /// Perform identity search (i.e. exact match) against index
+    pub async fn v1_index_search_identity(
+        &self,
+        index: Path<String>,
+        smiles: Query<String>,
+        extra_query: Query<Option<String>>,
+        use_scaffolds: Query<Option<String>>,
+    ) -> GetStructureSearchResponse {
+        let extra_query = if let Some(extra_query) = extra_query.0 {
+            extra_query
+        } else {
+            "".to_string()
+        };
+
+        // by default, we will use scaffold-based indexing
+        let use_scaffolds = if let Some(use_scaffolds) = use_scaffolds.0 {
+            matches!(use_scaffolds.as_str(), "true")
+        } else {
+            true
+        };
+
+        v1_index_search_identity(
+            &self.index_manager,
+            index.to_string(),
+            smiles.0,
             &extra_query,
             use_scaffolds,
         )
