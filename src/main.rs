@@ -27,6 +27,7 @@ async fn main() -> eyre::Result<()> {
         .subcommand(command_line::pubchem::stream_pubchem_sdf::command())
         .subcommand(command_line::search::basic_search::command())
         .subcommand(command_line::search::substructure_search::command())
+        .subcommand(command_line::search::identity_search::command())
         .subcommand(rest_api::command());
 
     let matches = app.get_matches();
@@ -56,6 +57,9 @@ async fn main() -> eyre::Result<()> {
         }
         (command_line::search::substructure_search::NAME, matches) => {
             command_line::search::substructure_search::action(matches)
+        }
+        (command_line::search::identity_search::NAME, matches) => {
+            command_line::search::identity_search::action(matches)
         }
         (rest_api::NAME, matches) => rest_api::action(matches).await,
         (unknown, _) => panic!("🤨: {}", unknown),

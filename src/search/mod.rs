@@ -10,6 +10,7 @@ use crate::search::compound_processing::process_cpd;
 
 pub mod basic_search;
 pub mod compound_processing;
+pub mod identity_search;
 pub mod scaffold_search;
 pub mod structure_matching;
 pub mod substructure_search;
@@ -19,6 +20,29 @@ pub mod superstructure_search;
 pub struct StructureValidationError {
     pub error: String,
 }
+
+pub const STRUCTURE_MATCH_DESCRIPTORS: [&str; 20] = [
+    "NumAliphaticHeterocycles",
+    "NumAliphaticRings",
+    "NumAmideBonds",
+    "NumAromaticHeterocycles",
+    "NumAromaticRings",
+    "NumAtomStereoCenters",
+    "NumAtoms",
+    "NumBridgeheadAtoms",
+    "NumHBA",
+    "NumHeavyAtoms",
+    "NumHeteroatoms",
+    "NumHeterocycles",
+    "NumRings",
+    "NumRotatableBonds",
+    "NumSaturatedHeterocycles",
+    "NumSaturatedRings",
+    "NumSpiroAtoms",
+    "NumUnspecifiedAtomStereoCenters",
+    "exactmw",
+    "lipinskiHBA",
+];
 
 pub fn prepare_query_structure(
     smiles: &str,

@@ -103,7 +103,7 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
     };
 
     let matching_scaffolds = if !scaffolds.is_empty() {
-        scaffold_search(&query_canon_taut, &scaffolds)?
+        scaffold_search(&query_canon_taut, scaffolds)?
     } else {
         Vec::new()
     };
@@ -144,7 +144,7 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
                 let (taut_fingerprint, taut_descriptors) = taut_attributes;
 
                 let matching_scaffolds = if !scaffolds.is_empty() {
-                    scaffold_search(&test_taut, &scaffolds)?
+                    scaffold_search(&test_taut, scaffolds)?
                 } else {
                     Vec::new()
                 };

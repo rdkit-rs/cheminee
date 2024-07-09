@@ -5,30 +5,10 @@ use rdkit::{substruct_match, ROMol, SubstructMatchParameters};
 use regex::Regex;
 use tantivy::{DocAddress, Searcher};
 
-use crate::search::{basic_search::basic_search, structure_matching::substructure_match_fp};
-
-const DESCRIPTOR_ALLOW_LIST: [&str; 20] = [
-    "NumAliphaticHeterocycles",
-    "NumAliphaticRings",
-    "NumAmideBonds",
-    "NumAromaticHeterocycles",
-    "NumAromaticRings",
-    "NumAtomStereoCenters",
-    "NumAtoms",
-    "NumBridgeheadAtoms",
-    "NumHBA",
-    "NumHeavyAtoms",
-    "NumHeteroatoms",
-    "NumHeterocycles",
-    "NumRings",
-    "NumRotatableBonds",
-    "NumSaturatedHeterocycles",
-    "NumSaturatedRings",
-    "NumSpiroAtoms",
-    "NumUnspecifiedAtomStereoCenters",
-    "exactmw",
-    "lipinskiHBA",
-];
+use crate::search::{
+    basic_search::basic_search, structure_matching::substructure_match_fp,
+    STRUCTURE_MATCH_DESCRIPTORS,
+};
 
 pub fn substructure_search(
     searcher: &Searcher,
@@ -106,7 +86,7 @@ fn build_query(
     }
 
     for (k, v) in descriptors {
-        if DESCRIPTOR_ALLOW_LIST.contains(&k.as_str()) {
+        if STRUCTURE_MATCH_DESCRIPTORS.contains(&k.as_str()) {
             let re = Regex::new(&format!("{k}:")).unwrap();
             if !re.is_match(extra_query) {
                 query_parts.push(format!("{k}:[{v} TO 10000]"));
@@ -127,7 +107,7 @@ mod tests {
         IndexBuilder,
     };
 
-    use crate::{indexing::KNOWN_DESCRIPTORS, search::compound_processing::process_cpd};
+    use crate::search::compound_processing::process_cpd;
 
     #[test]
     fn test_build_query() {
@@ -137,7 +117,7 @@ mod tests {
     }
 
     #[test]
-    fn test_fake_index() {
+    fn test_substructure_search() {
         let test_smiles = "C";
 
         let (query_mol, query_fingerprint, query_descriptors) =
@@ -153,16 +133,15 @@ mod tests {
             fingerprint_field => query_fingerprint.0.clone().into_vec()
         );
 
-        for field in KNOWN_DESCRIPTORS {
-            if field.starts_with("Num") || field.starts_with("lipinski") {
-                let current_field = builder.add_i64_field(field, FAST | STORED);
+        for (descriptor, val) in &query_descriptors {
+            if descriptor.starts_with("Num") || descriptor.starts_with("lipinski") {
+                let current_field = builder.add_i64_field(descriptor, FAST | STORED);
 
-                let int = 10_i64;
-                doc.add_field_value(current_field, int);
+                doc.add_field_value(current_field, *val as i64);
             } else {
-                let current_field = builder.add_f64_field(field, FAST | STORED);
+                let current_field = builder.add_f64_field(descriptor, FAST | STORED);
 
-                doc.add_field_value(current_field, 100.0_f64);
+                doc.add_field_value(current_field, *val);
             }
         }
 
@@ -191,6 +170,7 @@ mod tests {
             &extra_query,
         )
         .unwrap();
+
         assert_eq!(results.len(), 1);
     }
 }

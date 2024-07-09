@@ -139,7 +139,7 @@ fn bulk_request_doc_to_tantivy_doc(
     );
 
     let scaffolds = &PARSED_SCAFFOLDS;
-    let scaffold_matches = scaffold_search(&tautomer, &scaffolds).map_err(|err| err.to_string())?;
+    let scaffold_matches = scaffold_search(&tautomer, scaffolds).map_err(|err| err.to_string())?;
 
     let mut scaffold_json = Value::Null;
     if !scaffold_matches.is_empty() {
