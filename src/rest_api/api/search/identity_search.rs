@@ -2,17 +2,15 @@ use crate::indexing::index_manager::IndexManager;
 use crate::rest_api::api::{GetStructureSearchResponse, StructureResponseError};
 use crate::search::scaffold_search::{scaffold_search, PARSED_SCAFFOLDS};
 use crate::search::{
-    identity_search::identity_search,
-    {aggregate_search_hits, prepare_query_structure},
+    get_smiles_and_extra_data, identity_search::identity_search, prepare_query_structure,
+    StructureSearchHit,
 };
 use poem_openapi::payload::Json;
-use std::collections::HashSet;
-use tantivy::DocAddress;
 
 pub fn v1_index_search_identity(
     index_manager: &IndexManager,
     index: String,
-    smiles: String,
+    query_smiles: String,
     extra_query: &str,
     use_scaffolds: bool,
 ) -> GetStructureSearchResponse {
@@ -37,7 +35,7 @@ pub fn v1_index_search_identity(
 
     let searcher = reader.searcher();
 
-    let query_attributes = prepare_query_structure(&smiles);
+    let query_attributes = prepare_query_structure(&query_smiles);
 
     let query_attributes = match query_attributes {
         Ok(query_attributes) => query_attributes,
@@ -79,30 +77,27 @@ pub fn v1_index_search_identity(
         extra_query,
     );
 
-    let mut results: HashSet<DocAddress> = HashSet::with_capacity(1);
-
     match result {
         Ok(Some(result)) => {
-            results.insert(result);
-        }
-        Ok(None) => return GetStructureSearchResponse::Ok(Json(Vec::new())),
-        Err(e) => {
-            return GetStructureSearchResponse::Err(Json(StructureResponseError {
-                error: e.to_string(),
-            }))
-        }
-    };
+            let schema = searcher.schema();
+            let smiles_field = schema.get_field("smiles").unwrap();
+            let extra_data_field = schema.get_field("extra_data").unwrap();
 
-    let final_results = aggregate_search_hits(searcher, results, false, &smiles);
+            let (smiles, extra_data) =
+                get_smiles_and_extra_data(result, &searcher, smiles_field, extra_data_field)
+                    .unwrap();
 
-    let final_results = match final_results {
-        Ok(final_results) => final_results,
-        Err(e) => {
-            return GetStructureSearchResponse::Err(Json(StructureResponseError {
-                error: e.to_string(),
-            }))
+            GetStructureSearchResponse::Ok(Json(vec![StructureSearchHit {
+                extra_data,
+                smiles,
+                score: 1.0,
+                query: query_smiles,
+                used_tautomers: false,
+            }]))
         }
-    };
-
-    GetStructureSearchResponse::Ok(Json(final_results))
+        Ok(None) => GetStructureSearchResponse::Ok(Json(Vec::new())),
+        Err(e) => GetStructureSearchResponse::Err(Json(StructureResponseError {
+            error: e.to_string(),
+        })),
+    }
 }

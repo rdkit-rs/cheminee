@@ -1,10 +1,9 @@
 use crate::command_line::prelude::*;
 use crate::search::scaffold_search::{scaffold_search, PARSED_SCAFFOLDS};
 use crate::search::{
-    aggregate_search_hits, identity_search::identity_search, prepare_query_structure,
+    get_smiles_and_extra_data, identity_search::identity_search, prepare_query_structure,
+    StructureSearchHit,
 };
-use std::collections::HashSet;
-use tantivy::DocAddress;
 
 pub const NAME: &str = "identity-search";
 
@@ -44,7 +43,7 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
     let index_path = matches
         .get_one::<String>("index")
         .ok_or(eyre::eyre!("Failed to extract index path"))?;
-    let smiles = matches
+    let query_smiles = matches
         .get_one::<String>("smiles")
         .ok_or(eyre::eyre!("Failed to extract SMILES"))?;
     let extra_query = matches.get_one::<String>("extra_query");
@@ -67,7 +66,7 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
     let reader = index.reader()?;
     let searcher = reader.searcher();
 
-    let (query_canon_taut, fingerprint, descriptors) = prepare_query_structure(smiles)?;
+    let (query_canon_taut, fingerprint, descriptors) = prepare_query_structure(query_smiles)?;
 
     let scaffolds = if use_scaffolds {
         &PARSED_SCAFFOLDS
@@ -91,13 +90,25 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
     )?;
 
     if let Some(result) = result {
-        let mut results: HashSet<DocAddress> = HashSet::with_capacity(1);
-        results.insert(result);
+        let schema = searcher.schema();
+        let smiles_field = schema.get_field("smiles")?;
+        let extra_data_field = schema.get_field("extra_data")?;
 
-        let final_results = aggregate_search_hits(searcher, results, false, smiles)?;
-        println!("{:#?}", final_results);
+        let (smiles, extra_data) =
+            get_smiles_and_extra_data(result, &searcher, smiles_field, extra_data_field)?;
+
+        println!(
+            "{:#?}",
+            &[StructureSearchHit {
+                extra_data,
+                smiles,
+                score: 1.0,
+                query: query_smiles.into(),
+                used_tautomers: false,
+            }]
+        );
     } else {
-        println!("No exact match result for {:?}", smiles);
+        println!("No exact match result for {:?}", query_smiles);
     }
 
     Ok(())

@@ -137,25 +137,28 @@ pub fn aggregate_search_hits(
     tautomers_used: bool,
     query: &str,
 ) -> eyre::Result<Vec<StructureSearchHit>> {
-    let mut final_results: Vec<StructureSearchHit> = Vec::new();
     let schema = searcher.schema();
     let smiles_field = schema.get_field("smiles")?;
     let extra_data_field = schema.get_field("extra_data")?;
 
     let score: f32 = 1.0; // every substructure match should get a 1
 
-    for result in results {
-        let (smile, extra_data) =
-            get_smiles_and_extra_data(result, &searcher, smiles_field, extra_data_field)?;
+    let final_results = results
+        .iter()
+        .map(|result| {
+            let (smiles, extra_data) =
+                get_smiles_and_extra_data(*result, &searcher, smiles_field, extra_data_field)
+                    .unwrap();
 
-        final_results.push(StructureSearchHit {
-            extra_data,
-            smiles: smile,
-            score,
-            query: query.into(),
-            used_tautomers: tautomers_used,
+            StructureSearchHit {
+                extra_data,
+                smiles,
+                score,
+                query: query.into(),
+                used_tautomers: tautomers_used,
+            }
         })
-    }
+        .collect::<Vec<_>>();
 
     Ok(final_results)
 }
