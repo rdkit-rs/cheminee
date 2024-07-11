@@ -10,6 +10,7 @@ use crate::search::compound_processing::process_cpd;
 
 pub mod basic_search;
 pub mod compound_processing;
+pub mod identity_search;
 pub mod scaffold_search;
 pub mod structure_matching;
 pub mod substructure_search;
@@ -19,6 +20,29 @@ pub mod superstructure_search;
 pub struct StructureValidationError {
     pub error: String,
 }
+
+pub const STRUCTURE_MATCH_DESCRIPTORS: [&str; 20] = [
+    "NumAliphaticHeterocycles",
+    "NumAliphaticRings",
+    "NumAmideBonds",
+    "NumAromaticHeterocycles",
+    "NumAromaticRings",
+    "NumAtomStereoCenters",
+    "NumAtoms",
+    "NumBridgeheadAtoms",
+    "NumHBA",
+    "NumHeavyAtoms",
+    "NumHeteroatoms",
+    "NumHeterocycles",
+    "NumRings",
+    "NumRotatableBonds",
+    "NumSaturatedHeterocycles",
+    "NumSaturatedRings",
+    "NumSpiroAtoms",
+    "NumUnspecifiedAtomStereoCenters",
+    "exactmw",
+    "lipinskiHBA",
+];
 
 pub fn prepare_query_structure(
     smiles: &str,
@@ -113,25 +137,28 @@ pub fn aggregate_search_hits(
     tautomers_used: bool,
     query: &str,
 ) -> eyre::Result<Vec<StructureSearchHit>> {
-    let mut final_results: Vec<StructureSearchHit> = Vec::new();
     let schema = searcher.schema();
     let smiles_field = schema.get_field("smiles")?;
     let extra_data_field = schema.get_field("extra_data")?;
 
     let score: f32 = 1.0; // every substructure match should get a 1
 
-    for result in results {
-        let (smile, extra_data) =
-            get_smiles_and_extra_data(result, &searcher, smiles_field, extra_data_field)?;
+    let final_results = results
+        .iter()
+        .map(|result| {
+            let (smiles, extra_data) =
+                get_smiles_and_extra_data(*result, &searcher, smiles_field, extra_data_field)
+                    .unwrap();
 
-        final_results.push(StructureSearchHit {
-            extra_data,
-            smiles: smile,
-            score,
-            query: query.into(),
-            used_tautomers: tautomers_used,
+            StructureSearchHit {
+                extra_data,
+                smiles,
+                score,
+                query: query.into(),
+                used_tautomers: tautomers_used,
+            }
         })
-    }
+        .collect::<Vec<_>>();
 
     Ok(final_results)
 }

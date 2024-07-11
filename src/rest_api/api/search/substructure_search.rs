@@ -58,7 +58,7 @@ pub fn v1_index_search_substructure(
     };
 
     let matching_scaffolds = if !scaffolds.is_empty() {
-        let scaffold_matches = scaffold_search(&query_canon_taut, &scaffolds);
+        let scaffold_matches = scaffold_search(&query_canon_taut, scaffolds);
         match scaffold_matches {
             Ok(scaffold_matches) => scaffold_matches,
             Err(e) => {
@@ -116,7 +116,7 @@ pub fn v1_index_search_substructure(
                 let (taut_fingerprint, taut_descriptors) = taut_attributes;
 
                 let matching_scaffolds = if !scaffolds.is_empty() {
-                    let scaffold_matches = scaffold_search(&test_taut, &scaffolds);
+                    let scaffold_matches = scaffold_search(&test_taut, scaffolds);
                     match scaffold_matches {
                         Ok(scaffold_matches) => scaffold_matches,
                         Err(e) => {
