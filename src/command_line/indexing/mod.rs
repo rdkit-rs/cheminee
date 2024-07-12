@@ -1,5 +1,6 @@
 use std::path::Path;
 
+pub mod bulk_delete;
 pub mod bulk_index;
 pub mod create_index;
 pub mod delete_index;

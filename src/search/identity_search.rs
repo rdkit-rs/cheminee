@@ -57,7 +57,7 @@ pub fn identity_search(
     Ok(None)
 }
 
-fn build_query(
+pub fn build_query(
     descriptors: &HashMap<String, f64>,
     extra_query: &str,
     matching_scaffolds: &Vec<u64>,
