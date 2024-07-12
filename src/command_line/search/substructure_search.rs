@@ -97,15 +97,14 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
     let (query_canon_taut, fingerprint, descriptors) = prepare_query_structure(smiles)?;
 
     let scaffolds = if use_scaffolds {
-        &PARSED_SCAFFOLDS
+        Some(&PARSED_SCAFFOLDS)
     } else {
-        &Vec::new()
+        None
     };
 
-    let matching_scaffolds = if !scaffolds.is_empty() {
-        scaffold_search(&query_canon_taut, scaffolds)?
-    } else {
-        Vec::new()
+    let matching_scaffolds = match scaffolds {
+        Some(scaffolds) => Some(scaffold_search(&query_canon_taut, scaffolds)?),
+        None => None,
     };
 
     let mut results = substructure_search(
@@ -143,10 +142,9 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
 
                 let (taut_fingerprint, taut_descriptors) = taut_attributes;
 
-                let matching_scaffolds = if !scaffolds.is_empty() {
-                    scaffold_search(&test_taut, scaffolds)?
-                } else {
-                    Vec::new()
+                let matching_scaffolds = match scaffolds {
+                    Some(scaffolds) => Some(scaffold_search(&test_taut, scaffolds)?),
+                    None => None,
                 };
 
                 let taut_results = substructure_search(

@@ -49,23 +49,24 @@ pub fn v1_index_search_identity(
     let (query_canon_taut, fingerprint, descriptors) = query_attributes;
 
     let scaffolds = if use_scaffolds {
-        &PARSED_SCAFFOLDS
+        Some(&PARSED_SCAFFOLDS)
     } else {
-        &Vec::new()
+        None
     };
 
-    let matching_scaffolds = if !scaffolds.is_empty() {
-        let scaffold_matches = scaffold_search(&query_canon_taut, scaffolds);
-        match scaffold_matches {
-            Ok(scaffold_matches) => scaffold_matches,
-            Err(e) => {
-                return GetStructureSearchResponse::Err(Json(StructureResponseError {
-                    error: e.to_string(),
-                }))
+    let matching_scaffolds = match scaffolds {
+        Some(scaffolds) => {
+            let scaffold_matches = scaffold_search(&query_canon_taut, scaffolds);
+            match scaffold_matches {
+                Ok(scaffold_matches) => Some(scaffold_matches),
+                Err(e) => {
+                    return GetStructureSearchResponse::Err(Json(StructureResponseError {
+                        error: e.to_string(),
+                    }))
+                }
             }
         }
-    } else {
-        Vec::new()
+        None => None,
     };
 
     let result = identity_search(

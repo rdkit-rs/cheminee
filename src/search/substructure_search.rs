@@ -13,7 +13,7 @@ use crate::search::{
 pub fn substructure_search(
     searcher: &Searcher,
     query_mol: &ROMol,
-    scaffold_matches: &Vec<u64>,
+    scaffold_matches: &Option<Vec<u64>>,
     query_fingerprint: &BitSlice<u8, Lsb0>,
     query_descriptors: &HashMap<String, f64>,
     result_limit: usize,
@@ -71,7 +71,7 @@ pub fn substructure_search(
 fn build_query(
     descriptors: &HashMap<String, f64>,
     extra_query: &str,
-    matching_scaffolds: &Vec<u64>,
+    matching_scaffolds: &Option<Vec<u64>>,
 ) -> String {
     let mut query_parts = Vec::with_capacity(descriptors.len());
 
@@ -81,8 +81,10 @@ fn build_query(
         }
     }
 
-    for s in matching_scaffolds {
-        query_parts.push(format!("extra_data.scaffolds:{s}"))
+    if let Some(scaffolds) = matching_scaffolds {
+        for s in scaffolds {
+            query_parts.push(format!("extra_data.scaffolds:{s}"))
+        }
     }
 
     for (k, v) in descriptors {
@@ -112,7 +114,7 @@ mod tests {
     #[test]
     fn test_build_query() {
         let descriptors: HashMap<_, _> = [("NumAtoms".to_string(), 10.0)].into_iter().collect();
-        let query = super::build_query(&descriptors, &"".to_string(), &Vec::new());
+        let query = super::build_query(&descriptors, &"".to_string(), &None);
         assert_eq!(query, "NumAtoms:[10 TO 10000]");
     }
 
@@ -163,7 +165,7 @@ mod tests {
         let results = super::substructure_search(
             &searcher,
             &query_mol,
-            &Vec::new(),
+            &None,
             query_fingerprint.0.as_bitslice(),
             &query_descriptors,
             10,

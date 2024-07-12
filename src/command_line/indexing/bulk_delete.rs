@@ -60,9 +60,9 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
     let query_parser = QueryParser::for_index(&index, vec![]);
 
     let scaffolds = if use_scaffolds {
-        &PARSED_SCAFFOLDS
+        Some(&PARSED_SCAFFOLDS)
     } else {
-        &Vec::new()
+        None
     };
 
     for smiles in smiles_list {
@@ -71,10 +71,9 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
         if let Ok((canon_taut, fingerprint, descriptors)) = attributes {
             let canon_smiles = canon_taut.as_smiles();
 
-            let matching_scaffolds = if !scaffolds.is_empty() {
-                scaffold_search(&canon_taut, scaffolds)?
-            } else {
-                Vec::new()
+            let matching_scaffolds = match scaffolds {
+                Some(scaffolds) => Some(scaffold_search(&canon_taut, scaffolds)?),
+                None => None,
             };
 
             let result = identity_search(
