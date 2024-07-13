@@ -23,13 +23,6 @@ pub fn command() -> Command {
                 .short('s')
                 .num_args(1),
         )
-        .arg(
-            Arg::new("use-scaffolds")
-                .required(false)
-                .long("use-scaffolds")
-                .short('u')
-                .num_args(1),
-        )
 }
 
 pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
@@ -41,14 +34,6 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
         .ok_or(eyre::eyre!("Failed to extract smiles list"))?
         .split(',')
         .collect::<Vec<_>>();
-    let use_scaffolds = matches.get_one::<String>("use-scaffolds");
-
-    // by default, we will use scaffold-based indexing
-    let use_scaffolds = if let Some(use_scaffolds) = use_scaffolds {
-        matches!(use_scaffolds.as_str(), "true")
-    } else {
-        true
-    };
 
     let (storage_dir, index_name) = split_path(index_path)?;
     let index_manager = IndexManager::new(storage_dir.deref(), false)?;
@@ -56,22 +41,13 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
     let mut deleter = index.writer(16 * 1024 * 1024)?;
     let query_parser = QueryParser::for_index(&index, vec![]);
 
-    let scaffolds = if use_scaffolds {
-        Some(&PARSED_SCAFFOLDS)
-    } else {
-        None
-    };
-
     for smiles in smiles_list {
         let attributes = prepare_query_structure(smiles);
 
         if let Ok((canon_taut, _fingerprint, descriptors)) = attributes {
             let canon_smiles = canon_taut.as_smiles();
 
-            let matching_scaffolds = match scaffolds {
-                Some(scaffolds) => Some(scaffold_search(&canon_taut, scaffolds)?),
-                None => None,
-            };
+            let matching_scaffolds = Some(scaffold_search(&canon_taut, &PARSED_SCAFFOLDS)?);
 
             let raw_query =
                 crate::search::identity_search::build_query(&descriptors, "", &matching_scaffolds);
