@@ -21,7 +21,7 @@ pub fn command() -> Command {
         )
         .arg(
             Arg::new("json-path")
-                .required(false)
+                .required(true)
                 .long("json-path")
                 .short('j')
                 .num_args(1),
