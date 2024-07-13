@@ -24,30 +24,30 @@ pub fn command() -> Command {
                 .num_args(1),
         )
         .arg(
-            Arg::new("result_limit")
+            Arg::new("result-limit")
                 .required(false)
-                .long("result_limit")
+                .long("result-limit")
                 .short('r')
                 .num_args(1),
         )
         .arg(
-            Arg::new("tautomer_limit")
+            Arg::new("tautomer-limit")
                 .required(false)
-                .long("tautomer_limit")
+                .long("tautomer-limit")
                 .short('t')
                 .num_args(1),
         )
         .arg(
-            Arg::new("extra_query")
+            Arg::new("extra-query")
                 .required(false)
-                .long("extra_query")
+                .long("extra-query")
                 .short('e')
                 .num_args(1),
         )
         .arg(
-            Arg::new("use_scaffolds")
+            Arg::new("use-scaffolds")
                 .required(false)
-                .long("use_scaffolds")
+                .long("use-scaffolds")
                 .short('u')
                 .num_args(1),
         )
@@ -60,10 +60,10 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
     let smiles = matches
         .get_one::<String>("smiles")
         .ok_or(eyre::eyre!("Failed to extract SMILES"))?;
-    let result_limit = matches.get_one::<String>("result_limit");
-    let tautomer_limit = matches.get_one::<String>("tautomer_limit");
-    let extra_query = matches.get_one::<String>("extra_query");
-    let use_scaffolds = matches.get_one::<String>("use_scaffolds");
+    let result_limit = matches.get_one::<String>("result-limit");
+    let tautomer_limit = matches.get_one::<String>("tautomer-limit");
+    let extra_query = matches.get_one::<String>("extra-query");
+    let use_scaffolds = matches.get_one::<String>("use-scaffolds");
 
     let result_limit = if let Some(result_limit) = result_limit {
         result_limit.parse::<usize>()?

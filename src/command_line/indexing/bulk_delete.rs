@@ -24,9 +24,9 @@ pub fn command() -> Command {
                 .num_args(1),
         )
         .arg(
-            Arg::new("use_scaffolds")
+            Arg::new("use-scaffolds")
                 .required(false)
-                .long("use_scaffolds")
+                .long("use-scaffolds")
                 .short('u')
                 .num_args(1),
         )
@@ -41,7 +41,7 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
         .ok_or(eyre::eyre!("Failed to extract smiles list"))?
         .split(',')
         .collect::<Vec<_>>();
-    let use_scaffolds = matches.get_one::<String>("use_scaffolds");
+    let use_scaffolds = matches.get_one::<String>("use-scaffolds");
 
     // by default, we will use scaffold-based indexing
     let use_scaffolds = if let Some(use_scaffolds) = use_scaffolds {

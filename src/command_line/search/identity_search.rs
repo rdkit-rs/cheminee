@@ -24,16 +24,16 @@ pub fn command() -> Command {
                 .num_args(1),
         )
         .arg(
-            Arg::new("extra_query")
+            Arg::new("extra-query")
                 .required(false)
-                .long("extra_query")
+                .long("extra-query")
                 .short('e')
                 .num_args(1),
         )
         .arg(
-            Arg::new("use_scaffolds")
+            Arg::new("use-scaffolds")
                 .required(false)
-                .long("use_scaffolds")
+                .long("use-scaffolds")
                 .short('u')
                 .num_args(1),
         )
@@ -46,8 +46,8 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
     let query_smiles = matches
         .get_one::<String>("smiles")
         .ok_or(eyre::eyre!("Failed to extract SMILES"))?;
-    let extra_query = matches.get_one::<String>("extra_query");
-    let use_scaffolds = matches.get_one::<String>("use_scaffolds");
+    let extra_query = matches.get_one::<String>("extra-query");
+    let use_scaffolds = matches.get_one::<String>("use-scaffolds");
 
     let extra_query = if let Some(extra_query) = extra_query {
         extra_query.clone()
