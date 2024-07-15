@@ -1,22 +1,22 @@
 use crate::indexing::index_manager::IndexManager;
 use crate::rest_api::api::{
-    BulkRequest, BulkRequestDoc, PostIndexBulkResponseError, PostIndexBulkResponseOk,
-    PostIndexBulkResponseOkStatus, PostIndexesBulkDeleteResponse,
+    BulkRequest, BulkRequestDoc, DeleteIndexBulkResponseError, DeleteIndexBulkResponseOk,
+    DeleteIndexBulkResponseOkStatus, DeleteIndexesBulkDeleteResponse,
 };
 use crate::search::compound_processing::process_cpd;
 use crate::search::scaffold_search::{scaffold_search, PARSED_SCAFFOLDS};
 use poem_openapi::payload::Json;
 use tantivy::query::{Query, QueryParser};
 
-pub async fn v1_post_bulk_delete(
+pub async fn v1_delete_index_bulk(
     index_manager: &IndexManager,
     index: String,
     bulk_request: BulkRequest,
-) -> PostIndexesBulkDeleteResponse {
+) -> DeleteIndexesBulkDeleteResponse {
     let index = match index_manager.open(&index) {
         Ok(index) => index,
         Err(e) => {
-            return PostIndexesBulkDeleteResponse::Err(Json(PostIndexBulkResponseError {
+            return DeleteIndexesBulkDeleteResponse::Err(Json(DeleteIndexBulkResponseError {
                 error: e.to_string(),
             }))
         }
@@ -25,7 +25,7 @@ pub async fn v1_post_bulk_delete(
     let mut deleter = match index.writer(16 * 1024 * 1024) {
         Ok(deleter) => deleter,
         Err(e) => {
-            return PostIndexesBulkDeleteResponse::Err(Json(PostIndexBulkResponseError {
+            return DeleteIndexesBulkDeleteResponse::Err(Json(DeleteIndexBulkResponseError {
                 error: e.to_string(),
             }))
         }
@@ -42,17 +42,17 @@ pub async fn v1_post_bulk_delete(
                 let delete_operation = deleter.delete_query(parsed_query);
 
                 match delete_operation {
-                    Ok(opstamp) => PostIndexBulkResponseOkStatus {
+                    Ok(opstamp) => DeleteIndexBulkResponseOkStatus {
                         opcode: Some(opstamp),
                         error: None,
                     },
-                    Err(e) => PostIndexBulkResponseOkStatus {
+                    Err(e) => DeleteIndexBulkResponseOkStatus {
                         opcode: None,
                         error: Some(e.to_string()),
                     },
                 }
             }
-            Err(e) => PostIndexBulkResponseOkStatus {
+            Err(e) => DeleteIndexBulkResponseOkStatus {
                 opcode: None,
                 error: Some(e.to_string()),
             },
@@ -63,13 +63,13 @@ pub async fn v1_post_bulk_delete(
     match deleter.commit() {
         Ok(_) => (),
         Err(e) => {
-            return PostIndexesBulkDeleteResponse::Err(Json(PostIndexBulkResponseError {
+            return DeleteIndexesBulkDeleteResponse::Err(Json(DeleteIndexBulkResponseError {
                 error: e.to_string(),
             }))
         }
     }
 
-    PostIndexesBulkDeleteResponse::Ok(Json(PostIndexBulkResponseOk {
+    DeleteIndexesBulkDeleteResponse::Ok(Json(DeleteIndexBulkResponseOk {
         statuses: document_delete_statuses,
     }))
 }

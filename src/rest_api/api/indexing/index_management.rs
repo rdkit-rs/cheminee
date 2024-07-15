@@ -46,13 +46,13 @@ pub enum PostIndexesBulkIndexResponse {
 }
 
 #[derive(ApiResponse)]
-pub enum PostIndexesBulkDeleteResponse {
+pub enum DeleteIndexesBulkDeleteResponse {
     #[oai(status = "200")]
-    Ok(Json<PostIndexBulkResponseOk>),
+    Ok(Json<DeleteIndexBulkResponseOk>),
     #[oai(status = "404")]
     IndexDoesNotExist,
     #[oai(status = "500")]
-    Err(Json<PostIndexBulkResponseError>),
+    Err(Json<DeleteIndexBulkResponseError>),
 }
 
 #[derive(ApiResponse)]
@@ -116,6 +116,22 @@ pub struct PostIndexBulkResponseOk {
 
 #[derive(Object, Debug)]
 pub struct PostIndexBulkResponseOkStatus {
+    pub opcode: Option<Opstamp>,
+    pub error: Option<String>,
+}
+
+#[derive(Object, Debug)]
+pub struct DeleteIndexBulkResponseError {
+    pub error: String,
+}
+
+#[derive(Object, Debug)]
+pub struct DeleteIndexBulkResponseOk {
+    pub statuses: Vec<DeleteIndexBulkResponseOkStatus>,
+}
+
+#[derive(Object, Debug)]
+pub struct DeleteIndexBulkResponseOkStatus {
     pub opcode: Option<Opstamp>,
     pub error: Option<String>,
 }
