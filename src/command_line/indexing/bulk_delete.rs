@@ -1,9 +1,9 @@
 use crate::command_line::{indexing::split_path, prelude::*};
 use crate::indexing::index_manager::IndexManager;
-use crate::search::prepare_query_structure;
+use crate::search::compound_processing::process_cpd;
 use crate::search::scaffold_search::{scaffold_search, PARSED_SCAFFOLDS};
 use std::ops::Deref;
-use tantivy::query::QueryParser;
+use tantivy::query::{Query, QueryParser};
 
 pub const NAME: &str = "bulk-delete";
 
@@ -42,35 +42,38 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
     let query_parser = QueryParser::for_index(&index, vec![]);
 
     for smiles in smiles_list {
-        let attributes = prepare_query_structure(smiles);
+        let parsed_query = create_delete_query(smiles, &query_parser);
 
-        if let Ok((canon_taut, _fingerprint, descriptors)) = attributes {
-            let canon_smiles = canon_taut.as_smiles();
-
-            let matching_scaffolds = Some(scaffold_search(&canon_taut, &PARSED_SCAFFOLDS)?);
-
-            let raw_query =
-                crate::search::identity_search::build_query(&descriptors, "", &matching_scaffolds);
-            let query = format!("{raw_query} AND smiles:\"{canon_smiles}\"");
-            let parsed_query = query_parser.parse_query(&query);
-
-            if parsed_query.is_ok() {
-                let query_result = deleter.delete_query(parsed_query.unwrap());
-                if query_result.is_ok() {
-                    let opstamp = deleter.commit();
-                    if opstamp.is_ok() {
-                        println!("Deleting \"{}\"", canon_smiles);
-                    }
+        match parsed_query {
+            Ok(parsed_query) => {
+                let delete_operation = deleter.delete_query(parsed_query);
+                match delete_operation {
+                    Ok(_) => println!("Deleting \"{}\"", smiles),
+                    Err(e) => println!("Failed to delete \"{}\": {}", smiles, e),
                 }
             }
-        } else {
-            println!(
-                "Invalid smiles detected for {:?}: {:?}",
-                smiles,
-                attributes.err().unwrap()
-            )
+            Err(e) => println!("Failed to construct delete query for \"{}\": {}", smiles, e),
         }
     }
 
+    let _ = deleter.commit();
+
     Ok(())
+}
+
+fn create_delete_query(smiles: &str, query_parser: &QueryParser) -> eyre::Result<Box<dyn Query>> {
+    let (canon_taut, _fingerprint, descriptors) = process_cpd(smiles, false)?;
+
+    let canon_smiles = canon_taut.as_smiles();
+    let matching_scaffolds = scaffold_search(&canon_taut, &PARSED_SCAFFOLDS);
+    let matching_scaffolds = match matching_scaffolds {
+        Ok(matching_scaffolds) => Some(matching_scaffolds),
+        Err(_) => None,
+    };
+
+    let raw_query =
+        crate::search::identity_search::build_query(&descriptors, "", &matching_scaffolds);
+    let query = format!("{raw_query} AND smiles:\"{canon_smiles}\"");
+    let parsed_query = query_parser.parse_query(&query)?;
+    Ok(parsed_query)
 }
