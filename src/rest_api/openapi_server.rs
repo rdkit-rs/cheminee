@@ -1,11 +1,11 @@
 use crate::indexing::index_manager::IndexManager;
 use crate::rest_api::api::{
-    v1_convert_mol_block_to_smiles, v1_delete_index_bulk, v1_get_index, v1_index_search_basic,
-    v1_index_search_identity, v1_index_search_substructure, v1_list_indexes, v1_list_schemas,
-    v1_post_index, v1_post_index_bulk, v1_standardize, BulkRequest, ConvertedSmilesResponse,
-    DeleteIndexesBulkDeleteResponse, GetIndexResponse, GetQuerySearchResponse,
-    GetStructureSearchResponse, ListIndexesResponse, ListSchemasResponse, PostIndexResponse,
-    PostIndexesBulkIndexResponse, StandardizeResponse,
+    v1_convert_mol_block_to_smiles, v1_delete_index, v1_delete_index_bulk, v1_get_index,
+    v1_index_search_basic, v1_index_search_identity, v1_index_search_substructure, v1_list_indexes,
+    v1_list_schemas, v1_post_index, v1_post_index_bulk, v1_standardize, BulkRequest,
+    ConvertedSmilesResponse, DeleteIndexResponse, DeleteIndexesBulkDeleteResponse,
+    GetIndexResponse, GetQuerySearchResponse, GetStructureSearchResponse, ListIndexesResponse,
+    ListSchemasResponse, PostIndexResponse, PostIndexesBulkIndexResponse, StandardizeResponse,
 };
 use crate::rest_api::models::{MolBlock, Smiles};
 
@@ -133,6 +133,12 @@ impl Api {
             schema.0,
             sort_by.0.as_deref(),
         )
+    }
+
+    #[oai(path = "/v1/indexes/:index", method = "delete")]
+    /// Delete an index
+    pub async fn v1_delete_index(&self, index: Path<String>) -> DeleteIndexResponse {
+        v1_delete_index(&self.index_manager, index.to_string())
     }
 
     #[oai(path = "/v1/indexes/:index/bulk_index", method = "post")]

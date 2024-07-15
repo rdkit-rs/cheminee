@@ -65,6 +65,16 @@ pub enum PostIndexResponse {
     Err(Json<CreateIndexError>),
 }
 
+#[derive(ApiResponse)]
+pub enum DeleteIndexResponse {
+    #[oai(status = "200")]
+    Ok(Json<IndexMeta>),
+    #[oai(status = "404")]
+    IndexDoesNotExist,
+    #[oai(status = "500")]
+    Err(Json<DeleteIndexError>),
+}
+
 #[derive(Object, Debug)]
 pub struct BulkRequest {
     pub docs: Vec<BulkRequestDoc>,
@@ -79,6 +89,11 @@ pub struct BulkRequestDoc {
 
 #[derive(Object, Debug)]
 pub struct CreateIndexError {
+    pub error: String,
+}
+
+#[derive(Object, Debug)]
+pub struct DeleteIndexError {
     pub error: String,
 }
 
