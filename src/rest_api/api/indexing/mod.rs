@@ -1,6 +1,9 @@
 mod bulk_index;
 pub use bulk_index::*;
 
+mod bulk_delete;
+pub use bulk_delete::*;
+
 mod create_index;
 pub use create_index::*;
 
