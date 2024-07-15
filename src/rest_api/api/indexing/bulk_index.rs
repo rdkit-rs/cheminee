@@ -120,17 +120,16 @@ fn bulk_request_doc_to_tantivy_doc(
     fingerprint_field: Field,
     descriptors_fields: &HashMap<&str, Field>,
     extra_data_field: Field,
-) -> Result<tantivy::Document, String> {
+) -> eyre::Result<tantivy::Document> {
     // By default, do not attempt to fix problematic molecules
-    let (tautomer, fingerprint, descriptors) =
-        process_cpd(&bulk_request_doc.smiles, false).map_err(|err| err.to_string())?;
+    let (tautomer, fingerprint, descriptors) = process_cpd(&bulk_request_doc.smiles, false)?;
 
-    let json: serde_json::Value = serde_json::to_value(descriptors).map_err(|x| x.to_string())?;
+    let json: serde_json::Value = serde_json::to_value(descriptors)?;
     let jsonified_compound_descriptors: Map<String, Value> =
         if let serde_json::Value::Object(map) = json {
             map
         } else {
-            return Err("not an object".to_string());
+            return Err(eyre::eyre!("not an object"));
         };
 
     let mut doc = tantivy::doc!(
@@ -139,13 +138,12 @@ fn bulk_request_doc_to_tantivy_doc(
     );
 
     let scaffolds = &PARSED_SCAFFOLDS;
-    let scaffold_matches = scaffold_search(&tautomer, scaffolds).map_err(|err| err.to_string())?;
+    let scaffold_matches = scaffold_search(&tautomer, scaffolds)?;
 
     let mut scaffold_json = Value::Null;
     if !scaffold_matches.is_empty() {
         scaffold_json =
-            serde_json::from_str(format!(r#"{{ "scaffolds": {:?} }}"#, scaffold_matches).as_str())
-                .map_err(|err| err.to_string())?;
+            serde_json::from_str(format!(r#"{{ "scaffolds": {:?} }}"#, scaffold_matches).as_str())?;
     }
 
     let extra_data_json = combine_json_objects(Some(scaffold_json), bulk_request_doc.extra_data);
