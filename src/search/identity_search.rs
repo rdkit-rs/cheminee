@@ -95,7 +95,7 @@ mod tests {
 
     use tantivy::{
         doc,
-        schema::{SchemaBuilder, FAST, STORED, TEXT},
+        schema::{SchemaBuilder, FAST, INDEXED, STORED, STRING},
         IndexBuilder,
     };
 
@@ -116,7 +116,7 @@ mod tests {
 
         let mut builder = SchemaBuilder::new();
 
-        let smiles_field = builder.add_text_field("smiles", TEXT | STORED);
+        let smiles_field = builder.add_text_field("smiles", STRING | STORED);
         let fingerprint_field = builder.add_bytes_field("fingerprint", FAST | STORED);
 
         let mut doc = doc!(
@@ -126,7 +126,7 @@ mod tests {
 
         for (descriptor, val) in &query_descriptors {
             if descriptor.starts_with("Num") || descriptor.starts_with("lipinski") {
-                let current_field = builder.add_i64_field(descriptor, FAST | STORED);
+                let current_field = builder.add_i64_field(descriptor, INDEXED | STORED);
 
                 doc.add_field_value(current_field, *val as i64);
             } else {
