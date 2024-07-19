@@ -46,6 +46,16 @@ pub enum PostIndexesBulkIndexResponse {
 }
 
 #[derive(ApiResponse)]
+pub enum DeleteIndexesBulkDeleteResponse {
+    #[oai(status = "200")]
+    Ok(Json<DeleteIndexBulkResponseOk>),
+    #[oai(status = "404")]
+    IndexDoesNotExist,
+    #[oai(status = "500")]
+    Err(Json<DeleteIndexBulkResponseError>),
+}
+
+#[derive(ApiResponse)]
 pub enum PostIndexResponse {
     #[oai(status = "200")]
     Ok(Json<IndexMeta>),
@@ -53,6 +63,16 @@ pub enum PostIndexResponse {
     SchemaDoesNotExist,
     #[oai(status = "500")]
     Err(Json<CreateIndexError>),
+}
+
+#[derive(ApiResponse)]
+pub enum DeleteIndexResponse {
+    #[oai(status = "200")]
+    Ok(Json<IndexMeta>),
+    #[oai(status = "404")]
+    IndexDoesNotExist,
+    #[oai(status = "500")]
+    Err(Json<DeleteIndexError>),
 }
 
 #[derive(Object, Debug)]
@@ -69,6 +89,11 @@ pub struct BulkRequestDoc {
 
 #[derive(Object, Debug)]
 pub struct CreateIndexError {
+    pub error: String,
+}
+
+#[derive(Object, Debug)]
+pub struct DeleteIndexError {
     pub error: String,
 }
 
@@ -102,12 +127,26 @@ pub struct PostIndexBulkResponseError {
 #[derive(Object, Debug)]
 pub struct PostIndexBulkResponseOk {
     pub statuses: Vec<PostIndexBulkResponseOkStatus>,
-    // pub errors: usize,
-    // pub seconds_taken: usize,
 }
 
 #[derive(Object, Debug)]
 pub struct PostIndexBulkResponseOkStatus {
+    pub opcode: Option<Opstamp>,
+    pub error: Option<String>,
+}
+
+#[derive(Object, Debug)]
+pub struct DeleteIndexBulkResponseError {
+    pub error: String,
+}
+
+#[derive(Object, Debug)]
+pub struct DeleteIndexBulkResponseOk {
+    pub statuses: Vec<DeleteIndexBulkResponseOkStatus>,
+}
+
+#[derive(Object, Debug)]
+pub struct DeleteIndexBulkResponseOkStatus {
     pub opcode: Option<Opstamp>,
     pub error: Option<String>,
 }

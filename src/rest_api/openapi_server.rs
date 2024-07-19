@@ -1,10 +1,11 @@
 use crate::indexing::index_manager::IndexManager;
 use crate::rest_api::api::{
-    v1_convert_mol_block_to_smiles, v1_get_index, v1_index_search_basic, v1_index_search_identity,
-    v1_index_search_substructure, v1_list_indexes, v1_list_schemas, v1_post_index,
-    v1_post_index_bulk, v1_standardize, BulkRequest, ConvertedSmilesResponse, GetIndexResponse,
-    GetQuerySearchResponse, GetStructureSearchResponse, ListIndexesResponse, ListSchemasResponse,
-    PostIndexResponse, PostIndexesBulkIndexResponse, StandardizeResponse,
+    v1_convert_mol_block_to_smiles, v1_delete_index, v1_delete_index_bulk, v1_get_index,
+    v1_index_search_basic, v1_index_search_identity, v1_index_search_substructure, v1_list_indexes,
+    v1_list_schemas, v1_post_index, v1_post_index_bulk, v1_standardize, BulkRequest,
+    ConvertedSmilesResponse, DeleteIndexResponse, DeleteIndexesBulkDeleteResponse,
+    GetIndexResponse, GetQuerySearchResponse, GetStructureSearchResponse, ListIndexesResponse,
+    ListSchemasResponse, PostIndexResponse, PostIndexesBulkIndexResponse, StandardizeResponse,
 };
 use crate::rest_api::models::{MolBlock, Smiles};
 
@@ -134,6 +135,12 @@ impl Api {
         )
     }
 
+    #[oai(path = "/v1/indexes/:index", method = "delete")]
+    /// Delete an index
+    pub async fn v1_delete_index(&self, index: Path<String>) -> DeleteIndexResponse {
+        v1_delete_index(&self.index_manager, index.to_string())
+    }
+
     #[oai(path = "/v1/indexes/:index/bulk_index", method = "post")]
     /// Index a list of SMILES and associated, free-form JSON attributes
     /// which are indexed and searchable
@@ -143,6 +150,16 @@ impl Api {
         bulk_request: Json<BulkRequest>,
     ) -> PostIndexesBulkIndexResponse {
         v1_post_index_bulk(&self.index_manager, index.to_string(), bulk_request.0).await
+    }
+
+    #[oai(path = "/v1/indexes/:index/bulk_delete", method = "delete")]
+    /// Delete a list of smiles (after standardization) from an index
+    pub async fn v1_delete_indexes_bulk_delete(
+        &self,
+        index: Path<String>,
+        bulk_request: Json<BulkRequest>,
+    ) -> DeleteIndexesBulkDeleteResponse {
+        v1_delete_index_bulk(&self.index_manager, index.to_string(), bulk_request.0).await
     }
 
     #[oai(path = "/v1/indexes/:index/search/basic", method = "get")]

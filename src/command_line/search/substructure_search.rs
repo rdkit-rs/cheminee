@@ -24,31 +24,33 @@ pub fn command() -> Command {
                 .num_args(1),
         )
         .arg(
-            Arg::new("result_limit")
+            Arg::new("result-limit")
                 .required(false)
-                .long("result_limit")
+                .long("result-limit")
                 .short('r')
                 .num_args(1),
         )
         .arg(
-            Arg::new("tautomer_limit")
+            Arg::new("tautomer-limit")
                 .required(false)
-                .long("tautomer_limit")
+                .long("tautomer-limit")
                 .short('t')
                 .num_args(1),
         )
         .arg(
-            Arg::new("extra_query")
+            Arg::new("extra-query")
                 .required(false)
-                .long("extra_query")
+                .long("extra-query")
                 .short('e')
+                .help("An extra query (e.g. \"exactmw:[50 TO 100]\") may be helpful in case you want to further restrict the kinds of substructure matches that are returned")
                 .num_args(1),
         )
         .arg(
-            Arg::new("use_scaffolds")
+            Arg::new("use-scaffolds")
                 .required(false)
-                .long("use_scaffolds")
+                .long("use-scaffolds")
                 .short('u')
+                .help("By default scaffolds are computed for the smiles input to enable accelerated searching")
                 .num_args(1),
         )
 }
@@ -60,10 +62,10 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
     let smiles = matches
         .get_one::<String>("smiles")
         .ok_or(eyre::eyre!("Failed to extract SMILES"))?;
-    let result_limit = matches.get_one::<String>("result_limit");
-    let tautomer_limit = matches.get_one::<String>("tautomer_limit");
-    let extra_query = matches.get_one::<String>("extra_query");
-    let use_scaffolds = matches.get_one::<String>("use_scaffolds");
+    let result_limit = matches.get_one::<String>("result-limit");
+    let tautomer_limit = matches.get_one::<String>("tautomer-limit");
+    let extra_query = matches.get_one::<String>("extra-query");
+    let use_scaffolds = matches.get_one::<String>("use-scaffolds");
 
     let result_limit = if let Some(result_limit) = result_limit {
         result_limit.parse::<usize>()?
@@ -97,15 +99,14 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
     let (query_canon_taut, fingerprint, descriptors) = prepare_query_structure(smiles)?;
 
     let scaffolds = if use_scaffolds {
-        &PARSED_SCAFFOLDS
+        Some(&PARSED_SCAFFOLDS)
     } else {
-        &Vec::new()
+        None
     };
 
-    let matching_scaffolds = if !scaffolds.is_empty() {
-        scaffold_search(&query_canon_taut, scaffolds)?
-    } else {
-        Vec::new()
+    let matching_scaffolds = match scaffolds {
+        Some(scaffolds) => Some(scaffold_search(&query_canon_taut, scaffolds)?),
+        None => None,
     };
 
     let mut results = substructure_search(
@@ -143,10 +144,9 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
 
                 let (taut_fingerprint, taut_descriptors) = taut_attributes;
 
-                let matching_scaffolds = if !scaffolds.is_empty() {
-                    scaffold_search(&test_taut, scaffolds)?
-                } else {
-                    Vec::new()
+                let matching_scaffolds = match scaffolds {
+                    Some(scaffolds) => Some(scaffold_search(&test_taut, scaffolds)?),
+                    None => None,
                 };
 
                 let taut_results = substructure_search(

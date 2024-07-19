@@ -1,6 +1,8 @@
 use std::collections::HashMap;
 
-use tantivy::schema::{JsonObjectOptions, Schema, SchemaBuilder, FAST, STORED, TEXT};
+use tantivy::schema::{
+    JsonObjectOptions, Schema, SchemaBuilder, FAST, INDEXED, STORED, STRING, TEXT,
+};
 
 use crate::indexing::KNOWN_DESCRIPTORS;
 
@@ -10,10 +12,10 @@ lazy_static::lazy_static! {
 
 fn descriptor_v1_schema() -> Schema {
     let mut builder = SchemaBuilder::new();
-    builder.add_text_field("smiles", TEXT | STORED);
+    builder.add_text_field("smiles", STRING | STORED);
     for field in KNOWN_DESCRIPTORS {
         if field.starts_with("Num") || field.starts_with("lipinski") {
-            builder.add_i64_field(field, FAST | STORED);
+            builder.add_i64_field(field, INDEXED | STORED);
         } else {
             builder.add_f64_field(field, FAST | STORED);
         }

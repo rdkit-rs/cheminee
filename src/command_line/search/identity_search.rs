@@ -24,17 +24,19 @@ pub fn command() -> Command {
                 .num_args(1),
         )
         .arg(
-            Arg::new("extra_query")
+            Arg::new("extra-query")
                 .required(false)
-                .long("extra_query")
+                .long("extra-query")
                 .short('e')
+                .help("In case of duplicate smiles entries, it may be helpful to add an extra differentiating query (e.g. using data from the 'extra_data' field)")
                 .num_args(1),
         )
         .arg(
-            Arg::new("use_scaffolds")
+            Arg::new("use-scaffolds")
                 .required(false)
-                .long("use_scaffolds")
+                .long("use-scaffolds")
                 .short('u')
+                .help("By default scaffolds are computed for the smiles input to enable accelerated searching")
                 .num_args(1),
         )
 }
@@ -46,8 +48,8 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
     let query_smiles = matches
         .get_one::<String>("smiles")
         .ok_or(eyre::eyre!("Failed to extract SMILES"))?;
-    let extra_query = matches.get_one::<String>("extra_query");
-    let use_scaffolds = matches.get_one::<String>("use_scaffolds");
+    let extra_query = matches.get_one::<String>("extra-query");
+    let use_scaffolds = matches.get_one::<String>("use-scaffolds");
 
     let extra_query = if let Some(extra_query) = extra_query {
         extra_query.clone()
@@ -69,15 +71,14 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
     let (query_canon_taut, fingerprint, descriptors) = prepare_query_structure(query_smiles)?;
 
     let scaffolds = if use_scaffolds {
-        &PARSED_SCAFFOLDS
+        Some(&PARSED_SCAFFOLDS)
     } else {
-        &Vec::new()
+        None
     };
 
-    let matching_scaffolds = if !scaffolds.is_empty() {
-        scaffold_search(&query_canon_taut, scaffolds)?
-    } else {
-        Vec::new()
+    let matching_scaffolds = match scaffolds {
+        Some(scaffolds) => Some(scaffold_search(&query_canon_taut, scaffolds)?),
+        None => None,
     };
 
     let result = identity_search(

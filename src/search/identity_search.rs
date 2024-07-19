@@ -11,13 +11,14 @@ use crate::search::{basic_search::basic_search, STRUCTURE_MATCH_DESCRIPTORS};
 pub fn identity_search(
     searcher: &Searcher,
     query_mol: &ROMol,
-    scaffold_matches: &Vec<u64>,
+    scaffold_matches: &Option<Vec<u64>>,
     query_fingerprint: &BitSlice<u8, Lsb0>,
     query_descriptors: &HashMap<String, f64>,
     extra_query: &str,
 ) -> eyre::Result<Option<DocAddress>> {
     let schema = searcher.schema();
-    let query = build_query(query_descriptors, extra_query, scaffold_matches);
+
+    let query = build_identity_query(query_descriptors, extra_query, scaffold_matches);
 
     // Note: default to a large number of possible results to ensure we don't miss the molecule
     let tantivy_limit = 10_000;
@@ -57,10 +58,10 @@ pub fn identity_search(
     Ok(None)
 }
 
-fn build_query(
+pub fn build_identity_query(
     descriptors: &HashMap<String, f64>,
     extra_query: &str,
-    matching_scaffolds: &Vec<u64>,
+    matching_scaffolds: &Option<Vec<u64>>,
 ) -> String {
     let mut query_parts = Vec::with_capacity(descriptors.len());
 
@@ -70,8 +71,10 @@ fn build_query(
         }
     }
 
-    for s in matching_scaffolds {
-        query_parts.push(format!("extra_data.scaffolds:{s}"))
+    if let Some(scaffolds) = matching_scaffolds {
+        for s in scaffolds {
+            query_parts.push(format!("extra_data.scaffolds:{s}"))
+        }
     }
 
     for (k, v) in descriptors {
@@ -92,7 +95,7 @@ mod tests {
 
     use tantivy::{
         doc,
-        schema::{SchemaBuilder, FAST, STORED, TEXT},
+        schema::{SchemaBuilder, FAST, INDEXED, STORED, STRING},
         IndexBuilder,
     };
 
@@ -101,7 +104,7 @@ mod tests {
     #[test]
     fn test_build_query() {
         let descriptors: HashMap<_, _> = [("NumAtoms".to_string(), 10.0)].into_iter().collect();
-        let query = super::build_query(&descriptors, &"".to_string(), &Vec::new());
+        let query = super::build_identity_query(&descriptors, &"".to_string(), &None);
         assert_eq!(query, "NumAtoms:[10 TO 10]");
     }
 
@@ -113,7 +116,7 @@ mod tests {
 
         let mut builder = SchemaBuilder::new();
 
-        let smiles_field = builder.add_text_field("smiles", TEXT | STORED);
+        let smiles_field = builder.add_text_field("smiles", STRING | STORED);
         let fingerprint_field = builder.add_bytes_field("fingerprint", FAST | STORED);
 
         let mut doc = doc!(
@@ -123,7 +126,7 @@ mod tests {
 
         for (descriptor, val) in &query_descriptors {
             if descriptor.starts_with("Num") || descriptor.starts_with("lipinski") {
-                let current_field = builder.add_i64_field(descriptor, FAST | STORED);
+                let current_field = builder.add_i64_field(descriptor, INDEXED | STORED);
 
                 doc.add_field_value(current_field, *val as i64);
             } else {
@@ -151,7 +154,7 @@ mod tests {
         let result = super::identity_search(
             &searcher,
             &query_mol,
-            &Vec::new(),
+            &None,
             query_fingerprint.0.as_bitslice(),
             &query_descriptors,
             &extra_query,

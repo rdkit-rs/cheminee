@@ -20,6 +20,7 @@ async fn main() -> eyre::Result<()> {
     let app = Command::new("cheminee")
         .subcommand_required(true)
         .subcommand(command_line::indexing::bulk_index::command())
+        .subcommand(command_line::indexing::bulk_delete::command())
         .subcommand(command_line::indexing::create_index::command())
         .subcommand(command_line::indexing::delete_index::command())
         .subcommand(command_line::indexing::index_sdf::command())
@@ -34,6 +35,9 @@ async fn main() -> eyre::Result<()> {
     let matches = match matches.subcommand().unwrap() {
         (command_line::indexing::bulk_index::NAME, matches) => {
             command_line::indexing::bulk_index::action(matches)
+        }
+        (command_line::indexing::bulk_delete::NAME, matches) => {
+            command_line::indexing::bulk_delete::action(matches)
         }
         (command_line::indexing::create_index::NAME, matches) => {
             command_line::indexing::create_index::action(matches)

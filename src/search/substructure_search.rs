@@ -13,14 +13,14 @@ use crate::search::{
 pub fn substructure_search(
     searcher: &Searcher,
     query_mol: &ROMol,
-    scaffold_matches: &Vec<u64>,
+    scaffold_matches: &Option<Vec<u64>>,
     query_fingerprint: &BitSlice<u8, Lsb0>,
     query_descriptors: &HashMap<String, f64>,
     result_limit: usize,
     extra_query: &str,
 ) -> eyre::Result<HashSet<DocAddress>> {
     let schema = searcher.schema();
-    let query = build_query(query_descriptors, extra_query, scaffold_matches);
+    let query = build_substructure_query(query_descriptors, extra_query, scaffold_matches);
 
     // Note: in the end, we want a limit for the FINAL number of matches to return
     let tantivy_limit = 10 * result_limit;
@@ -68,10 +68,10 @@ pub fn substructure_search(
     Ok(filtered_results2)
 }
 
-fn build_query(
+fn build_substructure_query(
     descriptors: &HashMap<String, f64>,
     extra_query: &str,
-    matching_scaffolds: &Vec<u64>,
+    matching_scaffolds: &Option<Vec<u64>>,
 ) -> String {
     let mut query_parts = Vec::with_capacity(descriptors.len());
 
@@ -81,8 +81,10 @@ fn build_query(
         }
     }
 
-    for s in matching_scaffolds {
-        query_parts.push(format!("extra_data.scaffolds:{s}"))
+    if let Some(scaffolds) = matching_scaffolds {
+        for s in scaffolds {
+            query_parts.push(format!("extra_data.scaffolds:{s}"))
+        }
     }
 
     for (k, v) in descriptors {
@@ -103,7 +105,7 @@ mod tests {
 
     use tantivy::{
         doc,
-        schema::{SchemaBuilder, FAST, STORED, TEXT},
+        schema::{SchemaBuilder, FAST, INDEXED, STORED, STRING},
         IndexBuilder,
     };
 
@@ -112,7 +114,7 @@ mod tests {
     #[test]
     fn test_build_query() {
         let descriptors: HashMap<_, _> = [("NumAtoms".to_string(), 10.0)].into_iter().collect();
-        let query = super::build_query(&descriptors, &"".to_string(), &Vec::new());
+        let query = super::build_substructure_query(&descriptors, &"".to_string(), &None);
         assert_eq!(query, "NumAtoms:[10 TO 10000]");
     }
 
@@ -125,7 +127,7 @@ mod tests {
 
         let mut builder = SchemaBuilder::new();
 
-        let smiles_field = builder.add_text_field("smiles", TEXT | STORED);
+        let smiles_field = builder.add_text_field("smiles", STRING | STORED);
         let fingerprint_field = builder.add_bytes_field("fingerprint", FAST | STORED);
 
         let mut doc = doc!(
@@ -135,7 +137,7 @@ mod tests {
 
         for (descriptor, val) in &query_descriptors {
             if descriptor.starts_with("Num") || descriptor.starts_with("lipinski") {
-                let current_field = builder.add_i64_field(descriptor, FAST | STORED);
+                let current_field = builder.add_i64_field(descriptor, INDEXED | STORED);
 
                 doc.add_field_value(current_field, *val as i64);
             } else {
@@ -163,7 +165,7 @@ mod tests {
         let results = super::substructure_search(
             &searcher,
             &query_mol,
-            &Vec::new(),
+            &None,
             query_fingerprint.0.as_bitslice(),
             &query_descriptors,
             10,
