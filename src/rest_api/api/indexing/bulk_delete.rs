@@ -88,7 +88,7 @@ fn bulk_request_doc_to_query(
     };
 
     let raw_query =
-        crate::search::identity_search::build_query(&descriptors, "", &matching_scaffolds);
+        crate::search::identity_search::build_identity_query(&descriptors, "", &matching_scaffolds);
     let query = format!("{raw_query} AND smiles:\"{canon_smiles}\"");
     let parsed_query = query_parser.parse_query(&query)?;
     Ok(parsed_query)

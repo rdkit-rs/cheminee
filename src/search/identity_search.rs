@@ -18,7 +18,7 @@ pub fn identity_search(
 ) -> eyre::Result<Option<DocAddress>> {
     let schema = searcher.schema();
 
-    let query = build_query(query_descriptors, extra_query, scaffold_matches);
+    let query = build_identity_query(query_descriptors, extra_query, scaffold_matches);
 
     // Note: default to a large number of possible results to ensure we don't miss the molecule
     let tantivy_limit = 10_000;
@@ -58,7 +58,7 @@ pub fn identity_search(
     Ok(None)
 }
 
-pub fn build_query(
+pub fn build_identity_query(
     descriptors: &HashMap<String, f64>,
     extra_query: &str,
     matching_scaffolds: &Option<Vec<u64>>,
@@ -104,7 +104,7 @@ mod tests {
     #[test]
     fn test_build_query() {
         let descriptors: HashMap<_, _> = [("NumAtoms".to_string(), 10.0)].into_iter().collect();
-        let query = super::build_query(&descriptors, &"".to_string(), &None);
+        let query = super::build_identity_query(&descriptors, &"".to_string(), &None);
         assert_eq!(query, "NumAtoms:[10 TO 10]");
     }
 

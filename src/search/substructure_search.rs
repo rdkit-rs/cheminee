@@ -20,7 +20,7 @@ pub fn substructure_search(
     extra_query: &str,
 ) -> eyre::Result<HashSet<DocAddress>> {
     let schema = searcher.schema();
-    let query = build_query(query_descriptors, extra_query, scaffold_matches);
+    let query = build_substructure_query(query_descriptors, extra_query, scaffold_matches);
 
     // Note: in the end, we want a limit for the FINAL number of matches to return
     let tantivy_limit = 10 * result_limit;
@@ -68,7 +68,7 @@ pub fn substructure_search(
     Ok(filtered_results2)
 }
 
-fn build_query(
+fn build_substructure_query(
     descriptors: &HashMap<String, f64>,
     extra_query: &str,
     matching_scaffolds: &Option<Vec<u64>>,
@@ -114,7 +114,7 @@ mod tests {
     #[test]
     fn test_build_query() {
         let descriptors: HashMap<_, _> = [("NumAtoms".to_string(), 10.0)].into_iter().collect();
-        let query = super::build_query(&descriptors, &"".to_string(), &None);
+        let query = super::build_substructure_query(&descriptors, &"".to_string(), &None);
         assert_eq!(query, "NumAtoms:[10 TO 10000]");
     }
 
