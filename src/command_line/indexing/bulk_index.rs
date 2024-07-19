@@ -124,11 +124,11 @@ fn create_tantivy_doc(
     );
 
     let scaffold_matches = scaffold_search(&canon_taut, &PARSED_SCAFFOLDS)?;
-    let mut scaffold_json = Value::Null;
-    if !scaffold_matches.is_empty() {
-        scaffold_json =
-            serde_json::from_str(format!(r#"{{ "scaffolds": {:?} }}"#, scaffold_matches).as_str())?;
-    }
+
+    let scaffold_json = match scaffold_matches.is_empty() {
+        true => Value::Null,
+        false => serde_json::json!({"scaffolds": scaffold_matches}),
+    };
 
     let extra_data_json = combine_json_objects(Some(scaffold_json), extra_data);
     if let Some(extra_data_json) = extra_data_json {
