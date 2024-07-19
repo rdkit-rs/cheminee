@@ -28,6 +28,7 @@ pub fn command() -> Command {
                 .required(false)
                 .long("extra-query")
                 .short('e')
+                .help("In case of duplicate smiles entries, it may be helpful to add an extra differentiating query (e.g. using data from the 'extra_data' field)")
                 .num_args(1),
         )
         .arg(
@@ -35,6 +36,7 @@ pub fn command() -> Command {
                 .required(false)
                 .long("use-scaffolds")
                 .short('u')
+                .help("By default scaffolds are computed for the smiles input to enable accelerated searching")
                 .num_args(1),
         )
 }

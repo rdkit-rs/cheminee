@@ -42,6 +42,7 @@ pub fn command() -> Command {
                 .required(false)
                 .long("extra-query")
                 .short('e')
+                .help("An extra query (e.g. \"exactmw:[50 TO 100]\") may be helpful in case you want to further restrict the kinds of substructure matches that are returned")
                 .num_args(1),
         )
         .arg(
@@ -49,6 +50,7 @@ pub fn command() -> Command {
                 .required(false)
                 .long("use-scaffolds")
                 .short('u')
+                .help("By default scaffolds are computed for the smiles input to enable accelerated searching")
                 .num_args(1),
         )
 }
