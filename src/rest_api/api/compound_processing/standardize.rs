@@ -4,12 +4,12 @@ use poem_openapi::payload::Json;
 use rayon::prelude::*;
 
 pub async fn v1_standardize(
-    mol: Json<Vec<Smiles>>,
+    smiles_vec: Json<Vec<Smiles>>,
     attempt_fix: Option<&str>,
 ) -> StandardizeResponse {
     let attempt_fix = attempt_fix.is_some();
 
-    let standardized_smiles = mol
+    let standardized_smiles = smiles_vec
         .0
         .into_par_iter()
         .map(|s| {

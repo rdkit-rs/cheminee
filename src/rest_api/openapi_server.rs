@@ -1,8 +1,9 @@
 use crate::indexing::index_manager::IndexManager;
 use crate::rest_api::api::{
-    v1_convert_mol_block_to_smiles, v1_delete_index, v1_delete_index_bulk, v1_get_index,
-    v1_index_search_basic, v1_index_search_identity, v1_index_search_substructure, v1_list_indexes,
-    v1_list_schemas, v1_post_index, v1_post_index_bulk, v1_standardize, BulkRequest,
+    v1_convert_mol_block_to_smiles, v1_convert_smiles_to_mol_block, v1_delete_index,
+    v1_delete_index_bulk, v1_get_index, v1_index_search_basic, v1_index_search_identity,
+    v1_index_search_substructure, v1_list_indexes, v1_list_schemas, v1_post_index,
+    v1_post_index_bulk, v1_standardize, BulkRequest, ConvertedMolBlockResponse,
     ConvertedSmilesResponse, DeleteIndexResponse, DeleteIndexesBulkDeleteResponse,
     GetIndexResponse, GetQuerySearchResponse, GetStructureSearchResponse, ListIndexesResponse,
     ListSchemasResponse, PostIndexResponse, PostIndexesBulkIndexResponse, StandardizeResponse,
@@ -91,13 +92,22 @@ impl Api {
     }
 
     #[oai(path = "/v1/convert/mol_block_to_smiles", method = "post")]
-    /// Pass a list of SMILES through fragment_parent, uncharger, and canonicalization routines
+    /// Convert a list of SMILES to molblocks
     pub async fn v1_convert_mol_block_to_smiles(
         &self,
         sanitize: Query<String>,
-        mol: Json<Vec<MolBlock>>,
+        mol_blocks: Json<Vec<MolBlock>>,
     ) -> ConvertedSmilesResponse {
-        v1_convert_mol_block_to_smiles(sanitize.0, mol).await
+        v1_convert_mol_block_to_smiles(sanitize.0, mol_blocks).await
+    }
+
+    #[oai(path = "/v1/convert/smiles_to_mol_block", method = "post")]
+    /// Convert a list of molblocks to SMILES
+    pub async fn v1_convert_smiles_to_mol_block(
+        &self,
+        smiles_vec: Json<Vec<Smiles>>,
+    ) -> ConvertedMolBlockResponse {
+        v1_convert_smiles_to_mol_block(smiles_vec).await
     }
 
     #[oai(path = "/v1/schemas", method = "get")]
