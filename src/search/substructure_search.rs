@@ -112,7 +112,7 @@ mod tests {
     use crate::search::compound_processing::process_cpd;
 
     #[test]
-    fn test_build_query() {
+    fn test_build_substructure_query() {
         let descriptors: HashMap<_, _> = [("NumAtoms".to_string(), 10.0)].into_iter().collect();
         let query = super::build_substructure_query(&descriptors, &"".to_string(), &None);
         assert_eq!(query, "NumAtoms:[10 TO 10000]");
