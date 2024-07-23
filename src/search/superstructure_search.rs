@@ -93,15 +93,19 @@ fn build_superstructure_query(
     let mut query = query_parts.join(" AND ");
 
     if let Some(scaffolds) = matching_scaffolds {
-        // Note: "extra_data.scaffolds:(0 1)" is the same as "extra_data.scaffolds:0 OR extra_data.scaffolds:1"
-        let scaffolds = scaffolds
-            .iter()
-            .map(|s| s.to_string())
-            .collect::<Vec<String>>()
-            .join(" ");
+        if scaffolds.is_empty() {
+            query = format!("{query} AND extra_data.scaffolds:-1");
+        } else {
+            // Note: "extra_data.scaffolds:(0 1)" is the same as "extra_data.scaffolds:0 OR extra_data.scaffolds:1"
+            let scaffolds = scaffolds
+                .iter()
+                .map(|s| s.to_string())
+                .collect::<Vec<String>>()
+                .join(" ");
 
-        // Account for possible matches that don't have scaffolds (i.e. "extra_data.scaffolds:-1")
-        query = format!("{query} AND extra_data.scaffolds:({scaffolds} -1)");
+            // Account for possible matches that don't have scaffolds (i.e. "extra_data.scaffolds:-1")
+            query = format!("{query} AND extra_data.scaffolds:({scaffolds} -1)");
+        }
     }
 
     query

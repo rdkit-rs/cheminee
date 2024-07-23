@@ -81,17 +81,21 @@ fn build_substructure_query(
         }
     }
 
-    if let Some(scaffolds) = matching_scaffolds {
-        for s in scaffolds {
-            query_parts.push(format!("extra_data.scaffolds:{s}"))
-        }
-    }
-
     for (k, v) in descriptors {
         if STRUCTURE_MATCH_DESCRIPTORS.contains(&k.as_str()) {
             let re = Regex::new(&format!("{k}:")).unwrap();
             if !re.is_match(extra_query) {
                 query_parts.push(format!("{k}:[{v} TO 10000]"));
+            }
+        }
+    }
+
+    if let Some(scaffolds) = matching_scaffolds {
+        if scaffolds.is_empty() {
+            query_parts.push(format!("extra_data.scaffolds:-1"))
+        } else {
+            for s in scaffolds {
+                query_parts.push(format!("extra_data.scaffolds:{s}"))
             }
         }
     }
