@@ -59,7 +59,7 @@ pub fn superstructure_search(
             let params = SubstructMatchParameters::default();
             let mol_substruct_match =
                 substruct_match(query_mol, &ROMol::from_smiles(smiles)?, &params);
-            if !mol_substruct_match.is_empty() {
+            if !mol_substruct_match.is_empty() && query_mol.as_smiles() != smiles {
                 filtered_results2.insert(docaddr);
             }
         }

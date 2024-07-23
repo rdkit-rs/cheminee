@@ -59,7 +59,7 @@ pub fn substructure_search(
             let params = SubstructMatchParameters::default();
             let mol_substruct_match =
                 substruct_match(&ROMol::from_smiles(smiles)?, query_mol, &params);
-            if !mol_substruct_match.is_empty() {
+            if !mol_substruct_match.is_empty() && query_mol.as_smiles() != smiles {
                 filtered_results2.insert(docaddr);
             }
         }
@@ -101,15 +101,17 @@ fn build_substructure_query(
 
 #[cfg(test)]
 mod tests {
+    use crate::search::compound_processing::process_cpd;
+    use crate::search::scaffold_search::{scaffold_search, PARSED_SCAFFOLDS};
+    use crate::search::substructure_search::substructure_search;
+    use serde_json::json;
     use std::collections::HashMap;
-
+    use tantivy::schema::{JsonObjectOptions, TEXT};
     use tantivy::{
         doc,
         schema::{SchemaBuilder, FAST, INDEXED, STORED, STRING},
         IndexBuilder,
     };
-
-    use crate::search::compound_processing::process_cpd;
 
     #[test]
     fn test_build_substructure_query() {
@@ -120,22 +122,31 @@ mod tests {
 
     #[test]
     fn test_substructure_search() {
-        let test_smiles = "C";
+        let index_smiles = "C1=CC=CC=C1CC2=CC=CC=C2";
+        let (index_mol, index_fingerprint, index_descriptors) =
+            process_cpd(index_smiles, false).unwrap();
+        let index_scaffolds = scaffold_search(&index_mol, &PARSED_SCAFFOLDS).unwrap();
 
+        let test_smiles = "C1=CC=CC=C1";
         let (query_mol, query_fingerprint, query_descriptors) =
             process_cpd(test_smiles, false).unwrap();
+        let query_scaffolds = scaffold_search(&query_mol, &PARSED_SCAFFOLDS).unwrap();
 
         let mut builder = SchemaBuilder::new();
-
         let smiles_field = builder.add_text_field("smiles", STRING | STORED);
         let fingerprint_field = builder.add_bytes_field("fingerprint", FAST | STORED);
 
+        let json_options: JsonObjectOptions =
+            JsonObjectOptions::from(TEXT | STORED).set_expand_dots_enabled();
+        let extra_data_field = builder.add_json_field("extra_data", json_options);
+
         let mut doc = doc!(
-            smiles_field => test_smiles,
-            fingerprint_field => query_fingerprint.0.clone().into_vec()
+            smiles_field => index_mol.as_smiles(),
+            fingerprint_field => index_fingerprint.0.clone().into_vec(),
+            extra_data_field => json![{ "scaffolds": index_scaffolds }],
         );
 
-        for (descriptor, val) in &query_descriptors {
+        for (descriptor, val) in &index_descriptors {
             if descriptor.starts_with("Num") || descriptor.starts_with("lipinski") {
                 let current_field = builder.add_i64_field(descriptor, INDEXED | STORED);
 
@@ -162,10 +173,10 @@ mod tests {
 
         let extra_query = "".to_string();
 
-        let results = super::substructure_search(
+        let results = substructure_search(
             &searcher,
             &query_mol,
-            &None,
+            &Some(query_scaffolds),
             query_fingerprint.0.as_bitslice(),
             &query_descriptors,
             10,
