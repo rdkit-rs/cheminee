@@ -130,13 +130,12 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<usize> {
 
         let scaffold_matches = scaffold_search(&canon_taut, &PARSED_SCAFFOLDS)?;
 
-        if !scaffold_matches.is_empty() {
-            let scaffold_json: serde_json::Value = serde_json::from_str(
-                format!(r#"{{ "scaffolds": {:?} }}"#, scaffold_matches).as_str(),
-            )?;
+        let scaffold_json = match scaffold_matches.is_empty() {
+            true => serde_json::json!({"scaffolds": vec![-1]}),
+            false => serde_json::json!({"scaffolds": scaffold_matches}),
+        };
 
-            doc.add_field_value(extra_data_field, scaffold_json);
-        }
+        doc.add_field_value(extra_data_field, scaffold_json);
 
         index_writer.add_document(doc)?;
 

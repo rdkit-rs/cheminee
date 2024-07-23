@@ -100,8 +100,8 @@ fn build_superstructure_query(
             .collect::<Vec<String>>()
             .join(" ");
 
-        // Account for possible matches that don't have scaffolds
-        query = format!("{query} AND extra_data.scaffolds:({scaffolds} \"\")");
+        // Account for possible matches that don't have scaffolds (i.e. "extra_data.scaffolds:-1")
+        query = format!("{query} AND extra_data.scaffolds:({scaffolds} -1)");
     }
 
     query
@@ -127,7 +127,7 @@ mod tests {
         let query = build_superstructure_query(&descriptors, &"".to_string(), &Some(vec![0, 1]));
         assert_eq!(
             query,
-            "NumAtoms:[0 TO 10] AND extra_data.scaffolds:(0 1 \"\")"
+            "NumAtoms:[0 TO 10] AND extra_data.scaffolds:(0 1 -1)"
         );
     }
 

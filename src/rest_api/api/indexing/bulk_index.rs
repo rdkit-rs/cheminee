@@ -141,7 +141,7 @@ fn bulk_request_doc_to_tantivy_doc(
     let scaffold_matches = scaffold_search(&tautomer, scaffolds)?;
 
     let scaffold_json = match scaffold_matches.is_empty() {
-        true => Value::Null,
+        true => serde_json::json!({"scaffolds": vec![-1]}),
         false => serde_json::json!({"scaffolds": scaffold_matches}),
     };
 
