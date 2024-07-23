@@ -2,8 +2,8 @@ use crate::indexing::index_manager::IndexManager;
 use crate::rest_api::api::{
     v1_convert_mol_block_to_smiles, v1_convert_smiles_to_mol_block, v1_delete_index,
     v1_delete_index_bulk, v1_get_index, v1_index_search_basic, v1_index_search_identity,
-    v1_index_search_substructure, v1_list_indexes, v1_list_schemas, v1_post_index,
-    v1_post_index_bulk, v1_standardize, BulkRequest, ConvertedMolBlockResponse,
+    v1_index_search_substructure, v1_index_search_superstructure, v1_list_indexes, v1_list_schemas,
+    v1_post_index, v1_post_index_bulk, v1_standardize, BulkRequest, ConvertedMolBlockResponse,
     ConvertedSmilesResponse, DeleteIndexResponse, DeleteIndexesBulkDeleteResponse,
     GetIndexResponse, GetQuerySearchResponse, GetStructureSearchResponse, ListIndexesResponse,
     ListSchemasResponse, PostIndexResponse, PostIndexesBulkIndexResponse, StandardizeResponse,
@@ -226,6 +226,53 @@ impl Api {
         };
 
         v1_index_search_substructure(
+            &self.index_manager,
+            index.to_string(),
+            smiles.0,
+            result_limit,
+            tautomer_limit,
+            &extra_query,
+            use_scaffolds,
+        )
+    }
+
+    #[oai(path = "/v1/indexes/:index/search/superstructure", method = "get")]
+    /// Perform superstructure search against index
+    pub async fn v1_index_search_superstructure(
+        &self,
+        index: Path<String>,
+        smiles: Query<String>,
+        result_limit: Query<Option<usize>>,
+        tautomer_limit: Query<Option<usize>>,
+        extra_query: Query<Option<String>>,
+        use_scaffolds: Query<Option<String>>,
+    ) -> GetStructureSearchResponse {
+        let result_limit = if let Some(result_limit) = result_limit.0 {
+            result_limit
+        } else {
+            usize::try_from(1000).unwrap()
+        };
+
+        let tautomer_limit = if let Some(tautomer_limit) = tautomer_limit.0 {
+            tautomer_limit
+        } else {
+            usize::try_from(10).unwrap()
+        };
+
+        let extra_query = if let Some(extra_query) = extra_query.0 {
+            extra_query
+        } else {
+            "".to_string()
+        };
+
+        // by default, we will use scaffold-based indexing
+        let use_scaffolds = if let Some(use_scaffolds) = use_scaffolds.0 {
+            matches!(use_scaffolds.as_str(), "true")
+        } else {
+            true
+        };
+
+        v1_index_search_superstructure(
             &self.index_manager,
             index.to_string(),
             smiles.0,
