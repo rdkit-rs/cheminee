@@ -96,15 +96,16 @@ fn build_superstructure_query(
         if scaffolds.is_empty() {
             query = format!("{query} AND extra_data.scaffolds:-1");
         } else {
-            // Note: "extra_data.scaffolds:(0 1)" is the same as "extra_data.scaffolds:0 OR extra_data.scaffolds:1"
-            let scaffolds = scaffolds
+            let mut scaffold_parts = scaffolds
                 .iter()
-                .map(|s| s.to_string())
-                .collect::<Vec<String>>()
-                .join(" ");
+                .map(|s| format!("extra_data.scaffolds:{s}"))
+                .collect::<Vec<String>>();
 
-            // Account for possible matches that don't have scaffolds (i.e. "extra_data.scaffolds:-1")
-            query = format!("{query} AND extra_data.scaffolds:({scaffolds} -1)");
+            scaffold_parts.push("extra_data.scaffolds:-1".to_string());
+
+            let scaffolds_query = scaffold_parts.join(" OR ");
+
+            query = format!("{query} AND ({scaffolds_query})");
         }
     }
 
@@ -131,7 +132,7 @@ mod tests {
         let query = build_superstructure_query(&descriptors, &"".to_string(), &Some(vec![0, 1]));
         assert_eq!(
             query,
-            "NumAtoms:[0 TO 10] AND extra_data.scaffolds:(0 1 -1)"
+            "NumAtoms:[0 TO 10] AND (extra_data.scaffolds:0 OR extra_data.scaffolds:1 OR extra_data.scaffolds:-1)"
         );
     }
 
