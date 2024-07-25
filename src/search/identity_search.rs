@@ -20,8 +20,8 @@ pub fn identity_search(
 
     let query = build_identity_query(query_descriptors, extra_query, scaffold_matches);
 
-    // Note: default to a large number of possible results to ensure we don't miss the molecule
-    let tantivy_limit = 10_000;
+    // Set arbitrarily large number to force an entire database search
+    let tantivy_limit = 1_000_000_000;
     let initial_results = basic_search(searcher, &query, tantivy_limit)?;
 
     let smiles_field = schema.get_field("smiles")?;

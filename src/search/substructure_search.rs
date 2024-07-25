@@ -22,8 +22,8 @@ pub fn substructure_search(
     let schema = searcher.schema();
     let query = build_substructure_query(query_descriptors, extra_query, scaffold_matches);
 
-    // Note: in the end, we want a limit for the FINAL number of matches to return
-    let tantivy_limit = 10 * result_limit;
+    // Set arbitrarily large number to force an entire database search
+    let tantivy_limit = 1_000_000_000;
     let filtered_results1 = basic_search(searcher, &query, tantivy_limit)?;
 
     let smiles_field = schema.get_field("smiles")?;
