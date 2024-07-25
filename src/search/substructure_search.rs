@@ -91,9 +91,7 @@ fn build_substructure_query(
     }
 
     if let Some(scaffolds) = matching_scaffolds {
-        if scaffolds.is_empty() {
-            query_parts.push("extra_data.scaffolds:-1".to_string());
-        } else {
+        if !scaffolds.is_empty() {
             for s in scaffolds {
                 query_parts.push(format!("extra_data.scaffolds:{s}"))
             }
