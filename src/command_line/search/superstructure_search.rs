@@ -123,13 +123,8 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
     if results.len() < result_limit {
         let tautomers = get_tautomers(&query_canon_taut);
 
-        if tautomers.len() > 1 && tautomer_limit > 1 {
+        if !tautomers.is_empty() && tautomer_limit > 0 {
             for test_taut in tautomers {
-                // don't reuse the canonical tautomer
-                if test_taut.as_smiles() == query_canon_taut.as_smiles() {
-                    continue;
-                }
-
                 let taut_attributes = get_cpd_properties(&test_taut);
 
                 let taut_attributes = match taut_attributes {

@@ -166,9 +166,15 @@ pub fn standardize_smiles(smi: &str, attempt_fix: bool) -> eyre::Result<ROMol> {
 }
 
 pub fn get_tautomers(romol: &ROMol) -> Vec<ROMol> {
+    let smiles = romol.as_smiles();
     let te = TautomerEnumerator::new();
     let ter = te.enumerate(romol);
-    ter.collect::<Vec<_>>()
+    ter.into_iter()
+        .filter_map(|t| match t.as_smiles() != smiles {
+            true => Some(t),
+            false => None,
+        })
+        .collect::<Vec<_>>()
 }
 
 pub fn get_cpd_properties(romol: &ROMol) -> eyre::Result<(Fingerprint, HashMap<String, f64>)> {
