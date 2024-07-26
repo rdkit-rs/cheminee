@@ -22,8 +22,7 @@ pub fn superstructure_search(
     let schema = searcher.schema();
     let query = build_superstructure_query(query_descriptors, extra_query, scaffold_matches);
 
-    // Set arbitrarily large number to force an entire database search
-    let tantivy_limit = 1_000_000_000;
+    let tantivy_limit = 100_000;
     let filtered_results1 = basic_search(searcher, &query, tantivy_limit)?;
 
     let smiles_field = schema.get_field("smiles")?;
