@@ -98,15 +98,10 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
 
     let (query_canon_taut, fingerprint, descriptors) = prepare_query_structure(smiles)?;
 
-    let scaffolds = if use_scaffolds {
-        Some(&PARSED_SCAFFOLDS)
+    let matching_scaffolds = if use_scaffolds {
+        Some(scaffold_search(&query_canon_taut, &PARSED_SCAFFOLDS)?)
     } else {
         None
-    };
-
-    let matching_scaffolds = match scaffolds {
-        Some(scaffolds) => Some(scaffold_search(&query_canon_taut, scaffolds)?),
-        None => None,
     };
 
     let mut results = superstructure_search(
@@ -144,9 +139,10 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
 
                 let (taut_fingerprint, taut_descriptors) = taut_attributes;
 
-                let matching_scaffolds = match scaffolds {
-                    Some(scaffolds) => Some(scaffold_search(&test_taut, scaffolds)?),
-                    None => None,
+                let matching_scaffolds = if use_scaffolds {
+                    Some(scaffold_search(&test_taut, &PARSED_SCAFFOLDS)?)
+                } else {
+                    None
                 };
 
                 let taut_results = superstructure_search(
