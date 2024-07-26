@@ -1,9 +1,8 @@
 use crate::command_line::prelude::*;
-use crate::search::scaffold_search::{scaffold_search, PARSED_SCAFFOLDS};
-use crate::search::{
-    aggregate_search_hits, compound_processing::*, prepare_query_structure,
-    substructure_search::substructure_search,
-};
+use crate::search::substructure_search::run_substructure_search;
+use crate::search::{aggregate_search_hits, compound_processing::*, validate_structure};
+use rayon::iter::ParallelIterator;
+use rayon::prelude::IntoParallelIterator;
 
 pub const NAME: &str = "substructure-search";
 
@@ -76,7 +75,7 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
     let tautomer_limit = if let Some(tautomer_limit) = tautomer_limit {
         tautomer_limit.parse::<usize>()?
     } else {
-        usize::try_from(10)?
+        usize::try_from(0)?
     };
 
     let extra_query = if let Some(extra_query) = extra_query {
@@ -96,75 +95,48 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
     let reader = index.reader()?;
     let searcher = reader.searcher();
 
-    let (query_canon_taut, fingerprint, descriptors) = prepare_query_structure(smiles)?;
-
-    let matching_scaffolds = if use_scaffolds {
-        Some(scaffold_search(&query_canon_taut, &PARSED_SCAFFOLDS)?)
-    } else {
-        None
+    let problems = validate_structure(smiles)?;
+    if !problems.is_empty() {
+        return Err(eyre::eyre!("Failed structure validation"));
     };
 
-    let mut results = substructure_search(
+    let query_canon_taut = standardize_smiles(smiles, false)?;
+
+    let mut results = run_substructure_search(
         &searcher,
         &query_canon_taut,
-        &matching_scaffolds,
-        fingerprint.0.as_bitslice(),
-        &descriptors,
+        use_scaffolds,
         result_limit,
         &extra_query,
     )?;
 
     let mut used_tautomers = false;
-    let mut num_tauts_used = 0;
-    if !results.is_empty() {
-        num_tauts_used = 1;
-    }
+    let before_tauts_result_count = results.len();
 
-    if results.len() < result_limit {
+    if before_tauts_result_count < result_limit {
         let tautomers = get_tautomers(&query_canon_taut);
 
         if !tautomers.is_empty() && tautomer_limit > 0 {
-            for test_taut in tautomers {
-                let taut_attributes = get_cpd_properties(&test_taut);
+            let tautomer_results = tautomers
+                .into_par_iter()
+                .filter_map(|taut| {
+                    run_substructure_search(
+                        &searcher,
+                        &taut,
+                        use_scaffolds,
+                        result_limit,
+                        &extra_query,
+                    )
+                    .ok()
+                })
+                .collect::<Vec<_>>();
 
-                let taut_attributes = match taut_attributes {
-                    Ok(taut_attributes) => taut_attributes,
-                    Err(_) => continue,
-                };
+            for results_vec in tautomer_results {
+                results.extend(&results_vec);
+            }
 
-                let (taut_fingerprint, taut_descriptors) = taut_attributes;
-
-                let matching_scaffolds = if use_scaffolds {
-                    Some(scaffold_search(&test_taut, &PARSED_SCAFFOLDS)?)
-                } else {
-                    None
-                };
-
-                let taut_results = substructure_search(
-                    &searcher,
-                    &test_taut,
-                    &matching_scaffolds,
-                    taut_fingerprint.0.as_bitslice(),
-                    &taut_descriptors,
-                    result_limit,
-                    &extra_query,
-                );
-
-                let taut_results = match taut_results {
-                    Ok(taut_results) => taut_results,
-                    Err(_) => continue,
-                };
-
-                results.extend(&taut_results);
-                num_tauts_used += 1;
-
-                if !used_tautomers {
-                    used_tautomers = true;
-                }
-
-                if results.len() > result_limit || num_tauts_used == tautomer_limit {
-                    break;
-                }
+            if results.len() > before_tauts_result_count {
+                used_tautomers = true;
             }
         }
     }

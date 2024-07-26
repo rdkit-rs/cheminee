@@ -1,12 +1,13 @@
 use crate::indexing::index_manager::IndexManager;
 use crate::rest_api::api::{GetStructureSearchResponse, StructureResponseError};
-use crate::search::scaffold_search::{scaffold_search, PARSED_SCAFFOLDS};
+use crate::search::compound_processing::standardize_smiles;
+use crate::search::substructure_search::run_substructure_search;
 use crate::search::{
-    compound_processing::{get_cpd_properties, get_tautomers},
-    substructure_search::substructure_search,
-    {aggregate_search_hits, prepare_query_structure},
+    aggregate_search_hits, compound_processing::get_tautomers, validate_structure,
 };
 use poem_openapi::payload::Json;
+use rayon::iter::IntoParallelIterator;
+use rayon::iter::ParallelIterator;
 
 pub fn v1_index_search_substructure(
     index_manager: &IndexManager,
@@ -38,31 +39,32 @@ pub fn v1_index_search_substructure(
 
     let searcher = reader.searcher();
 
-    let query_attributes = prepare_query_structure(&smiles);
+    let problems_result = validate_structure(&smiles);
 
-    let query_attributes = match query_attributes {
-        Ok(query_attributes) => query_attributes,
+    let problems_exist = match problems_result {
+        Ok(problems) => !problems.is_empty(),
+        Err(_) => true,
+    };
+
+    if problems_exist {
+        return GetStructureSearchResponse::Err(Json(StructureResponseError {
+            error: "Failed structure validation".to_string(),
+        }));
+    };
+
+    let query_canon_taut = match standardize_smiles(&smiles, false) {
+        Ok(romol) => romol,
         Err(e) => {
             return GetStructureSearchResponse::Err(Json(StructureResponseError {
-                error: e.to_string(),
-            }))
+                error: format!("Failed structure standardization: {e}"),
+            }));
         }
     };
 
-    let (query_canon_taut, fingerprint, descriptors) = query_attributes;
-
-    let matching_scaffolds = if use_scaffolds {
-        scaffold_search(&query_canon_taut, &PARSED_SCAFFOLDS).ok()
-    } else {
-        None
-    };
-
-    let results = substructure_search(
+    let results = run_substructure_search(
         &searcher,
         &query_canon_taut,
-        &matching_scaffolds,
-        fingerprint.0.as_bitslice(),
-        &descriptors,
+        use_scaffolds,
         result_limit,
         extra_query,
     );
@@ -77,56 +79,32 @@ pub fn v1_index_search_substructure(
     };
 
     let mut used_tautomers = false;
-    let mut num_tauts_used = 0;
-    if !results.is_empty() {
-        num_tauts_used = 1;
-    }
+    let before_tauts_result_count = results.len();
 
-    if results.len() < result_limit {
+    if before_tauts_result_count < result_limit {
         let tautomers = get_tautomers(&query_canon_taut);
 
         if !tautomers.is_empty() && tautomer_limit > 0 {
-            for test_taut in tautomers {
-                let taut_attributes = get_cpd_properties(&test_taut);
+            let tautomer_results = tautomers
+                .into_par_iter()
+                .filter_map(|taut| {
+                    run_substructure_search(
+                        &searcher,
+                        &taut,
+                        use_scaffolds,
+                        result_limit,
+                        extra_query,
+                    )
+                    .ok()
+                })
+                .collect::<Vec<_>>();
 
-                let taut_attributes = match taut_attributes {
-                    Ok(taut_attributes) => taut_attributes,
-                    Err(_) => continue,
-                };
+            for results_vec in tautomer_results {
+                results.extend(&results_vec);
+            }
 
-                let (taut_fingerprint, taut_descriptors) = taut_attributes;
-
-                let matching_scaffolds = if use_scaffolds {
-                    scaffold_search(&test_taut, &PARSED_SCAFFOLDS).ok()
-                } else {
-                    None
-                };
-
-                let taut_results = substructure_search(
-                    &searcher,
-                    &test_taut,
-                    &matching_scaffolds,
-                    taut_fingerprint.0.as_bitslice(),
-                    &taut_descriptors,
-                    result_limit,
-                    extra_query,
-                );
-
-                let taut_results = match taut_results {
-                    Ok(taut_results) => taut_results,
-                    Err(_) => continue,
-                };
-
-                results.extend(&taut_results);
-                num_tauts_used += 1;
-
-                if !used_tautomers {
-                    used_tautomers = true;
-                }
-
-                if results.len() > result_limit || num_tauts_used == tautomer_limit {
-                    break;
-                }
+            if results.len() > before_tauts_result_count {
+                used_tautomers = true;
             }
         }
     }

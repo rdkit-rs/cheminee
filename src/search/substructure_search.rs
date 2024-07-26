@@ -5,10 +5,38 @@ use rdkit::{substruct_match, ROMol, SubstructMatchParameters};
 use regex::Regex;
 use tantivy::{DocAddress, Searcher};
 
+use crate::search::compound_processing::get_cpd_properties;
+use crate::search::scaffold_search::{scaffold_search, PARSED_SCAFFOLDS};
 use crate::search::{
     basic_search::basic_search, structure_matching::substructure_match_fp,
     STRUCTURE_MATCH_DESCRIPTORS,
 };
+
+pub fn run_substructure_search(
+    searcher: &Searcher,
+    romol: &ROMol,
+    use_scaffolds: bool,
+    result_limit: usize,
+    extra_query: &str,
+) -> eyre::Result<HashSet<DocAddress>> {
+    let (fingerprint, descriptors) = get_cpd_properties(romol)?;
+
+    let matching_scaffolds = if use_scaffolds {
+        Some(scaffold_search(romol, &PARSED_SCAFFOLDS)?)
+    } else {
+        None
+    };
+
+    substructure_search(
+        searcher,
+        romol,
+        &matching_scaffolds,
+        fingerprint.0.as_bitslice(),
+        &descriptors,
+        result_limit,
+        extra_query,
+    )
+}
 
 pub fn substructure_search(
     searcher: &Searcher,

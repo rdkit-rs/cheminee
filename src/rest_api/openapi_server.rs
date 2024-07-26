@@ -209,7 +209,7 @@ impl Api {
         let tautomer_limit = if let Some(tautomer_limit) = tautomer_limit.0 {
             tautomer_limit
         } else {
-            usize::try_from(10).unwrap()
+            usize::try_from(0).unwrap()
         };
 
         let extra_query = if let Some(extra_query) = extra_query.0 {
@@ -256,7 +256,7 @@ impl Api {
         let tautomer_limit = if let Some(tautomer_limit) = tautomer_limit.0 {
             tautomer_limit
         } else {
-            usize::try_from(10).unwrap()
+            usize::try_from(0).unwrap()
         };
 
         let extra_query = if let Some(extra_query) = extra_query.0 {
