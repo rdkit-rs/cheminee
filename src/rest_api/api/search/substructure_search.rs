@@ -99,8 +99,8 @@ pub fn v1_index_search_substructure(
                 })
                 .collect::<Vec<_>>();
 
-            for results_vec in tautomer_results {
-                results.extend(&results_vec);
+            for results_set in tautomer_results {
+                results.extend(&results_set);
             }
 
             if results.len() > before_tauts_result_count {
