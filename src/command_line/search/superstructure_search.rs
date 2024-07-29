@@ -31,6 +31,7 @@ pub fn command() -> Command {
                 .required(false)
                 .long("tautomer-limit")
                 .short('t')
+                .help("Set to 0 by default; Cheminee will use the specified number of tautomers to boost search results")
                 .num_args(1),
         )
         .arg(
