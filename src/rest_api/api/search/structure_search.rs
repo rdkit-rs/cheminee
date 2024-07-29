@@ -1,24 +1,24 @@
-use crate::indexing::index_manager::IndexManager;
 use crate::rest_api::api::{GetStructureSearchResponse, StructureResponseError};
 use crate::search::compound_processing::standardize_smiles;
-use crate::search::superstructure_search::run_superstructure_search;
+use crate::search::structure_search::structure_search;
 use crate::search::{
     aggregate_search_hits, compound_processing::get_tautomers, validate_structure,
 };
 use poem_openapi::payload::Json;
 use rayon::iter::IntoParallelIterator;
 use rayon::iter::ParallelIterator;
+use tantivy::Index;
 
-pub fn v1_index_search_superstructure(
-    index_manager: &IndexManager,
-    index: String,
+pub fn v1_index_search_structure(
+    index: eyre::Result<Index>,
     smiles: String,
+    method: &str,
     result_limit: usize,
     tautomer_limit: usize,
     extra_query: &str,
     use_scaffolds: bool,
 ) -> GetStructureSearchResponse {
-    let index = match index_manager.open(&index) {
+    let index = match index {
         Ok(index) => index,
         Err(e) => {
             return GetStructureSearchResponse::Err(Json(StructureResponseError {
@@ -61,9 +61,10 @@ pub fn v1_index_search_superstructure(
         }
     };
 
-    let results = run_superstructure_search(
+    let results = structure_search(
         &searcher,
         &query_canon_taut,
+        method,
         use_scaffolds,
         result_limit,
         extra_query,
@@ -88,9 +89,10 @@ pub fn v1_index_search_superstructure(
             let tautomer_results = tautomers
                 .into_par_iter()
                 .filter_map(|taut| {
-                    run_superstructure_search(
+                    structure_search(
                         &searcher,
                         &taut,
+                        method,
                         use_scaffolds,
                         result_limit,
                         extra_query,

@@ -2,11 +2,11 @@ use crate::indexing::index_manager::IndexManager;
 use crate::rest_api::api::{
     v1_convert_mol_block_to_smiles, v1_convert_smiles_to_mol_block, v1_delete_index,
     v1_delete_index_bulk, v1_get_index, v1_index_search_basic, v1_index_search_identity,
-    v1_index_search_substructure, v1_index_search_superstructure, v1_list_indexes, v1_list_schemas,
-    v1_post_index, v1_post_index_bulk, v1_standardize, BulkRequest, ConvertedMolBlockResponse,
-    ConvertedSmilesResponse, DeleteIndexResponse, DeleteIndexesBulkDeleteResponse,
-    GetIndexResponse, GetQuerySearchResponse, GetStructureSearchResponse, ListIndexesResponse,
-    ListSchemasResponse, PostIndexResponse, PostIndexesBulkIndexResponse, StandardizeResponse,
+    v1_index_search_structure, v1_list_indexes, v1_list_schemas, v1_post_index, v1_post_index_bulk,
+    v1_standardize, BulkRequest, ConvertedMolBlockResponse, ConvertedSmilesResponse,
+    DeleteIndexResponse, DeleteIndexesBulkDeleteResponse, GetIndexResponse, GetQuerySearchResponse,
+    GetStructureSearchResponse, ListIndexesResponse, ListSchemasResponse, PostIndexResponse,
+    PostIndexesBulkIndexResponse, StandardizeResponse,
 };
 use crate::rest_api::models::{MolBlock, Smiles};
 
@@ -225,10 +225,12 @@ impl Api {
             true
         };
 
-        v1_index_search_substructure(
-            &self.index_manager,
-            index.to_string(),
+        let index = self.index_manager.open(&index);
+
+        v1_index_search_structure(
+            index,
             smiles.0,
+            "substructure",
             result_limit,
             tautomer_limit,
             &extra_query,
@@ -272,10 +274,12 @@ impl Api {
             true
         };
 
-        v1_index_search_superstructure(
-            &self.index_manager,
-            index.to_string(),
+        let index = self.index_manager.open(&index);
+
+        v1_index_search_structure(
+            index,
             smiles.0,
+            "superstructure",
             result_limit,
             tautomer_limit,
             &extra_query,
