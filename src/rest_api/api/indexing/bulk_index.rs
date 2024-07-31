@@ -124,13 +124,12 @@ fn bulk_request_doc_to_tantivy_doc(
     // By default, do not attempt to fix problematic molecules
     let (tautomer, fingerprint, descriptors) = process_cpd(&bulk_request_doc.smiles, false)?;
 
-    let json: serde_json::Value = serde_json::to_value(descriptors)?;
-    let jsonified_compound_descriptors: Map<String, Value> =
-        if let serde_json::Value::Object(map) = json {
-            map
-        } else {
-            return Err(eyre::eyre!("not an object"));
-        };
+    let json: Value = serde_json::to_value(descriptors)?;
+    let jsonified_compound_descriptors: Map<String, Value> = if let Value::Object(map) = json {
+        map
+    } else {
+        return Err(eyre::eyre!("not an object"));
+    };
 
     let mut doc = tantivy::doc!(
         smiles_field => tautomer.as_smiles(),
@@ -147,12 +146,11 @@ fn bulk_request_doc_to_tantivy_doc(
 
     let extra_data_json = combine_json_objects(Some(scaffold_json), bulk_request_doc.extra_data);
     if let Some(extra_data_json) = extra_data_json {
-        println!("{:?}", extra_data_json);
         doc.add_field_value(extra_data_field, extra_data_json);
     }
 
     for field in KNOWN_DESCRIPTORS {
-        if let Some(serde_json::Value::Number(val)) = jsonified_compound_descriptors.get(field) {
+        if let Some(Value::Number(val)) = jsonified_compound_descriptors.get(field) {
             if field.starts_with("Num") || field.starts_with("lipinski") {
                 let int = val.as_f64().unwrap() as i64;
                 doc.add_field_value(*descriptors_fields.get(field).unwrap(), int);

@@ -1,7 +1,7 @@
 use poem_openapi::{payload::Json, ApiResponse, Object};
 use tantivy::Opstamp;
 
-#[derive(ApiResponse)]
+#[derive(ApiResponse, Debug)]
 pub enum GetIndexResponse {
     #[oai(status = "200")]
     Ok(Json<IndexSchema>),
@@ -21,7 +21,7 @@ pub enum GetIndexesResponse {
     Err(Json<GetIndexesResponseError>),
 }
 
-#[derive(ApiResponse)]
+#[derive(ApiResponse, Debug)]
 pub enum ListIndexesResponse {
     #[oai(status = "200")]
     Ok(Json<Vec<IndexMeta>>),
@@ -29,13 +29,13 @@ pub enum ListIndexesResponse {
     Err(Json<ListIndexResponseErr>),
 }
 
-#[derive(ApiResponse)]
+#[derive(ApiResponse, Debug)]
 pub enum ListSchemasResponse {
     #[oai(status = "200")]
     Ok(Json<Vec<Schema>>),
 }
 
-#[derive(ApiResponse)]
+#[derive(ApiResponse, Debug)]
 pub enum PostIndexesBulkIndexResponse {
     #[oai(status = "200")]
     Ok(Json<PostIndexBulkResponseOk>),
@@ -45,7 +45,7 @@ pub enum PostIndexesBulkIndexResponse {
     Err(Json<PostIndexBulkResponseError>),
 }
 
-#[derive(ApiResponse)]
+#[derive(ApiResponse, Debug)]
 pub enum DeleteIndexesBulkDeleteResponse {
     #[oai(status = "200")]
     Ok(Json<DeleteIndexBulkResponseOk>),
@@ -55,7 +55,7 @@ pub enum DeleteIndexesBulkDeleteResponse {
     Err(Json<DeleteIndexBulkResponseError>),
 }
 
-#[derive(ApiResponse)]
+#[derive(ApiResponse, Debug)]
 pub enum PostIndexResponse {
     #[oai(status = "200")]
     Ok(Json<IndexMeta>),
@@ -65,7 +65,7 @@ pub enum PostIndexResponse {
     Err(Json<CreateIndexError>),
 }
 
-#[derive(ApiResponse)]
+#[derive(ApiResponse, Debug)]
 pub enum DeleteIndexResponse {
     #[oai(status = "200")]
     Ok(Json<IndexMeta>),
@@ -97,7 +97,7 @@ pub struct DeleteIndexError {
     pub error: String,
 }
 
-#[derive(Object)]
+#[derive(Object, Debug)]
 pub struct GetIndexesResponseError {
     pub error: String,
 }
@@ -114,7 +114,7 @@ pub struct IndexSchema {
     pub schema: serde_json::Value,
 }
 
-#[derive(Object)]
+#[derive(Object, Debug)]
 pub struct ListIndexResponseErr {
     pub error: String,
 }

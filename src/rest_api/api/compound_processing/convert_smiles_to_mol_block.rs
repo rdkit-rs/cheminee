@@ -4,7 +4,7 @@ use poem_openapi_derive::{ApiResponse, Object};
 use rayon::prelude::*;
 use rdkit::ROMol;
 
-#[derive(ApiResponse)]
+#[derive(ApiResponse, Debug)]
 pub enum ConvertedMolBlockResponse {
     #[oai(status = "200")]
     Ok(Json<Vec<ConvertedMolBlock>>),

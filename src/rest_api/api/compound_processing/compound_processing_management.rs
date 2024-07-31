@@ -1,6 +1,6 @@
 use poem_openapi::{payload::Json, ApiResponse, Object};
 
-#[derive(ApiResponse)]
+#[derive(ApiResponse, Debug)]
 pub enum StandardizeResponse {
     #[oai(status = "200")]
     Ok(Json<Vec<StandardizedSmiles>>),
