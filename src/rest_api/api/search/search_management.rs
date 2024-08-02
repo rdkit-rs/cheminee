@@ -1,7 +1,7 @@
 use crate::search::{QuerySearchHit, StructureSearchHit};
 use poem_openapi::{payload::Json, ApiResponse, Object};
 
-#[derive(ApiResponse)]
+#[derive(ApiResponse, Debug)]
 pub enum GetQuerySearchResponse {
     #[oai(status = "200")]
     Ok(Json<Vec<QuerySearchHit>>),
@@ -11,7 +11,7 @@ pub enum GetQuerySearchResponse {
     Err(Json<QueryResponseError>),
 }
 
-#[derive(ApiResponse)]
+#[derive(ApiResponse, Debug)]
 pub enum GetStructureSearchResponse {
     #[oai(status = "200")]
     Ok(Json<Vec<StructureSearchHit>>),

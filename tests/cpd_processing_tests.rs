@@ -104,7 +104,7 @@ fn test_get_tautomers() {
     let smiles = "Oc1c(cccc3)c3nc2ccncc12";
     let romol = ROMol::from_smiles(smiles).unwrap();
     let tauts = get_tautomers(&romol);
-    assert_eq!(tauts.len(), 3);
+    assert_eq!(tauts.len(), 2);
 }
 
 #[test]

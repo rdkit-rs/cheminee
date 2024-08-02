@@ -4,7 +4,6 @@ use crate::search::compound_processing::process_cpd;
 use crate::search::scaffold_search::{scaffold_search, PARSED_SCAFFOLDS};
 use bitvec::macros::internal::funty::Fundamental;
 use rayon::prelude::*;
-use serde_json::Value;
 use std::{collections::HashMap, fs::File, io::BufRead, io::BufReader, ops::Deref};
 use tantivy::schema::Field;
 
@@ -126,7 +125,7 @@ fn create_tantivy_doc(
     let scaffold_matches = scaffold_search(&canon_taut, &PARSED_SCAFFOLDS)?;
 
     let scaffold_json = match scaffold_matches.is_empty() {
-        true => Value::Null,
+        true => serde_json::json!({"scaffolds": vec![-1]}),
         false => serde_json::json!({"scaffolds": scaffold_matches}),
     };
 

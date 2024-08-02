@@ -13,8 +13,7 @@ pub mod compound_processing;
 pub mod identity_search;
 pub mod scaffold_search;
 pub mod structure_matching;
-pub mod substructure_search;
-pub mod superstructure_search;
+pub mod structure_search;
 
 #[derive(Object, Debug)]
 pub struct StructureValidationError {

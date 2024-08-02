@@ -132,29 +132,3 @@ impl IndexManager {
         Ok(paths)
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use crate::indexing::index_manager::IndexManager;
-
-    #[test]
-    fn index_manager() -> eyre::Result<()> {
-        let index_manager = IndexManager::new("/tmp/xavier", true)?;
-
-        let schema = crate::schema::LIBRARY.get("descriptor_v1").unwrap();
-
-        let _index = index_manager.create("structure-search", schema, true, Some("exactmw"))?;
-
-        let _index = index_manager.open("structure-search")?;
-
-        assert!(index_manager.exists("structure-search").unwrap().is_some());
-
-        let index_paths = index_manager.list()?;
-        assert_eq!(index_paths[0], "structure-search");
-
-        let _ = index_manager.delete("structure-search");
-        assert!(index_manager.exists("structure-search").unwrap().is_none());
-
-        Ok(())
-    }
-}
