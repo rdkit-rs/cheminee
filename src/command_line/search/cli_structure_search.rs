@@ -65,12 +65,12 @@ pub fn cli_structure_search(method: &str, matches: &ArgMatches) -> eyre::Result<
     let mut used_tautomers = false;
     let before_tauts_result_count = results.len();
 
-    if before_tauts_result_count < result_limit {
+    if before_tauts_result_count < result_limit && tautomer_limit > 0 {
         let mut tautomers = get_tautomers(&query_canon_taut);
 
         let tautomer_limit = min(tautomers.len(), tautomer_limit);
 
-        if !tautomers.is_empty() && tautomer_limit > 0 {
+        if !tautomers.is_empty() {
             let tautomer_results = &tautomers[..tautomer_limit]
                 .into_par_iter()
                 .filter_map(|taut| {
