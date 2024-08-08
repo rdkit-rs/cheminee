@@ -70,7 +70,7 @@ pub struct QuerySearchHit {
     pub query: String,
 }
 
-#[derive(Object, Debug)]
+#[derive(Object, Debug, Clone)]
 pub struct StructureSearchHit {
     pub extra_data: String,
     pub smiles: String,
