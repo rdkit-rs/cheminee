@@ -3,6 +3,7 @@ use crate::search::structure_search::structure_search;
 use crate::search::{aggregate_search_hits, compound_processing::*, validate_structure};
 use rayon::iter::ParallelIterator;
 use rayon::prelude::IntoParallelIterator;
+use std::cmp::min;
 
 pub fn cli_structure_search(method: &str, matches: &ArgMatches) -> eyre::Result<()> {
     let index_path = matches
@@ -65,15 +66,17 @@ pub fn cli_structure_search(method: &str, matches: &ArgMatches) -> eyre::Result<
     let before_tauts_result_count = results.len();
 
     if before_tauts_result_count < result_limit {
-        let tautomers = get_tautomers(&query_canon_taut);
+        let mut tautomers = get_tautomers(&query_canon_taut);
+
+        let tautomer_limit = min(tautomers.len(), tautomer_limit);
 
         if !tautomers.is_empty() && tautomer_limit > 0 {
-            let tautomer_results = tautomers
+            let tautomer_results = &tautomers[..tautomer_limit]
                 .into_par_iter()
                 .filter_map(|taut| {
                     structure_search(
                         &searcher,
-                        &taut,
+                        taut,
                         method,
                         use_scaffolds,
                         result_limit,
@@ -84,7 +87,9 @@ pub fn cli_structure_search(method: &str, matches: &ArgMatches) -> eyre::Result<
                 .collect::<Vec<_>>();
 
             for results_set in tautomer_results {
-                results.extend(&results_set);
+                if results.len() < result_limit {
+                    results.extend(results_set);
+                }
             }
 
             if results.len() > before_tauts_result_count {
@@ -95,7 +100,11 @@ pub fn cli_structure_search(method: &str, matches: &ArgMatches) -> eyre::Result<
 
     let final_results = aggregate_search_hits(searcher, results, used_tautomers, smiles)?;
 
-    println!("{:#?}", final_results);
+    if final_results.len() > result_limit {
+        println!("{:#?}", &final_results[..result_limit]);
+    } else {
+        println!("{:#?}", final_results)
+    }
 
     Ok(())
 }

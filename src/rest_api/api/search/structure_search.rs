@@ -7,6 +7,7 @@ use crate::search::{
 use poem_openapi::payload::Json;
 use rayon::iter::IntoParallelIterator;
 use rayon::iter::ParallelIterator;
+use std::cmp::min;
 use tantivy::Index;
 
 pub fn v1_index_search_structure(
@@ -83,15 +84,17 @@ pub fn v1_index_search_structure(
     let before_tauts_result_count = results.len();
 
     if before_tauts_result_count < result_limit {
-        let tautomers = get_tautomers(&query_canon_taut);
+        let mut tautomers = get_tautomers(&query_canon_taut);
+
+        let tautomer_limit = min(tautomers.len(), tautomer_limit);
 
         if !tautomers.is_empty() && tautomer_limit > 0 {
-            let tautomer_results = tautomers
+            let tautomer_results = &tautomers[..tautomer_limit]
                 .into_par_iter()
                 .filter_map(|taut| {
                     structure_search(
                         &searcher,
-                        &taut,
+                        taut,
                         method,
                         use_scaffolds,
                         result_limit,
@@ -102,7 +105,9 @@ pub fn v1_index_search_structure(
                 .collect::<Vec<_>>();
 
             for results_set in tautomer_results {
-                results.extend(&results_set);
+                if results.len() < result_limit {
+                    results.extend(results_set);
+                }
             }
 
             if results.len() > before_tauts_result_count {
@@ -122,5 +127,9 @@ pub fn v1_index_search_structure(
         }
     };
 
-    GetStructureSearchResponse::Ok(Json(final_results))
+    if final_results.len() > result_limit {
+        GetStructureSearchResponse::Ok(Json(final_results[..result_limit].into()))
+    } else {
+        GetStructureSearchResponse::Ok(Json(final_results))
+    }
 }
