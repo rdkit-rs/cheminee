@@ -36,6 +36,7 @@ jobs:
 
       - name: Install dependencies
         run: |
+          sudo apt-get update
           sudo apt-get install -y build-essential libssl-dev libboost-iostreams-dev libboost-serialization-dev pkg-config curl tar
 
       - name: Install RDKit
