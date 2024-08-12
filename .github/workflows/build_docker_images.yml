@@ -36,8 +36,6 @@ jobs:
 
       - name: Install dependencies
         run: |
-          sudo bash -c "echo 'deb [trusted=yes] https://rdkit-rs-debian.s3.amazonaws.com jammy main' > /etc/apt/sources.list.d/rdkit-rs.list"
-          sudo apt-get update
           sudo apt-get install -y build-essential libssl-dev libboost-iostreams-dev libboost-serialization-dev pkg-config curl tar
 
       - name: Install RDKit
