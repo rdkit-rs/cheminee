@@ -1,6 +1,6 @@
 FROM ubuntu:22.04
 
-RUN apt-get update && apt-get install -y ca-certificates libssl3 libboost-serialization1.74.0 curl
+RUN apt-get update && apt-get install -y ca-certificates libssl3 libboost-iostreams1.74.0 libboost-serialization1.74.0 curl
 
 RUN cd /tmp && \
     if [ $(dpkg --print-architecture) = "amd64" ]; then \
