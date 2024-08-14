@@ -12,6 +12,7 @@ pub mod basic_search;
 pub mod compound_processing;
 pub mod identity_search;
 pub mod scaffold_search;
+pub mod similarity_search;
 pub mod structure_matching;
 pub mod structure_search;
 
@@ -41,6 +42,50 @@ pub const STRUCTURE_MATCH_DESCRIPTORS: [&str; 20] = [
     "NumUnspecifiedAtomStereoCenters",
     "exactmw",
     "lipinskiHBA",
+];
+
+pub const SIMILARITY_DESCRIPTORS: [&str; 41] = [
+    "CrippenClogP",
+    "CrippenMR",
+    "FractionCSP3",
+    "NumAliphaticHeterocycles",
+    "NumAliphaticRings",
+    "NumAmideBonds",
+    "NumAromaticHeterocycles",
+    "NumAromaticRings",
+    "NumAtoms",
+    "NumBridgeheadAtoms",
+    "NumHBA",
+    "NumHBD",
+    "NumHeavyAtoms",
+    "NumHeteroatoms",
+    "NumHeterocycles",
+    "NumRings",
+    "NumRotatableBonds",
+    "NumSaturatedHeterocycles",
+    "NumSaturatedRings",
+    "NumSpiroAtoms",
+    "Phi",
+    "amw",
+    "chi0n",
+    "chi0v",
+    "chi1n",
+    "chi1v",
+    "chi2n",
+    "chi2v",
+    "chi3n",
+    "chi3v",
+    "chi4n",
+    "chi4v",
+    "exactmw",
+    "hallKierAlpha",
+    "kappa1",
+    "kappa2",
+    "kappa3",
+    "labuteASA",
+    "lipinskiHBA",
+    "lipinskiHBD",
+    "tpsa",
 ];
 
 pub fn prepare_query_structure(

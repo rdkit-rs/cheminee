@@ -16,6 +16,7 @@ clap = "4"
 eyre = "0"
 lazy_static = "1.4"
 log = "0"
+ndarray = "0.16.1"
 poem = { version = "1", features = ["test"] }
 poem-openapi = { version = "2", features = ["swagger-ui"] }
 poem-openapi-derive = "2"
