@@ -1,5 +1,5 @@
 use crate::search::SIMILARITY_DESCRIPTORS;
-use ndarray::Array2;
+use ndarray::{Array1, Array2};
 use serde_json::Value;
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -127,4 +127,38 @@ fn get_pca_bins() -> Arc<HashMap<String, Vec<f64>>> {
         .collect::<Vec<_>>();
 
     Arc::new(pc_bins)
+}
+
+pub fn assign_pca_bins(descriptors: HashMap<String, f64>) -> eyre::Result<HashMap<String, u64>> {
+    let stdz_descriptors = SIMILARITY_DESCRIPTORS
+        .iter()
+        .map(|d| {
+            let d_val = *descriptors.get(*d).unwrap();
+            let d_stats = DESCRIPTOR_STATS.get(*d).unwrap();
+            let d_mean = d_stats[0];
+            let d_std = d_stats[1];
+            (d_val - d_mean) / d_std
+        })
+        .collect::<Vec<_>>();
+
+    let descriptor_array = Array1::<f64>::from_vec(stdz_descriptors);
+
+    let pca_proj = PC_MATRIX.dot(&descriptor_array);
+
+    let mut final_bins = HashMap::new();
+    let _ = pca_proj
+        .iter()
+        .enumerate()
+        .map(|(idx, val)| {
+            let current_pc = format!("pc{}", idx);
+            let pc_bin_edges = PCA_BINS.get(&current_pc).unwrap();
+
+            // left inclusive
+            let rank_search = pc_bin_edges.binary_search_by(|x| x.partial_cmp(val).unwrap());
+            let pc_bin = rank_search.unwrap_or_else(|right_bin_edge| right_bin_edge - 1);
+            final_bins.insert(current_pc, pc_bin as u64);
+        })
+        .collect::<Vec<_>>();
+
+    Ok(final_bins)
 }
