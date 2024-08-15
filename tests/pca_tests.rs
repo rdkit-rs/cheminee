@@ -1,6 +1,7 @@
 use cheminee::search::compound_processing::process_cpd;
 use cheminee::search::similarity_search::{assign_pca_bins, DESCRIPTOR_STATS, PCA_BINS, PC_MATRIX};
 use ndarray::{Array1, Array2};
+use serde_json::Value;
 
 #[test]
 fn test_dot_product() {
@@ -86,4 +87,13 @@ fn test_assign_pca_bins() {
     assert_eq!(*pca_bins.get("pc3").unwrap(), 48);
     assert_eq!(*pca_bins.get("pc4").unwrap(), 19);
     assert_eq!(*pca_bins.get("pc5").unwrap(), 13);
+
+    let pca_bins_json = Value::Object(
+        pca_bins
+            .into_iter()
+            .map(|(pc, bin)| (pc, serde_json::json!(bin)))
+            .collect(),
+    );
+
+    assert_eq!(format!("{:?}", pca_bins_json), "Object {\"pc0\": Number(3), \"pc1\": Number(34), \"pc2\": Number(51), \"pc3\": Number(48), \"pc4\": Number(19), \"pc5\": Number(13)}");
 }
