@@ -1,4 +1,5 @@
-use cheminee::search::similarity_search::{DESCRIPTOR_STATS, PCA_BINS, PC_MATRIX};
+use cheminee::search::compound_processing::process_cpd;
+use cheminee::search::similarity_search::{assign_pca_bins, DESCRIPTOR_STATS, PCA_BINS, PC_MATRIX};
 use ndarray::{Array1, Array2};
 
 #[test]
@@ -71,4 +72,18 @@ fn test_pca_params_parse() {
             "0.105", "0.133", "0.170", "0.210", "0.276", "0.452", "inf"
         ]
     );
+}
+
+#[test]
+fn test_assign_pca_bins() {
+    let smiles = "c1ccccc1CCF";
+    let (_canon_taut, _fp, descriptors) = process_cpd(smiles, false).unwrap();
+    let pca_bins = assign_pca_bins(descriptors).unwrap();
+
+    assert_eq!(*pca_bins.get("pc0").unwrap(), 3);
+    assert_eq!(*pca_bins.get("pc1").unwrap(), 34);
+    assert_eq!(*pca_bins.get("pc2").unwrap(), 51);
+    assert_eq!(*pca_bins.get("pc3").unwrap(), 48);
+    assert_eq!(*pca_bins.get("pc4").unwrap(), 19);
+    assert_eq!(*pca_bins.get("pc5").unwrap(), 13);
 }
