@@ -4,7 +4,7 @@ use serde_json::Value;
 use std::collections::HashMap;
 use std::sync::Arc;
 
-const PCA_PARAMS: &str = include_str!("../../assets/cheminee_pca_params_20240814.json");
+const PCA_PARAMS: &str = include_str!("../../assets/cheminee_pca_params_20240815.json");
 
 lazy_static::lazy_static! {
     pub static ref DESCRIPTOR_STATS: Arc<HashMap<String, Vec<f64>>> = get_descriptor_stats();
