@@ -1,7 +1,6 @@
-use std::collections::HashMap;
-
+use bitvec::macros::internal::funty::Fundamental;
 use rdkit::{MolBlockIter, ROMol, RWMol};
-use serde_json::{Map, Value};
+use std::collections::HashMap;
 use tantivy::schema::Field;
 
 use crate::command_line::prelude::*;
@@ -98,14 +97,7 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<usize> {
             continue;
         }
 
-        let (canon_taut, fp, computed) = process_result.unwrap();
-
-        let json: serde_json::Value = serde_json::to_value(&computed)?;
-        let descriptors_map: Map<String, Value> = if let serde_json::Value::Object(map) = json {
-            map
-        } else {
-            panic!("not an object");
-        };
+        let (canon_taut, fp, descriptors) = process_result.unwrap();
 
         let mut doc = doc!(
             smiles_field => canon_taut.as_smiles(),
@@ -113,17 +105,15 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<usize> {
         );
 
         for field in KNOWN_DESCRIPTORS {
-            if let Some(serde_json::Value::Number(val)) = descriptors_map.get(field) {
+            if let Some(val) = descriptors.get(field) {
                 let current_field = *descriptors_fields
                     .get(field)
                     .ok_or(eyre::eyre!("Failed to extract field"))?;
-                let current_value = val
-                    .as_f64()
-                    .ok_or(eyre::eyre!("Failed to convert descriptor to float"))?;
                 if field.starts_with("Num") || field.starts_with("lipinski") {
-                    doc.add_field_value(current_field, current_value as i64);
+                    let int = val.as_f64() as i64;
+                    doc.add_field_value(current_field, int);
                 } else {
-                    doc.add_field_value(current_field, current_value);
+                    doc.add_field_value(current_field, val.as_f64());
                 };
             }
         }
