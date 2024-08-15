@@ -1,8 +1,5 @@
-use cheminee::search::similarity_search::PCA_PARAMS;
-use cheminee::search::SIMILARITY_DESCRIPTORS;
+use cheminee::search::similarity_search::{DESCRIPTOR_STATS, PCA_BINS, PC_MATRIX};
 use ndarray::{Array1, Array2};
-use serde_json::Value;
-use std::collections::HashMap;
 
 #[test]
 fn test_dot_product() {
@@ -15,100 +12,63 @@ fn test_dot_product() {
 }
 
 #[test]
-fn test_parse_pca_params() {
-    let num_pcs = 6; // empirically determined number of PCs; captures ~85% of descriptor variance
-    let num_descriptors = SIMILARITY_DESCRIPTORS.len();
-    let mut descriptor_means: Vec<f64> = Vec::with_capacity(num_descriptors);
-    let mut descriptor_stds: Vec<f64> = Vec::with_capacity(num_descriptors);
-    let mut flat_pc_matrix: Vec<f64> = Vec::with_capacity(num_pcs * num_descriptors);
-    let mut pc_bin_hash: HashMap<String, Vec<f64>> = HashMap::new();
-    let _ = PCA_PARAMS
-        .lines()
-        .map(|l| serde_json::from_str::<serde_json::Value>(l).unwrap())
-        .map(|v| {
-            let descriptor_value = v
-                .get("DESCRIPTORS")
-                .expect("Failed to extract descriptor statistics from static data");
-
-            if let Value::Object(descriptor_map) = descriptor_value {
-                let _ = descriptor_map
-                    .iter()
-                    .enumerate()
-                    .map(|(idx, (d, dstats))| {
-                        if d != SIMILARITY_DESCRIPTORS[idx] {
-                            panic!("Similarity descriptor order does not match!");
-                        }
-
-                        descriptor_means.push(
-                            dstats
-                                .get("mean")
-                                .expect("Failed to retrieve descriptor mean")
-                                .as_f64()
-                                .unwrap(),
-                        );
-                        descriptor_stds.push(
-                            dstats
-                                .get("std")
-                                .expect("Failed to retrieve descriptor std")
-                                .as_f64()
-                                .unwrap(),
-                        );
-                    })
-                    .collect::<Vec<_>>();
-            } else {
-                panic!("Failed to parse descriptor json!");
-            }
-
-            let pc_matrix_value = v
-                .get("PC_VECTORS")
-                .expect("Failed to extract PC vectors from static data");
-            if let Value::Array(rows) = pc_matrix_value {
-                let _ = rows
-                    .iter()
-                    .map(|row| {
-                        if let Value::Array(row_vector) = row {
-                            let _ = row_vector
-                                .iter()
-                                .map(|v| flat_pc_matrix.push(v.as_f64().unwrap()))
-                                .collect::<Vec<_>>();
-                        } else {
-                            panic!("Failed to parse PC vector!");
-                        }
-                    })
-                    .collect::<Vec<_>>();
-            } else {
-                panic!("Failed to parse PCA vector json!");
-            };
-
-            let pc_bins_value = v
-                .get("PC_BIN_EDGES")
-                .expect("Failed to extract PC bins from static data");
-            if let Value::Object(pc_bins_map) = pc_bins_value {
-                let _ = pc_bins_map
-                    .iter()
-                    .map(|(pc, bin_edges)| {
-                        if let Value::Array(bin_edges) = bin_edges {
-                            let bin_vector = bin_edges
-                                .iter()
-                                .map(|v| v.as_f64().unwrap())
-                                .collect::<Vec<_>>();
-                            pc_bin_hash.insert(pc.into(), bin_vector);
-                        } else {
-                            panic!("Failed to parse PC bin edges");
-                        }
-                    })
-                    .collect::<Vec<_>>();
-            } else {
-                panic!("Failed to parse PCA bins");
-            }
-        })
+fn test_pca_params_parse() {
+    let descriptor_stats = DESCRIPTOR_STATS.clone();
+    let nsr_mean_std = descriptor_stats
+        .get("NumSaturatedRings")
+        .unwrap()
+        .iter()
+        .map(|v| format!("{:.3}", v))
+        .collect::<Vec<_>>();
+    let nsa_mean_std = descriptor_stats
+        .get("NumSpiroAtoms")
+        .unwrap()
+        .iter()
+        .map(|v| format!("{:.3}", v))
+        .collect::<Vec<_>>();
+    let nah_mean_std = descriptor_stats
+        .get("NumAliphaticHeterocycles")
+        .unwrap()
+        .iter()
+        .map(|v| format!("{:.3}", v))
         .collect::<Vec<_>>();
 
-    let pc_matrix =
-        Array2::<f64>::from_shape_vec((num_pcs, num_descriptors), flat_pc_matrix).unwrap();
+    assert_eq!(*nsr_mean_std, vec!["0.676", "1.149"]);
+    assert_eq!(*nsa_mean_std, vec!["0.029", "0.215"]);
+    assert_eq!(*nah_mean_std, vec!["0.597", "0.998"]);
 
-    println!("{:?}", descriptor_means);
-    println!("{:?}", descriptor_stds);
-    println!("{:?}", pc_matrix);
-    println!("{:?}", pc_bin_hash);
+    let pc_matrix = PC_MATRIX.clone();
+    let pc0_vector = pc_matrix
+        .row(0)
+        .iter()
+        .map(|v| format!("{:.3}", v))
+        .collect::<Vec<_>>();
+
+    assert_eq!(
+        pc0_vector,
+        vec![
+            "0.101", "0.206", "-0.005", "0.091", "0.097", "0.096", "0.039", "0.100", "0.204",
+            "0.061", "0.149", "0.100", "0.209", "0.152", "0.096", "0.145", "0.147", "0.080",
+            "0.081", "0.024", "0.161", "0.208", "0.208", "0.209", "0.207", "0.208", "0.198",
+            "0.193", "0.198", "0.193", "0.188", "0.183", "0.208", "-0.146", "0.205", "0.180",
+            "0.025", "0.209", "0.155", "0.091", "0.141"
+        ]
+    );
+
+    let pca_bins = PCA_BINS.clone();
+    let pc5_bins = pca_bins
+        .get("pc5")
+        .unwrap()
+        .iter()
+        .map(|v| format!("{:.3}", v))
+        .collect::<Vec<_>>();
+
+    assert_eq!(
+        pc5_bins,
+        vec![
+            "-inf", "-0.432", "-0.336", "-0.284", "-0.244", "-0.208", "-0.177", "-0.150", "-0.122",
+            "-0.095", "-0.072", "-0.052", "-0.031", "-0.009", "0.013", "0.034", "0.056", "0.079",
+            "0.105", "0.133", "0.170", "0.210", "0.276", "0.452", "inf"
+        ]
+    );
 }
