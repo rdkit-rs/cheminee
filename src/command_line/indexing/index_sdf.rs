@@ -3,6 +3,7 @@ use rayon::prelude::*;
 use rdkit::{MolBlockIter, ROMol, RWMol};
 use serde_json::Value;
 use std::collections::HashMap;
+use std::sync::{Arc, Mutex};
 use tantivy::schema::Field;
 
 use crate::command_line::prelude::*;
@@ -86,12 +87,15 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
         .collect::<HashMap<&str, Field>>();
 
     let mut counter = 0;
-    let mut failed_counter = 0;
+    // let mut failed_counter = 0;
+    let failed_counter: Arc<Mutex<usize>> = Arc::new(Mutex::new(0));
+
     let chunksize = 1000;
     let mut mol_vec = Vec::with_capacity(chunksize);
     for mol in mol_iter {
         if mol.is_err() {
-            failed_counter += 1;
+            let mut num = failed_counter.lock().unwrap();
+            *num += 1;
             continue;
         }
 
@@ -117,13 +121,17 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
 
                             match write_operation {
                                 Ok(_) => (),
-                                Err(e) => {
-                                    println!("Failed doc creation: {:?}", e);
+                                Err(_) => {
+                                    println!("Failed doc creation");
+                                    let mut num = failed_counter.lock().unwrap();
+                                    *num += 1;
                                 }
                             }
                         }
-                        Err(e) => {
-                            println!("Failed doc creation: {:?}", e);
+                        Err(_) => {
+                            println!("Failed doc creation");
+                            let mut num = failed_counter.lock().unwrap();
+                            *num += 1;
                         }
                     }
                 })
@@ -132,10 +140,10 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
             index_writer.commit()?;
             mol_vec.clear();
             counter += chunksize;
-        }
 
-        if counter > 0 && counter % 10_000 == 0 {
-            println!("{:?} compounds processed so far", counter);
+            if counter > 0 && counter % 10_000 == 0 {
+                println!("{:?} compounds processed so far", counter);
+            }
         }
     }
 
@@ -158,13 +166,17 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
 
                         match write_operation {
                             Ok(_) => (),
-                            Err(e) => {
-                                println!("Failed doc creation: {:?}", e);
+                            Err(_) => {
+                                println!("Failed doc creation");
+                                let mut num = failed_counter.lock().unwrap();
+                                *num += 1;
                             }
                         }
                     }
-                    Err(e) => {
-                        println!("Failed doc creation: {:?}", e);
+                    Err(_) => {
+                        println!("Failed doc creation");
+                        let mut num = failed_counter.lock().unwrap();
+                        *num += 1;
                     }
                 }
             })
@@ -174,7 +186,11 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
         counter += mol_vec.len();
     }
 
-    println!("A total of {} compounds were processed. Of those, {} compounds failed the initial parsing step.", counter, failed_counter);
+    println!(
+        "A total of {:?} compounds were processed. Of those, {:?} compounds could not be indexed.",
+        counter,
+        failed_counter.lock().unwrap()
+    );
 
     Ok(())
 }
