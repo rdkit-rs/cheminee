@@ -47,9 +47,7 @@ async fn main() -> eyre::Result<()> {
             command_line::indexing::delete_index::action(matches)
         }
         (command_line::indexing::index_sdf::NAME, matches) => {
-            let writes = command_line::indexing::index_sdf::action(matches)?;
-            log::info!("wrote: {}", writes);
-            Ok(())
+            command_line::indexing::index_sdf::action(matches)
         }
         (command_line::pubchem::fetch_pubchem::NAME, matches) => {
             command_line::pubchem::fetch_pubchem::action(matches).await
