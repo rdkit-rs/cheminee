@@ -209,13 +209,14 @@ pub fn get_ordered_bins(bins: Vec<u64>) -> impl Iterator<Item = Vec<u64>> {
         .sum_axis(Axis(1))
         .to_vec();
 
-    let all_bins = all_bins
-        .axis_iter(ndarray::Axis(0))
-        .map(|row| row.iter().map(|v| *v as u64).collect::<Vec<_>>())
-        .collect::<Vec<Vec<u64>>>();
-
     let mut argsort = (0..vec_diffs.len()).collect::<Vec<usize>>();
     argsort.sort_by_key(|idx| vec_diffs[*idx]);
 
-    argsort.into_iter().map(move |idx| all_bins[idx].clone())
+    argsort.into_iter().map(move |idx| {
+        all_bins
+            .row(idx)
+            .iter()
+            .map(|v| *v as u64)
+            .collect::<Vec<_>>()
+    })
 }
