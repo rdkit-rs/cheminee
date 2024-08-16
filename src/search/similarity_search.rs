@@ -1,5 +1,6 @@
 use crate::search::SIMILARITY_DESCRIPTORS;
-use ndarray::{Array1, Array2};
+use itertools::Itertools;
+use ndarray::{Array1, Array2, Axis};
 use serde_json::Value;
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -9,7 +10,8 @@ const PCA_PARAMS: &str = include_str!("../../assets/cheminee_pca_params_20240816
 lazy_static::lazy_static! {
     pub static ref DESCRIPTOR_STATS: Arc<HashMap<String, Vec<f64>>> = get_descriptor_stats();
     pub static ref PC_MATRIX: Arc<Array2<f64>> = get_pc_matrix();
-    pub static ref PCA_BIN_EDGES: Arc<HashMap<String, Vec<f64>>> = get_pca_bins();
+    pub static ref PCA_BIN_EDGES: Arc<HashMap<String, Vec<f64>>> = get_pca_bin_edges();
+    pub static ref PCA_BIN_VEC: Arc<Vec<Vec<u64>>> = get_pca_bin_vec();
 }
 
 fn get_descriptor_stats() -> Arc<HashMap<String, Vec<f64>>> {
@@ -91,7 +93,7 @@ fn get_pc_matrix() -> Arc<Array2<f64>> {
     Arc::new(Array2::<f64>::from_shape_vec((num_pcs, num_descriptors), flat_pc_matrix).unwrap())
 }
 
-fn get_pca_bins() -> Arc<HashMap<String, Vec<f64>>> {
+fn get_pca_bin_edges() -> Arc<HashMap<String, Vec<f64>>> {
     let mut pc_bins: HashMap<String, Vec<f64>> = HashMap::new();
 
     let _ = PCA_PARAMS
@@ -161,4 +163,59 @@ pub fn assign_pca_bins(descriptors: HashMap<String, f64>) -> eyre::Result<HashMa
         .collect::<Vec<_>>();
 
     Ok(final_bins)
+}
+
+fn get_pca_bin_vec() -> Arc<Vec<Vec<u64>>> {
+    let num_pcs = PC_MATRIX.shape()[0];
+
+    let pca_bin_vec = (0..num_pcs)
+        .map(|i| {
+            let pc_key = format!("pc{i}");
+            let bin_count = PCA_BIN_EDGES.get(&pc_key).unwrap().len() - 1;
+            (0..bin_count).map(|b| b as u64).collect::<Vec<_>>()
+        })
+        .collect::<Vec<_>>();
+
+    Arc::new(pca_bin_vec)
+}
+
+pub fn get_ordered_bins(bins: Vec<u64>) -> impl Iterator<Item = Vec<u64>> {
+    let bins = bins.iter().map(|v| *v as i64).collect::<Vec<_>>();
+    let num_pcs = PC_MATRIX.shape()[0];
+    let bins_per_pc = PCA_BIN_VEC.first().unwrap().len();
+    let all_bins_flattened = (0..num_pcs)
+        .map(|_| 0..bins_per_pc)
+        .multi_cartesian_product()
+        .flat_map(|v| v.iter().map(|e| *e as i64).collect::<Vec<_>>())
+        .collect::<Vec<i64>>();
+
+    let num_possible_bins = all_bins_flattened.len() / num_pcs;
+
+    let all_bins =
+        Array2::<i64>::from_shape_vec((num_possible_bins, num_pcs), all_bins_flattened).unwrap();
+
+    let bin_vec = Array1::<i64>::from_vec(bins);
+    let bin_diffs = &all_bins - &bin_vec;
+
+    // Need to scale differences so that we sort bin vecs by increasing PC variance
+    let scale_array = (0..num_pcs)
+        .rev()
+        .map(|i| (i + 1) as i64)
+        .collect::<Vec<_>>();
+    let scale_array = Array1::<i64>::from_vec(scale_array);
+    let bin_diffs_scaled = &bin_diffs * &scale_array;
+    let vec_diffs = bin_diffs_scaled
+        .mapv(|x| x.abs())
+        .sum_axis(Axis(1))
+        .to_vec();
+
+    let all_bins = all_bins
+        .axis_iter(ndarray::Axis(0))
+        .map(|row| row.iter().map(|v| *v as u64).collect::<Vec<_>>())
+        .collect::<Vec<Vec<u64>>>();
+
+    let mut argsort = (0..vec_diffs.len()).collect::<Vec<usize>>();
+    argsort.sort_by_key(|idx| vec_diffs[*idx]);
+
+    argsort.into_iter().map(move |idx| all_bins[idx].clone())
 }

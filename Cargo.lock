@@ -304,6 +304,7 @@ dependencies = [
  "bitvec",
  "clap",
  "eyre",
+ "itertools",
  "lazy_static",
  "log",
  "ndarray",

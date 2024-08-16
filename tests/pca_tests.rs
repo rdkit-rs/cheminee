@@ -1,6 +1,6 @@
 use cheminee::search::compound_processing::process_cpd;
 use cheminee::search::similarity_search::{
-    assign_pca_bins, DESCRIPTOR_STATS, PCA_BIN_EDGES, PC_MATRIX,
+    assign_pca_bins, get_ordered_bins, DESCRIPTOR_STATS, PCA_BIN_EDGES, PC_MATRIX,
 };
 use ndarray::{Array1, Array2};
 use serde_json::Value;
@@ -10,9 +10,11 @@ fn test_dot_product() {
     let matrix =
         Array2::<f64>::from_shape_vec((2, 4), vec![1.0, 1.0, 1.0, 1.0, 2.0, 2.0, 2.0, 2.0])
             .unwrap();
+    assert_eq!(matrix.shape(), vec![2, 4]);
+
     let vector = Array1::<f64>::from_vec(vec![1.0, 2.0, 3.0, 4.0]);
-    let result = matrix.dot(&vector);
-    assert_eq!(result, Array1::<f64>::from_vec(vec![10.0, 20.0]));
+    let dot_result = matrix.dot(&vector);
+    assert_eq!(dot_result, Array1::<f64>::from_vec(vec![10.0, 20.0]));
 }
 
 #[test]
@@ -94,4 +96,14 @@ fn test_assign_pca_bins() {
     );
 
     assert_eq!(format!("{:?}", pca_bins_json), "Object {\"pc0\": Number(0), \"pc1\": Number(0), \"pc2\": Number(1), \"pc3\": Number(2), \"pc4\": Number(1), \"pc5\": Number(1)}");
+}
+
+#[test]
+fn test_get_ordered_bins() {
+    let ordered_bins = get_ordered_bins(vec![0, 3, 0, 0, 0, 1]).collect::<Vec<_>>();
+
+    assert_eq!(ordered_bins[0], vec![0, 3, 0, 0, 0, 1]);
+    assert_eq!(ordered_bins[1], vec![0, 3, 0, 0, 0, 0]);
+    assert_eq!(ordered_bins[2], vec![0, 3, 0, 0, 0, 2]);
+    assert_eq!(ordered_bins[3], vec![0, 3, 0, 0, 0, 3]);
 }
