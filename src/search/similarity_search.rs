@@ -4,12 +4,12 @@ use serde_json::Value;
 use std::collections::HashMap;
 use std::sync::Arc;
 
-const PCA_PARAMS: &str = include_str!("../../assets/cheminee_pca_params_20240815.json");
+const PCA_PARAMS: &str = include_str!("../../assets/cheminee_pca_params_20240816.json");
 
 lazy_static::lazy_static! {
     pub static ref DESCRIPTOR_STATS: Arc<HashMap<String, Vec<f64>>> = get_descriptor_stats();
     pub static ref PC_MATRIX: Arc<Array2<f64>> = get_pc_matrix();
-    pub static ref PCA_BINS: Arc<HashMap<String, Vec<f64>>> = get_pca_bins();
+    pub static ref PCA_BIN_EDGES: Arc<HashMap<String, Vec<f64>>> = get_pca_bins();
 }
 
 fn get_descriptor_stats() -> Arc<HashMap<String, Vec<f64>>> {
@@ -151,7 +151,7 @@ pub fn assign_pca_bins(descriptors: HashMap<String, f64>) -> eyre::Result<HashMa
         .enumerate()
         .map(|(idx, val)| {
             let current_pc = format!("pc{}", idx);
-            let pc_bin_edges = PCA_BINS.get(&current_pc).unwrap();
+            let pc_bin_edges = PCA_BIN_EDGES.get(&current_pc).unwrap();
 
             // left inclusive
             let rank_search = pc_bin_edges.binary_search_by(|x| x.partial_cmp(val).unwrap());
