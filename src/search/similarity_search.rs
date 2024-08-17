@@ -200,7 +200,7 @@ pub fn get_ordered_bins(bins: Vec<u64>) -> impl Iterator<Item = Vec<u64>> {
     // Need to scale differences so that we sort bin vecs by increasing PC variance
     let scale_array = (0..num_pcs)
         .rev()
-        .map(|i| (i + 1) as i64)
+        .map(|i| bins_per_pc.pow(i as u32) as i64)
         .collect::<Vec<_>>();
     let scale_array = Array1::<i64>::from_vec(scale_array);
     let bin_diffs_scaled = &bin_diffs * &scale_array;
