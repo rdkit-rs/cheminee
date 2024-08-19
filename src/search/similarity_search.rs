@@ -1,10 +1,13 @@
 use crate::search::basic_search::basic_search;
 use crate::search::SIMILARITY_DESCRIPTORS;
+use bitvec::prelude::*;
 use itertools::Itertools;
 use ndarray::{Array1, Array2, Axis};
+use rdkit::Fingerprint;
 use serde_json::Value;
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
+use tantivy::schema::Field;
 use tantivy::{DocAddress, Searcher};
 
 const PCA_PARAMS: &str = include_str!("../../assets/cheminee_pca_params_20240816.json");
@@ -44,6 +47,40 @@ pub fn build_similarity_query(descriptors: &HashMap<String, f64>, extra_query: &
     );
 
     query_parts.join(" AND ")
+}
+
+pub fn get_best_similarity(
+    searcher: &Searcher,
+    docaddr: &DocAddress,
+    fingerprint_field: Field,
+    taut_fingerprints: &[Fingerprint],
+) -> eyre::Result<f32> {
+    let doc = searcher.doc(*docaddr)?;
+
+    let fingerprint = doc
+        .get_first(fingerprint_field)
+        .ok_or(eyre::eyre!("Tantivy fingerprint retrieval failed"))?
+        .as_bytes()
+        .ok_or(eyre::eyre!("Failed to read fingerprint as bytes"))?;
+
+    let fingerprint = BitSlice::<u8, Lsb0>::from_slice(fingerprint);
+
+    let similarity = taut_fingerprints
+        .iter()
+        .map(|fp| get_tanimoto_similarity(&fp.0, fingerprint))
+        .fold(f32::MIN, |max, x| x.max(max));
+
+    Ok(similarity)
+}
+
+pub fn get_tanimoto_similarity(fp1: &BitVec<u8>, fp2: &BitSlice<u8>) -> f32 {
+    let and = fp1.to_bitvec() & fp2;
+    let or = fp1.to_bitvec() | fp2;
+
+    let and_ones = and.count_ones();
+    let or_ones = or.count_ones();
+
+    and_ones as f32 / or_ones as f32
 }
 
 fn get_descriptor_stats() -> Arc<HashMap<String, Vec<f64>>> {

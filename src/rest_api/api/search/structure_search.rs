@@ -116,6 +116,14 @@ pub fn v1_index_search_structure(
         }
     }
 
+    let results = results.iter().map(|d| (*d, 1.0)).collect::<Vec<_>>();
+
+    let results = if results.len() > result_limit {
+        results[..result_limit].to_vec()
+    } else {
+        results
+    };
+
     let final_results = aggregate_search_hits(searcher, results, used_tautomers, &smiles);
 
     let final_results = match final_results {

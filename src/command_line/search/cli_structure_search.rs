@@ -98,13 +98,17 @@ pub fn cli_structure_search(method: &str, matches: &ArgMatches) -> eyre::Result<
         }
     }
 
+    let results = results.iter().map(|d| (*d, 1.0)).collect::<Vec<_>>();
+
+    let results = if results.len() > result_limit {
+        results[..result_limit].to_vec()
+    } else {
+        results
+    };
+
     let final_results = aggregate_search_hits(searcher, results, used_tautomers, smiles)?;
 
-    if final_results.len() > result_limit {
-        println!("{:#?}", &final_results[..result_limit]);
-    } else {
-        println!("{:#?}", final_results)
-    }
+    println!("{:#?}", final_results);
 
     Ok(())
 }

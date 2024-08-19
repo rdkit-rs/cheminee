@@ -30,6 +30,7 @@ async fn main() -> eyre::Result<()> {
         .subcommand(command_line::search::substructure_search::command())
         .subcommand(command_line::search::superstructure_search::command())
         .subcommand(command_line::search::identity_search::command())
+        .subcommand(command_line::search::similarity_search::command())
         .subcommand(rest_api::command());
 
     let matches = app.get_matches();
@@ -66,6 +67,9 @@ async fn main() -> eyre::Result<()> {
         }
         (command_line::search::identity_search::NAME, matches) => {
             command_line::search::identity_search::action(matches)
+        }
+        (command_line::search::similarity_search::NAME, matches) => {
+            command_line::search::similarity_search::action(matches)
         }
         (rest_api::NAME, matches) => rest_api::action(matches).await,
         (unknown, _) => panic!("🤨: {}", unknown),
