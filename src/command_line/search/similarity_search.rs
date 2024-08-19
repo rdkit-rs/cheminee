@@ -110,13 +110,7 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
         .into_par_iter()
         .filter_map(|taut| {
             let taut_descriptors = Properties::new().compute_properties(taut);
-            similarity_search(
-                &searcher,
-                &taut_descriptors,
-                10 * result_limit,
-                &extra_query,
-            )
-            .ok()
+            similarity_search(&searcher, &taut_descriptors, &extra_query, None).ok()
         })
         .collect::<Vec<_>>();
 

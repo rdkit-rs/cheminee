@@ -21,9 +21,13 @@ lazy_static::lazy_static! {
 pub fn similarity_search(
     searcher: &Searcher,
     descriptors: &HashMap<String, f64>,
-    result_limit: usize,
     extra_query: &str,
+    result_limit: Option<usize>,
 ) -> eyre::Result<HashSet<DocAddress>> {
+    // We do not expect any query to bring about more than 10,000 results
+    // This is controlled by the number of bins retained for the PCA space
+    let result_limit = result_limit.unwrap_or_else(|| 10_000);
+
     let query = build_similarity_query(descriptors, extra_query);
     basic_search(searcher, &query, result_limit)
 }

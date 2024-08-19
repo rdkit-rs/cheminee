@@ -288,7 +288,7 @@ fn test_similarity_search() {
     let reader = index.reader().unwrap();
     let searcher = reader.searcher();
 
-    let results = similarity_search(&searcher, &query_descriptors, 10, &"").unwrap();
+    let results = similarity_search(&searcher, &query_descriptors, &"", None).unwrap();
 
     assert_eq!(results.len(), 1);
 }
