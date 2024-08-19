@@ -93,7 +93,7 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
 
     let query_canon_taut = standardize_smiles(smiles, false)?;
 
-    let mut tautomers = if tautomer_limit > 0 {
+    let tautomers = if tautomer_limit > 0 {
         let mut tauts = get_tautomers(&query_canon_taut);
         tauts.insert(0, query_canon_taut);
         tauts
@@ -106,16 +106,12 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
     let used_tautomers = tautomer_limit > 1;
 
     let mut results: HashSet<DocAddress> = HashSet::new();
-    let tautomer_results = &tautomers[..tautomer_limit]
-        .into_par_iter()
-        .filter_map(|taut| {
-            let taut_descriptors = Properties::new().compute_properties(taut);
-            similarity_search(&searcher, &taut_descriptors, &extra_query, None).ok()
-        })
-        .collect::<Vec<_>>();
-
-    for results_set in tautomer_results {
-        results.extend(results_set);
+    for taut in &tautomers[..tautomer_limit] {
+        let taut_descriptors = Properties::new().compute_properties(taut);
+        let taut_results = similarity_search(&searcher, &taut_descriptors, &extra_query, None);
+        if let Ok(taut_results) = taut_results {
+            results.extend(taut_results);
+        }
     }
 
     let taut_fingerprints = tautomers

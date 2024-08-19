@@ -26,7 +26,7 @@ pub fn similarity_search(
 ) -> eyre::Result<HashSet<DocAddress>> {
     // We do not expect any query to bring about more than 10,000 results
     // This is controlled by the number of bins retained for the PCA space
-    let result_limit = result_limit.unwrap_or_else(|| 10_000);
+    let result_limit = result_limit.unwrap_or(10_000);
 
     let query = build_similarity_query(descriptors, extra_query);
     basic_search(searcher, &query, result_limit)
