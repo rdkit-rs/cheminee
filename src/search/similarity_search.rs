@@ -10,7 +10,7 @@ use std::sync::Arc;
 use tantivy::schema::Field;
 use tantivy::{DocAddress, Searcher};
 
-const PCA_PARAMS: &str = include_str!("../../assets/cheminee_pca_params_20240816.json");
+const PCA_PARAMS: &str = include_str!("../../assets/cheminee_pca_params_20240819.json");
 
 lazy_static::lazy_static! {
     pub static ref DESCRIPTOR_STATS: Arc<HashMap<String, Vec<f64>>> = get_descriptor_stats();

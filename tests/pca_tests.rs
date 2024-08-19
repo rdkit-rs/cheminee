@@ -39,9 +39,9 @@ fn test_pca_params_parse() {
         .map(|v| format!("{:.3}", v))
         .collect::<Vec<_>>();
 
-    assert_eq!(*nsr_mean_std, vec!["0.647", "0.991"]);
-    assert_eq!(*nsa_mean_std, vec!["0.025", "0.168"]);
-    assert_eq!(*nah_mean_std, vec!["0.583", "0.857"]);
+    assert_eq!(*nsr_mean_std, vec!["0.642", "0.971"]);
+    assert_eq!(*nsa_mean_std, vec!["0.027", "0.174"]);
+    assert_eq!(*nah_mean_std, vec!["0.577", "0.809"]);
 
     let pc_matrix = PC_MATRIX.clone();
     let pc0_vector = pc_matrix
@@ -53,11 +53,11 @@ fn test_pca_params_parse() {
     assert_eq!(
         pc0_vector,
         vec![
-            "0.113", "0.206", "-0.001", "0.087", "0.094", "0.093", "0.040", "0.102", "0.204",
-            "0.053", "0.148", "0.093", "0.209", "0.149", "0.092", "0.141", "0.152", "0.076",
-            "0.076", "0.022", "0.162", "0.207", "0.208", "0.209", "0.208", "0.207", "0.200",
-            "0.191", "0.200", "0.191", "0.192", "0.179", "0.207", "-0.149", "0.205", "0.181",
-            "0.081", "0.209", "0.152", "0.085", "0.137"
+            "0.113", "0.208", "-0.005", "0.076", "0.088", "0.100", "0.048", "0.105", "0.205",
+            "0.048", "0.149", "0.099", "0.210", "0.153", "0.089", "0.140", "0.153", "0.058",
+            "0.067", "0.031", "0.161", "0.208", "0.209", "0.210", "0.209", "0.208", "0.200",
+            "0.191", "0.200", "0.191", "0.191", "0.174", "0.208", "-0.153", "0.205", "0.181",
+            "0.003", "0.210", "0.155", "0.093", "0.141"
         ]
     );
 
@@ -71,7 +71,7 @@ fn test_pca_params_parse() {
 
     assert_eq!(
         pc0_bin_edges,
-        vec!["-inf", "-2.648", "-0.868", "1.463", "inf"]
+        vec!["-inf", "-3.250", "-2.119", "-0.909", "0.543", "2.613", "inf"]
     );
 }
 
@@ -81,7 +81,7 @@ fn test_assign_pca_bins() {
     let (_canon_taut, _fp, descriptors) = process_cpd(smiles, false).unwrap();
     let pca_bins = assign_pca_bins(&descriptors);
 
-    assert_eq!(pca_bins, vec![0, 0, 1, 2, 1, 1]);
+    assert_eq!(pca_bins, vec![0, 2, 2, 4, 1, 1]);
 
     let pca_bins_json = Value::Object(
         pca_bins
@@ -91,7 +91,7 @@ fn test_assign_pca_bins() {
             .collect(),
     );
 
-    assert_eq!(format!("{:?}", pca_bins_json), "Object {\"pc0\": Number(0), \"pc1\": Number(0), \"pc2\": Number(1), \"pc3\": Number(2), \"pc4\": Number(1), \"pc5\": Number(1)}");
+    assert_eq!(format!("{:?}", pca_bins_json), "Object {\"pc0\": Number(0), \"pc1\": Number(2), \"pc2\": Number(2), \"pc3\": Number(4), \"pc4\": Number(1), \"pc5\": Number(1)}");
 }
 
 #[test]
