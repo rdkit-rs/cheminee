@@ -238,7 +238,7 @@ fn test_similarity_search() {
         process_cpd(index_smiles, false).unwrap();
     let index_pca_bin_vec = assign_pca_bins(&index_descriptors);
 
-    let query_smiles = "C1=CC=CC=C1";
+    let query_smiles = "C1=CC=CC=C1CC";
     let (_query_mol, _query_fingerprint, query_descriptors) =
         process_cpd(query_smiles, false).unwrap();
 
@@ -289,7 +289,7 @@ fn test_similarity_search() {
     let reader = index.reader().unwrap();
     let searcher = reader.searcher();
 
-    let results = similarity_search(&searcher, &query_descriptors, &"", 1, None).unwrap();
+    let results = similarity_search(&searcher, &query_descriptors, &"", 1, 100, None).unwrap();
 
     assert_eq!(results.len(), 1);
 }

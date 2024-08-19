@@ -43,6 +43,14 @@ pub fn command() -> Command {
                 .num_args(1),
         )
         .arg(
+            Arg::new("bin-limit")
+                .required(false)
+                .long("bin-limit")
+                .short('b')
+                .help("Set to 10 by default (out of 46,656 possible); Cheminee will only search up to the number of specified PCA bins")
+                .num_args(1),
+        )
+        .arg(
             Arg::new("extra-query")
                 .required(false)
                 .long("extra-query")
@@ -61,6 +69,7 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
         .ok_or(eyre::eyre!("Failed to extract SMILES"))?;
     let result_limit = matches.get_one::<String>("result-limit");
     let tautomer_limit = matches.get_one::<String>("tautomer-limit");
+    let bin_limit = matches.get_one::<String>("bin-limit");
     let extra_query = matches.get_one::<String>("extra-query");
 
     let result_limit = if let Some(result_limit) = result_limit {
@@ -73,6 +82,12 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
         tautomer_limit.parse::<usize>()?
     } else {
         usize::try_from(0)?
+    };
+
+    let bin_limit = if let Some(bin_limit) = bin_limit {
+        bin_limit.parse::<usize>()?
+    } else {
+        usize::try_from(10)?
     };
 
     let extra_query = if let Some(extra_query) = extra_query {
@@ -113,6 +128,7 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
             &taut_descriptors,
             &extra_query,
             result_limit,
+            bin_limit,
             None,
         );
         if let Ok(taut_results) = taut_results {

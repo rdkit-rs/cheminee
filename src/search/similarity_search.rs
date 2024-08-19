@@ -23,6 +23,7 @@ pub fn similarity_search(
     descriptors: &HashMap<String, f64>,
     extra_query: &str,
     result_limit: usize,
+    bin_limit: usize,
     tantivy_limit: Option<usize>,
 ) -> eyre::Result<HashSet<DocAddress>> {
     // We do not expect any single query to bring about more than 10,000 results
@@ -34,8 +35,8 @@ pub fn similarity_search(
     let ranked_bin_vecs = get_ordered_bins(&target_bin_vec);
 
     let mut results = HashSet::new();
-    for bin_vec in ranked_bin_vecs {
-        if results.len() >= result_limit {
+    for (searched_bins, bin_vec) in ranked_bin_vecs.enumerate() {
+        if results.len() >= result_limit || searched_bins >= bin_limit {
             break;
         }
 
