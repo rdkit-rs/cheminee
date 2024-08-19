@@ -108,7 +108,13 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
     let mut results: HashSet<DocAddress> = HashSet::new();
     for taut in &tautomers[..tautomer_limit] {
         let taut_descriptors = Properties::new().compute_properties(taut);
-        let taut_results = similarity_search(&searcher, &taut_descriptors, &extra_query, None);
+        let taut_results = similarity_search(
+            &searcher,
+            &taut_descriptors,
+            &extra_query,
+            result_limit,
+            None,
+        );
         if let Ok(taut_results) = taut_results {
             results.extend(taut_results);
         }

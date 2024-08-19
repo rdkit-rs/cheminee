@@ -43,7 +43,8 @@ fn test_build_superstructure_query() {
 #[test]
 fn test_build_similarity_query() {
     let (_canon_taut, _fp, descriptors) = process_cpd("c1ccccc1CCF", false).unwrap();
-    let query = build_similarity_query(&descriptors, &"");
+    let pca_bin_vec = assign_pca_bins(&descriptors);
+    let query = build_similarity_query(&pca_bin_vec, &"");
     assert_eq!(query, "extra_data.pc0:0 AND extra_data.pc1:0 AND extra_data.pc2:1 AND extra_data.pc3:2 AND extra_data.pc4:1 AND extra_data.pc5:1");
 }
 
@@ -288,7 +289,7 @@ fn test_similarity_search() {
     let reader = index.reader().unwrap();
     let searcher = reader.searcher();
 
-    let results = similarity_search(&searcher, &query_descriptors, &"", None).unwrap();
+    let results = similarity_search(&searcher, &query_descriptors, &"", 1000, None).unwrap();
 
     assert_eq!(results.len(), 1);
 }

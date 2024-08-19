@@ -22,18 +22,32 @@ pub fn similarity_search(
     searcher: &Searcher,
     descriptors: &HashMap<String, f64>,
     extra_query: &str,
-    result_limit: Option<usize>,
+    result_limit: usize,
+    tantivy_limit: Option<usize>,
 ) -> eyre::Result<HashSet<DocAddress>> {
-    // We do not expect any query to bring about more than 10,000 results
+    // We do not expect any single query to bring about more than 10,000 results
     // This is controlled by the number of bins retained for the PCA space
-    let result_limit = result_limit.unwrap_or(10_000);
+    // Ideally, we want something like 100-10,000 compounds per bin
+    let tantivy_limit = tantivy_limit.unwrap_or(10_000);
 
-    let query = build_similarity_query(descriptors, extra_query);
-    basic_search(searcher, &query, result_limit)
+    let target_bin_vec = assign_pca_bins(descriptors);
+    let ranked_bin_vecs = get_ordered_bins(&target_bin_vec);
+
+    let mut results = HashSet::new();
+    for bin_vec in ranked_bin_vecs {
+        if results.len() >= result_limit {
+            break;
+        }
+
+        let query = build_similarity_query(&bin_vec, extra_query);
+        let docs = basic_search(searcher, &query, tantivy_limit)?;
+        results.extend(docs);
+    }
+
+    Ok(results)
 }
 
-pub fn build_similarity_query(descriptors: &HashMap<String, f64>, extra_query: &str) -> String {
-    let pca_bin_vec = assign_pca_bins(descriptors);
+pub fn build_similarity_query(pca_bin_vec: &[u64], extra_query: &str) -> String {
     let mut query_parts = Vec::with_capacity(pca_bin_vec.len());
 
     if !extra_query.is_empty() {
@@ -236,7 +250,7 @@ pub fn assign_pca_bins(descriptors: &HashMap<String, f64>) -> Vec<u64> {
     final_bins
 }
 
-pub fn get_ordered_bins(bins: Vec<u64>) -> impl Iterator<Item = Vec<u64>> {
+pub fn get_ordered_bins(bins: &[u64]) -> impl Iterator<Item = Vec<u64>> {
     let bins = bins.iter().map(|v| *v as i64).collect::<Vec<_>>();
     let num_pcs = PC_MATRIX.shape()[0];
     let bins_per_pc = PCA_BIN_EDGES.get("pc0").unwrap().len() - 1;

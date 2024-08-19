@@ -96,7 +96,7 @@ fn test_assign_pca_bins() {
 
 #[test]
 fn test_get_ordered_bins() {
-    let ordered_bins = get_ordered_bins(vec![0, 3, 0, 0, 0, 1]).collect::<Vec<_>>();
+    let ordered_bins = get_ordered_bins(&vec![0, 3, 0, 0, 0, 1]).collect::<Vec<_>>();
 
     assert_eq!(ordered_bins[0], vec![0, 3, 0, 0, 0, 1]);
     assert_eq!(ordered_bins[1], vec![0, 3, 0, 0, 0, 0]);
