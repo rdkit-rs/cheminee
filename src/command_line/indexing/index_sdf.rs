@@ -231,9 +231,10 @@ fn create_tantivy_doc(
         false => serde_json::json!({"scaffolds": scaffold_matches}),
     };
 
-    let pca_bins = assign_pca_bins(descriptors)?
-        .into_iter()
-        .map(|(pc, bin)| (pc, serde_json::json!(bin)))
+    let pca_bins = assign_pca_bins(&descriptors)
+        .iter()
+        .enumerate()
+        .map(|(idx, bin)| (format!("pc{idx}"), serde_json::json!(bin)))
         .collect();
 
     let pca_bins_json = Value::Object(pca_bins);

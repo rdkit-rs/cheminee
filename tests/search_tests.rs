@@ -1,10 +1,13 @@
 use cheminee::search::compound_processing::{process_cpd, standardize_smiles};
 use cheminee::search::identity_search::{build_identity_query, identity_search};
 use cheminee::search::scaffold_search::{scaffold_search, PARSED_SCAFFOLDS};
+use cheminee::search::similarity_search::{
+    assign_pca_bins, build_similarity_query, similarity_search,
+};
 use cheminee::search::structure_search::{
     build_substructure_query, build_superstructure_query, structure_search,
 };
-use serde_json::json;
+use serde_json::{json, Value};
 use std::collections::HashMap;
 use tantivy::schema::{JsonObjectOptions, TEXT};
 use tantivy::{
@@ -35,6 +38,13 @@ fn test_build_superstructure_query() {
         query,
         "NumAtoms:[0 TO 10] AND (extra_data.scaffolds:0 OR extra_data.scaffolds:1 OR extra_data.scaffolds:-1)"
     );
+}
+
+#[test]
+fn test_build_similarity_query() {
+    let (_canon_taut, _fp, descriptors) = process_cpd("c1ccccc1CCF", false).unwrap();
+    let query = build_similarity_query(&descriptors, &"");
+    assert_eq!(query, "extra_data.pc0:0 AND extra_data.pc1:0 AND extra_data.pc2:1 AND extra_data.pc3:2 AND extra_data.pc4:1 AND extra_data.pc5:1");
 }
 
 #[test]
@@ -216,6 +226,69 @@ fn test_superstructure_search() {
         &extra_query,
     )
     .unwrap();
+
+    assert_eq!(results.len(), 1);
+}
+
+#[test]
+fn test_similarity_search() {
+    let index_smiles = "C1=CC=CC=C1C";
+    let (index_mol, index_fingerprint, index_descriptors) =
+        process_cpd(index_smiles, false).unwrap();
+    let index_pca_bin_vec = assign_pca_bins(&index_descriptors);
+
+    let query_smiles = "C1=CC=CC=C1";
+    let (_query_mol, _query_fingerprint, query_descriptors) =
+        process_cpd(query_smiles, false).unwrap();
+
+    let mut builder = SchemaBuilder::new();
+    let smiles_field = builder.add_text_field("smiles", STRING | STORED);
+    let fingerprint_field = builder.add_bytes_field("fingerprint", FAST | STORED);
+
+    let json_options: JsonObjectOptions =
+        JsonObjectOptions::from(TEXT | STORED).set_expand_dots_enabled();
+    let extra_data_field = builder.add_json_field("extra_data", json_options);
+
+    let pca_bins_json = Value::Object(
+        index_pca_bin_vec
+            .iter()
+            .enumerate()
+            .map(|(idx, bin)| (format!("pc{idx}"), serde_json::json!(bin)))
+            .collect(),
+    );
+
+    let mut doc = doc!(
+        smiles_field => index_mol.as_smiles(),
+        fingerprint_field => index_fingerprint.0.clone().into_vec(),
+        extra_data_field => pca_bins_json,
+    );
+
+    for (descriptor, val) in &index_descriptors {
+        if descriptor.starts_with("Num") || descriptor.starts_with("lipinski") {
+            let current_field = builder.add_i64_field(descriptor, INDEXED | STORED);
+
+            doc.add_field_value(current_field, *val as i64);
+        } else {
+            let current_field = builder.add_f64_field(descriptor, FAST | STORED);
+
+            doc.add_field_value(current_field, *val);
+        }
+    }
+
+    let schema = builder.build();
+
+    let builder = IndexBuilder::new().schema(schema);
+    let index = builder.create_in_ram().unwrap();
+
+    let mut index_writer = index.writer_with_num_threads(1, 50 * 1024 * 1024).unwrap();
+
+    index_writer.add_document(doc).unwrap();
+    index_writer.commit().unwrap();
+
+    let reader = index.reader().unwrap();
+    let searcher = reader.searcher();
+
+    let results = similarity_search(&searcher, &query_descriptors, 10, &"").unwrap();
 
     assert_eq!(results.len(), 1);
 }

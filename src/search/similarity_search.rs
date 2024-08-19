@@ -1,9 +1,11 @@
+use crate::search::basic_search::basic_search;
 use crate::search::SIMILARITY_DESCRIPTORS;
 use itertools::Itertools;
 use ndarray::{Array1, Array2, Axis};
 use serde_json::Value;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
+use tantivy::{DocAddress, Searcher};
 
 const PCA_PARAMS: &str = include_str!("../../assets/cheminee_pca_params_20240816.json");
 
@@ -11,6 +13,37 @@ lazy_static::lazy_static! {
     pub static ref DESCRIPTOR_STATS: Arc<HashMap<String, Vec<f64>>> = get_descriptor_stats();
     pub static ref PC_MATRIX: Arc<Array2<f64>> = get_pc_matrix();
     pub static ref PCA_BIN_EDGES: Arc<HashMap<String, Vec<f64>>> = get_pca_bin_edges();
+}
+
+pub fn similarity_search(
+    searcher: &Searcher,
+    descriptors: &HashMap<String, f64>,
+    result_limit: usize,
+    extra_query: &str,
+) -> eyre::Result<HashSet<DocAddress>> {
+    let query = build_similarity_query(descriptors, extra_query);
+    basic_search(searcher, &query, result_limit)
+}
+
+pub fn build_similarity_query(descriptors: &HashMap<String, f64>, extra_query: &str) -> String {
+    let pca_bin_vec = assign_pca_bins(descriptors);
+    let mut query_parts = Vec::with_capacity(pca_bin_vec.len());
+
+    if !extra_query.is_empty() {
+        for subquery in extra_query.split(" AND ") {
+            query_parts.push(subquery.to_string());
+        }
+    }
+
+    query_parts.extend(
+        pca_bin_vec
+            .iter()
+            .enumerate()
+            .map(|(idx, bin)| format!("extra_data.pc{idx}:{bin}"))
+            .collect::<Vec<_>>(),
+    );
+
+    query_parts.join(" AND ")
 }
 
 fn get_descriptor_stats() -> Arc<HashMap<String, Vec<f64>>> {
@@ -130,7 +163,7 @@ fn get_pca_bin_edges() -> Arc<HashMap<String, Vec<f64>>> {
     Arc::new(pc_bins)
 }
 
-pub fn assign_pca_bins(descriptors: HashMap<String, f64>) -> eyre::Result<HashMap<String, u64>> {
+pub fn assign_pca_bins(descriptors: &HashMap<String, f64>) -> Vec<u64> {
     let stdz_descriptors = SIMILARITY_DESCRIPTORS
         .iter()
         .map(|d| {
@@ -146,8 +179,7 @@ pub fn assign_pca_bins(descriptors: HashMap<String, f64>) -> eyre::Result<HashMa
 
     let pca_proj = PC_MATRIX.dot(&descriptor_array);
 
-    let mut final_bins = HashMap::new();
-    let _ = pca_proj
+    let final_bins = pca_proj
         .iter()
         .enumerate()
         .map(|(idx, val)| {
@@ -156,12 +188,11 @@ pub fn assign_pca_bins(descriptors: HashMap<String, f64>) -> eyre::Result<HashMa
 
             // left inclusive
             let rank_search = pc_bin_edges.binary_search_by(|x| x.partial_cmp(val).unwrap());
-            let pc_bin = rank_search.unwrap_or_else(|right_bin_edge| right_bin_edge - 1);
-            final_bins.insert(current_pc, pc_bin as u64);
+            rank_search.unwrap_or_else(|right_bin_edge| right_bin_edge - 1) as u64
         })
         .collect::<Vec<_>>();
 
-    Ok(final_bins)
+    final_bins
 }
 
 pub fn get_ordered_bins(bins: Vec<u64>) -> impl Iterator<Item = Vec<u64>> {

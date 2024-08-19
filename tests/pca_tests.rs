@@ -79,19 +79,15 @@ fn test_pca_params_parse() {
 fn test_assign_pca_bins() {
     let smiles = "c1ccccc1CCF";
     let (_canon_taut, _fp, descriptors) = process_cpd(smiles, false).unwrap();
-    let pca_bins = assign_pca_bins(descriptors).unwrap();
+    let pca_bins = assign_pca_bins(&descriptors);
 
-    assert_eq!(*pca_bins.get("pc0").unwrap(), 0);
-    assert_eq!(*pca_bins.get("pc1").unwrap(), 0);
-    assert_eq!(*pca_bins.get("pc2").unwrap(), 1);
-    assert_eq!(*pca_bins.get("pc3").unwrap(), 2);
-    assert_eq!(*pca_bins.get("pc4").unwrap(), 1);
-    assert_eq!(*pca_bins.get("pc5").unwrap(), 1);
+    assert_eq!(pca_bins, vec![0, 0, 1, 2, 1, 1]);
 
     let pca_bins_json = Value::Object(
         pca_bins
-            .into_iter()
-            .map(|(pc, bin)| (pc, serde_json::json!(bin)))
+            .iter()
+            .enumerate()
+            .map(|(idx, bin)| (format!("pc{idx}"), serde_json::json!(bin)))
             .collect(),
     );
 
