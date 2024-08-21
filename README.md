@@ -14,11 +14,13 @@ Tested on Rust Stabe 1.76 (`rustup default 1.76`)
 Intended Functionality
 ---
 
-Cheminée is intended to work via CLI (e.g. for diagnostics) and API endpoints. "Substructure search" is
-the first intended functionality, but Cheminée will eventually support "superstructure search", "similarity search",
-and exact matches. Aside from structure searching, the API also supports standardization of SMILES in bulk as
-well as indexing via Tantivy. Users can also search for compounds by RDKit chemical descriptors (e.g. "exactmw", "
-NumAtoms", etc).
+Cheminée is intended to work via CLI (e.g. for diagnostics) and API endpoints. Cheminée currently supports CLI and API
+endpoints for "identity search" (i.e. exact structure match), "substructure search", "superstructure search", and
+Tanimoto-based "similarity search". Aside from structure searching, the API also supports endpoints for standardization
+of SMILES in bulk, as well as molecular format conversions (e.g. smiles-to-molblock and molblock-to-smiles). Indexing
+endpoints (e.g. index creation, bulk indexing, compound deletion, index deletion) are
+executed using Tantivy. Users can also search for compounds by RDKit chemical descriptors (e.g. "exactmw", "
+NumAtoms", etc.) using the "basic search" endpoint.
 
 
 The API
@@ -61,6 +63,24 @@ Similar to basic search, "i" refers to the index path, "s" refers to the query S
 desired results,
 "t" refers to the number of tautomers to be used for the query SMILES (if applicable), and "e" refers to the
 "extra query" which is a composite query for chemical descriptors as in the basic search implementation.
+
+Superstructure Search
+
+For example:
+
+    cargo run -- superstructure-search -i /tmp/cheminee/scaffolds-index0 -s c1ccccc1CCc1ccccc1CC -r 10 -t 10 -e "exactmw: [20 TO 200]"
+
+The input arguments here are the same as used for substructure search.
+
+Similarity Search
+
+For example:
+
+    cargo run -- similarity-search -i /tmp/cheminee/scaffolds-index0 -s c1ccccc1CCc1ccccc1CCF -r 10 -t 10 -b 10 -e "exactmw: [20 TO 200]"
+
+The additional "b" argument here refers to the maximum number of 6-dimensional PC bins that will be searched to extract
+similar compounds. Currently, 46,656 (or 6^6) bins are constructed for this purpose.
+
 
 Cutting A New Release
 ---
