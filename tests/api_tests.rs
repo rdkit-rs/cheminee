@@ -172,7 +172,7 @@ async fn test_index_and_search_endpoints() {
 
     assert_eq!(
         format!("{:?}", basic_resp),
-        "Ok(Json([QuerySearchHit { extra_data: \"{\\\"scaffolds\\\":[0,126]}\", smiles: \"c1ccc(CCc2ccccc2)cc1\", query: \"NumAtoms:[13 TO 100]\" }]))"
+        "Ok(Json([QuerySearchHit { extra_data: \"{\\\"pc0\\\":0,\\\"pc1\\\":1,\\\"pc2\\\":0,\\\"pc3\\\":4,\\\"pc4\\\":1,\\\"pc5\\\":1,\\\"scaffolds\\\":[0,126]}\", smiles: \"c1ccc(CCc2ccccc2)cc1\", query: \"NumAtoms:[13 TO 100]\" }]))"
     );
 
     // Test identity search
@@ -187,7 +187,7 @@ async fn test_index_and_search_endpoints() {
 
     assert_eq!(
         format!("{:?}", identity_resp),
-        "Ok(Json([StructureSearchHit { extra_data: \"{\\\"scaffolds\\\":[0,126]}\", smiles: \"c1ccc(CCc2ccccc2)cc1\", score: 1.0, query: \"C1=CC=CC=C1CCC2=CC=CC=C2\", used_tautomers: false }]))"
+        "Ok(Json([StructureSearchHit { extra_data: \"{\\\"pc0\\\":0,\\\"pc1\\\":1,\\\"pc2\\\":0,\\\"pc3\\\":4,\\\"pc4\\\":1,\\\"pc5\\\":1,\\\"scaffolds\\\":[0,126]}\", smiles: \"c1ccc(CCc2ccccc2)cc1\", score: 1.0, query: \"C1=CC=CC=C1CCC2=CC=CC=C2\", used_tautomers: false }]))"
     );
 
     // Test substructure search
@@ -203,8 +203,7 @@ async fn test_index_and_search_endpoints() {
         .await;
 
     let substructure_resp_str = format!("{:?}", substructure_resp);
-
-    assert!(substructure_resp_str.contains("StructureSearchHit { extra_data: \"{\\\"scaffolds\\\":[0,126]}\", smiles: \"c1ccc(CCc2ccccc2)cc1\", score: 1.0, query: \"C1=CC=CC=C1\", used_tautomers: false }"));
+    assert!(substructure_resp_str.contains("Ok(Json([StructureSearchHit { extra_data: \"{\\\"pc0\\\":0,\\\"pc1\\\":1,\\\"pc2\\\":0,\\\"pc3\\\":4,\\\"pc4\\\":1,\\\"pc5\\\":1,\\\"scaffolds\\\":[0,126]}\", smiles: \"c1ccc(CCc2ccccc2)cc1\", score: 1.0, query: \"C1=CC=CC=C1\", used_tautomers: false }]))"));
 
     // Test superstructure search
     let superstructure_resp = test_api
@@ -220,8 +219,9 @@ async fn test_index_and_search_endpoints() {
 
     let superstructure_resp_str = format!("{:?}", superstructure_resp);
 
-    assert!(superstructure_resp_str.contains("StructureSearchHit { extra_data: \"{\\\"scaffolds\\\":[0]}\", smiles: \"c1ccccc1\", score: 1.0, query: \"C1=CC=CC=C1CCC2=CC=CC=C2\", used_tautomers: false }"));
-    assert!(superstructure_resp_str.contains("StructureSearchHit { extra_data: \"{\\\"scaffolds\\\":[-1]}\", smiles: \"CC\", score: 1.0, query: \"C1=CC=CC=C1CCC2=CC=CC=C2\", used_tautomers: false }"));
+    println!("{:?}", superstructure_resp_str);
+    assert!(superstructure_resp_str.contains("StructureSearchHit { extra_data: \"{\\\"pc0\\\":0,\\\"pc1\\\":2,\\\"pc2\\\":1,\\\"pc3\\\":3,\\\"pc4\\\":1,\\\"pc5\\\":1,\\\"scaffolds\\\":[0]}\", smiles: \"c1ccccc1\", score: 1.0, query: \"C1=CC=CC=C1CCC2=CC=CC=C2\", used_tautomers: false }"));
+    assert!(superstructure_resp_str.contains("StructureSearchHit { extra_data: \"{\\\"pc0\\\":0,\\\"pc1\\\":2,\\\"pc2\\\":4,\\\"pc3\\\":5,\\\"pc4\\\":3,\\\"pc5\\\":4,\\\"scaffolds\\\":[-1]}\", smiles: \"CC\", score: 1.0, query: \"C1=CC=CC=C1CCC2=CC=CC=C2\", used_tautomers: false }"));
 
     // Test list indexes
     let list_indexes_resp = test_api.v1_list_indexes().await;

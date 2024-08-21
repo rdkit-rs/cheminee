@@ -5,6 +5,7 @@ use crate::rest_api::api::{
 };
 use crate::search::compound_processing::process_cpd;
 use crate::search::scaffold_search::{scaffold_search, PARSED_SCAFFOLDS};
+use crate::search::similarity_search::assign_pca_bins;
 use poem_openapi::payload::Json;
 use rayon::prelude::*;
 use serde_json::{Map, Value};
@@ -124,7 +125,7 @@ fn bulk_request_doc_to_tantivy_doc(
     // By default, do not attempt to fix problematic molecules
     let (tautomer, fingerprint, descriptors) = process_cpd(&bulk_request_doc.smiles, false)?;
 
-    let json: Value = serde_json::to_value(descriptors)?;
+    let json: Value = serde_json::to_value(&descriptors)?;
     let jsonified_compound_descriptors: Map<String, Value> = if let Value::Object(map) = json {
         map
     } else {
@@ -144,7 +145,16 @@ fn bulk_request_doc_to_tantivy_doc(
         false => serde_json::json!({"scaffolds": scaffold_matches}),
     };
 
+    let pca_bins = assign_pca_bins(&descriptors)
+        .iter()
+        .enumerate()
+        .map(|(idx, bin)| (format!("pc{idx}"), serde_json::json!(bin)))
+        .collect();
+
+    let pca_bins_json = Value::Object(pca_bins);
+
     let extra_data_json = combine_json_objects(Some(scaffold_json), bulk_request_doc.extra_data);
+    let extra_data_json = combine_json_objects(extra_data_json, Some(pca_bins_json));
     if let Some(extra_data_json) = extra_data_json {
         doc.add_field_value(extra_data_field, extra_data_json);
     }
