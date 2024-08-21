@@ -219,9 +219,22 @@ async fn test_index_and_search_endpoints() {
 
     let superstructure_resp_str = format!("{:?}", superstructure_resp);
 
-    println!("{:?}", superstructure_resp_str);
     assert!(superstructure_resp_str.contains("StructureSearchHit { extra_data: \"{\\\"pc0\\\":0,\\\"pc1\\\":2,\\\"pc2\\\":1,\\\"pc3\\\":3,\\\"pc4\\\":1,\\\"pc5\\\":1,\\\"scaffolds\\\":[0]}\", smiles: \"c1ccccc1\", score: 1.0, query: \"C1=CC=CC=C1CCC2=CC=CC=C2\", used_tautomers: false }"));
     assert!(superstructure_resp_str.contains("StructureSearchHit { extra_data: \"{\\\"pc0\\\":0,\\\"pc1\\\":2,\\\"pc2\\\":4,\\\"pc3\\\":5,\\\"pc4\\\":3,\\\"pc5\\\":4,\\\"scaffolds\\\":[-1]}\", smiles: \"CC\", score: 1.0, query: \"C1=CC=CC=C1CCC2=CC=CC=C2\", used_tautomers: false }"));
+
+    // Test similarity search
+    let similarity_resp = test_api
+        .v1_index_search_similarity(
+            Path(index_name.to_string()),
+            Query(smi2.to_string()),
+            Query(None),
+            Query(None),
+            Query(None),
+            Query(None),
+        )
+        .await;
+
+    assert_eq!(format!("{:?}", similarity_resp), "Ok(Json([StructureSearchHit { extra_data: \"{\\\"pc0\\\":0,\\\"pc1\\\":2,\\\"pc2\\\":1,\\\"pc3\\\":3,\\\"pc4\\\":1,\\\"pc5\\\":1,\\\"scaffolds\\\":[0]}\", smiles: \"c1ccccc1\", score: 1.0, query: \"C1=CC=CC=C1\", used_tautomers: false }]))");
 
     // Test list indexes
     let list_indexes_resp = test_api.v1_list_indexes().await;

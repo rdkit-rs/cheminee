@@ -7,6 +7,7 @@ use cheminee::search::similarity_search::{
 use cheminee::search::structure_search::{
     build_substructure_query, build_superstructure_query, structure_search,
 };
+use rdkit::Properties;
 use serde_json::{json, Value};
 use std::collections::HashMap;
 use tantivy::schema::{JsonObjectOptions, TEXT};
@@ -239,8 +240,8 @@ fn test_similarity_search() {
     let index_pca_bin_vec = assign_pca_bins(&index_descriptors);
 
     let query_smiles = "C1=CC=CC=C1CC";
-    let (_query_mol, _query_fingerprint, query_descriptors) =
-        process_cpd(query_smiles, false).unwrap();
+    let query_canon_taut = standardize_smiles(query_smiles, false).unwrap();
+    let query_descriptors = Properties::new().compute_properties(&query_canon_taut);
 
     let mut builder = SchemaBuilder::new();
     let smiles_field = builder.add_text_field("smiles", STRING | STORED);

@@ -7,5 +7,8 @@ pub use search_management::*;
 mod identity_search;
 pub use identity_search::*;
 
+mod similarity_search;
+pub use similarity_search::*;
+
 mod structure_search;
 pub use structure_search::*;
