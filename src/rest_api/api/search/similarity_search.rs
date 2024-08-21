@@ -1,23 +1,22 @@
 use crate::rest_api::api::{GetStructureSearchResponse, StructureResponseError};
-use crate::search::compound_processing::standardize_smiles;
-use crate::search::structure_search::structure_search;
-use crate::search::{
-    aggregate_search_hits, compound_processing::get_tautomers, validate_structure,
-};
+use crate::search::compound_processing::{get_tautomers, standardize_smiles};
+use crate::search::similarity_search::{get_best_similarity, similarity_search};
+use crate::search::{aggregate_search_hits, validate_structure};
 use poem_openapi::payload::Json;
 use rayon::iter::IntoParallelIterator;
 use rayon::iter::ParallelIterator;
+use rdkit::Properties;
 use std::cmp::min;
-use tantivy::Index;
+use std::collections::HashSet;
+use tantivy::{DocAddress, Index};
 
-pub fn v1_index_search_structure(
+pub fn v1_index_search_similarity(
     index: eyre::Result<Index>,
     smiles: String,
-    method: &str,
     result_limit: usize,
     tautomer_limit: usize,
+    bin_limit: usize,
     extra_query: &str,
-    use_scaffolds: bool,
 ) -> GetStructureSearchResponse {
     let index = match index {
         Ok(index) => index,
@@ -39,6 +38,7 @@ pub fn v1_index_search_structure(
     };
 
     let searcher = reader.searcher();
+    let schema = searcher.schema();
 
     let problems_result = validate_structure(&smiles);
 
@@ -62,61 +62,63 @@ pub fn v1_index_search_structure(
         }
     };
 
-    let results = structure_search(
-        &searcher,
-        &query_canon_taut,
-        method,
-        use_scaffolds,
-        result_limit,
-        extra_query,
-    );
+    let tautomers = if tautomer_limit > 0 {
+        let mut tauts = get_tautomers(&query_canon_taut);
+        tauts.insert(0, query_canon_taut);
+        tauts
+    } else {
+        vec![query_canon_taut]
+    };
 
-    let mut results = match results {
-        Ok(results) => results,
+    let tautomer_limit = min(tautomers.len(), tautomer_limit + 1);
+    let used_tautomers = tautomer_limit > 1;
+
+    let mut results: HashSet<DocAddress> = HashSet::new();
+    for taut in &tautomers[..tautomer_limit] {
+        let taut_descriptors = Properties::new().compute_properties(taut);
+        let taut_results = similarity_search(
+            &searcher,
+            &taut_descriptors,
+            extra_query,
+            result_limit,
+            bin_limit,
+            None,
+        );
+        if let Ok(taut_results) = taut_results {
+            results.extend(taut_results);
+        }
+    }
+
+    let taut_fingerprints = tautomers
+        .iter()
+        .map(|t| t.fingerprint())
+        .collect::<Vec<_>>();
+
+    let fingerprint_field = match schema.get_field("fingerprint") {
+        Ok(fingerprint_field) => fingerprint_field,
         Err(e) => {
             return GetStructureSearchResponse::Err(Json(StructureResponseError {
-                error: e.to_string(),
+                error: format!("Could not find \"fingerprint\" field: {e}"),
             }))
         }
     };
 
-    let mut used_tautomers = false;
-    let before_tauts_result_count = results.len();
+    let mut results = results
+        .into_par_iter()
+        .map(|docaddr| {
+            let sim =
+                get_best_similarity(&searcher, &docaddr, fingerprint_field, &taut_fingerprints);
 
-    if before_tauts_result_count < result_limit && tautomer_limit > 0 {
-        let mut tautomers = get_tautomers(&query_canon_taut);
-
-        let tautomer_limit = min(tautomers.len(), tautomer_limit);
-
-        if !tautomers.is_empty() {
-            let tautomer_results = &tautomers[..tautomer_limit]
-                .into_par_iter()
-                .filter_map(|taut| {
-                    structure_search(
-                        &searcher,
-                        taut,
-                        method,
-                        use_scaffolds,
-                        result_limit,
-                        extra_query,
-                    )
-                    .ok()
-                })
-                .collect::<Vec<_>>();
-
-            for results_set in tautomer_results {
-                if results.len() < result_limit {
-                    results.extend(results_set);
-                }
+            if let Ok(sim) = sim {
+                (docaddr, sim)
+            } else {
+                (docaddr, 0.0)
             }
+        })
+        .collect::<Vec<_>>();
 
-            if results.len() > before_tauts_result_count {
-                used_tautomers = true;
-            }
-        }
-    }
-
-    let results = results.iter().map(|d| (*d, 1.0)).collect::<Vec<_>>();
+    // Sort by descending similarity
+    results.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
 
     let results = if results.len() > result_limit {
         results[..result_limit].to_vec()
@@ -135,9 +137,5 @@ pub fn v1_index_search_structure(
         }
     };
 
-    if final_results.len() > result_limit {
-        GetStructureSearchResponse::Ok(Json(final_results[..result_limit].into()))
-    } else {
-        GetStructureSearchResponse::Ok(Json(final_results))
-    }
+    GetStructureSearchResponse::Ok(Json(final_results))
 }

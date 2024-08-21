@@ -2,11 +2,11 @@ use crate::indexing::index_manager::IndexManager;
 use crate::rest_api::api::{
     v1_convert_mol_block_to_smiles, v1_convert_smiles_to_mol_block, v1_delete_index,
     v1_delete_index_bulk, v1_get_index, v1_index_search_basic, v1_index_search_identity,
-    v1_index_search_structure, v1_list_indexes, v1_list_schemas, v1_post_index, v1_post_index_bulk,
-    v1_standardize, BulkRequest, ConvertedMolBlockResponse, ConvertedSmilesResponse,
-    DeleteIndexResponse, DeleteIndexesBulkDeleteResponse, GetIndexResponse, GetQuerySearchResponse,
-    GetStructureSearchResponse, ListIndexesResponse, ListSchemasResponse, PostIndexResponse,
-    PostIndexesBulkIndexResponse, StandardizeResponse,
+    v1_index_search_similarity, v1_index_search_structure, v1_list_indexes, v1_list_schemas,
+    v1_post_index, v1_post_index_bulk, v1_standardize, BulkRequest, ConvertedMolBlockResponse,
+    ConvertedSmilesResponse, DeleteIndexResponse, DeleteIndexesBulkDeleteResponse,
+    GetIndexResponse, GetQuerySearchResponse, GetStructureSearchResponse, ListIndexesResponse,
+    ListSchemasResponse, PostIndexResponse, PostIndexesBulkIndexResponse, StandardizeResponse,
 };
 use crate::rest_api::models::{MolBlock, Smiles};
 
@@ -315,6 +315,53 @@ impl Api {
             smiles.0,
             &extra_query,
             use_scaffolds,
+        )
+    }
+
+    #[oai(path = "/v1/indexes/:index/search/similarity", method = "get")]
+    /// Perform descriptor/fingerprint-based similarity search against index
+    pub async fn v1_index_search_similarity(
+        &self,
+        index: Path<String>,
+        smiles: Query<String>,
+        result_limit: Query<Option<usize>>,
+        tautomer_limit: Query<Option<usize>>,
+        bin_limit: Query<Option<usize>>,
+        extra_query: Query<Option<String>>,
+    ) -> GetStructureSearchResponse {
+        let result_limit = if let Some(result_limit) = result_limit.0 {
+            result_limit
+        } else {
+            usize::try_from(1000).unwrap()
+        };
+
+        let tautomer_limit = if let Some(tautomer_limit) = tautomer_limit.0 {
+            tautomer_limit
+        } else {
+            usize::try_from(0).unwrap()
+        };
+
+        let bin_limit = if let Some(bin_limit) = bin_limit.0 {
+            bin_limit
+        } else {
+            usize::try_from(100).unwrap()
+        };
+
+        let extra_query = if let Some(extra_query) = extra_query.0 {
+            extra_query
+        } else {
+            "".to_string()
+        };
+
+        let index = self.index_manager.open(&index);
+
+        v1_index_search_similarity(
+            index,
+            smiles.0,
+            result_limit,
+            tautomer_limit,
+            bin_limit,
+            &extra_query,
         )
     }
 }

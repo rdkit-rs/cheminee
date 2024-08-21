@@ -12,6 +12,7 @@ pub mod basic_search;
 pub mod compound_processing;
 pub mod identity_search;
 pub mod scaffold_search;
+pub mod similarity_search;
 pub mod structure_matching;
 pub mod structure_search;
 
@@ -41,6 +42,50 @@ pub const STRUCTURE_MATCH_DESCRIPTORS: [&str; 20] = [
     "NumUnspecifiedAtomStereoCenters",
     "exactmw",
     "lipinskiHBA",
+];
+
+pub const SIMILARITY_DESCRIPTORS: [&str; 41] = [
+    "CrippenClogP",
+    "CrippenMR",
+    "FractionCSP3",
+    "NumAliphaticHeterocycles",
+    "NumAliphaticRings",
+    "NumAmideBonds",
+    "NumAromaticHeterocycles",
+    "NumAromaticRings",
+    "NumAtoms",
+    "NumBridgeheadAtoms",
+    "NumHBA",
+    "NumHBD",
+    "NumHeavyAtoms",
+    "NumHeteroatoms",
+    "NumHeterocycles",
+    "NumRings",
+    "NumRotatableBonds",
+    "NumSaturatedHeterocycles",
+    "NumSaturatedRings",
+    "NumSpiroAtoms",
+    "Phi",
+    "amw",
+    "chi0n",
+    "chi0v",
+    "chi1n",
+    "chi1v",
+    "chi2n",
+    "chi2v",
+    "chi3n",
+    "chi3v",
+    "chi4n",
+    "chi4v",
+    "exactmw",
+    "hallKierAlpha",
+    "kappa1",
+    "kappa2",
+    "kappa3",
+    "labuteASA",
+    "lipinskiHBA",
+    "lipinskiHBD",
+    "tpsa",
 ];
 
 pub fn prepare_query_structure(
@@ -132,7 +177,7 @@ pub fn aggregate_query_hits(
 
 pub fn aggregate_search_hits(
     searcher: Searcher,
-    results: HashSet<DocAddress>,
+    results: Vec<(DocAddress, f32)>,
     tautomers_used: bool,
     query: &str,
 ) -> eyre::Result<Vec<StructureSearchHit>> {
@@ -140,19 +185,16 @@ pub fn aggregate_search_hits(
     let smiles_field = schema.get_field("smiles")?;
     let extra_data_field = schema.get_field("extra_data")?;
 
-    let score: f32 = 1.0; // every substructure match should get a 1
-
     let final_results = results
         .iter()
-        .map(|result| {
+        .map(|(result, score)| {
             let (smiles, extra_data) =
                 get_smiles_and_extra_data(*result, &searcher, smiles_field, extra_data_field)
                     .unwrap();
-
             StructureSearchHit {
                 extra_data,
                 smiles,
-                score,
+                score: *score,
                 query: query.into(),
                 used_tautomers: tautomers_used,
             }

@@ -2,8 +2,10 @@ use crate::command_line::{indexing::split_path, prelude::*};
 use crate::indexing::index_manager::IndexManager;
 use crate::search::compound_processing::process_cpd;
 use crate::search::scaffold_search::{scaffold_search, PARSED_SCAFFOLDS};
+use crate::search::similarity_search::assign_pca_bins;
 use bitvec::macros::internal::funty::Fundamental;
 use rayon::prelude::*;
+use serde_json::Value;
 use std::{collections::HashMap, fs::File, io::BufRead, io::BufReader, ops::Deref};
 use tantivy::schema::Field;
 
@@ -129,7 +131,16 @@ fn create_tantivy_doc(
         false => serde_json::json!({"scaffolds": scaffold_matches}),
     };
 
+    let pca_bins = assign_pca_bins(&descriptors)
+        .iter()
+        .enumerate()
+        .map(|(idx, bin)| (format!("pc{idx}"), serde_json::json!(bin)))
+        .collect();
+
+    let pca_bins_json = Value::Object(pca_bins);
+
     let extra_data_json = combine_json_objects(Some(scaffold_json), extra_data);
+    let extra_data_json = combine_json_objects(extra_data_json, Some(pca_bins_json));
     if let Some(extra_data_json) = extra_data_json {
         doc.add_field_value(extra_data_field, extra_data_json);
     }
