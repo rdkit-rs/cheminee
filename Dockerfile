@@ -13,6 +13,7 @@ RUN cd /tmp && \
     mv /tmp/rdkit-Release_2024_03_3/Code /usr/local/include/rdkit; \
     mv /tmp/rdkit-Release_2024_03_3/build/lib/* /usr/lib/
 
+COPY tantivy /usr/local/bin/tantivy
 COPY target/release/cheminee /usr/local/bin/cheminee
 
 CMD ["cheminee", "rest-api-server", "--bind=0.0.0.0:4001"]
