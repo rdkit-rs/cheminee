@@ -1,3 +1,5 @@
+#![deny(clippy::print_stdout)]
+
 use cheminee::{command_line, rest_api};
 use clap::*;
 
