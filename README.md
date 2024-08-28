@@ -67,7 +67,7 @@ Testing in Docker
 
 Run the Cheminée image in a docker container:
 
-    docker run --rm -dt -p 4001:4001 --name cheminee ghcr.io/rdkit-rs/cheminee:0.1.29
+    docker run --rm -dt -p 4001:4001 --name cheminee ghcr.io/rdkit-rs/cheminee:0.1.30
 
 Exec into the container:
 

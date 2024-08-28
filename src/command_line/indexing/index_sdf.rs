@@ -60,7 +60,7 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
     }
     std::fs::create_dir(index_dir)?;
 
-    let mol_iter = MolBlockIter::from_gz_file(sdf_path, false, false, false)
+    let mol_iter = MolBlockIter::from_gz_file(sdf_path, true, true, false)
         .map_err(|e| eyre::eyre!("could not read gz file: {:?}", e))?;
 
     let mol_iter: Box<dyn Iterator<Item = Result<RWMol, String>>> = if let Some(limit) = limit {
