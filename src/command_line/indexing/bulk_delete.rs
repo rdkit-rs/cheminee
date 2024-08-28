@@ -52,7 +52,7 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
                     Err(e) => log::info!("Failed to delete \"{}\": {}", smiles, e),
                 }
             }
-            Err(e) => println!("Failed to construct delete query for \"{}\": {}", smiles, e),
+            Err(e) => log::info!("Failed to construct delete query for \"{}\": {}", smiles, e),
         }
     }
 

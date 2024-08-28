@@ -141,7 +141,7 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<usize> {
 
         if counter > 0 && counter % 10_000 == 0 {
             index_writer.commit()?;
-            println!("{:?} compounds written so far", counter);
+            log::info!("{:?} compounds written so far", counter);
         }
 
         counter += 1;
