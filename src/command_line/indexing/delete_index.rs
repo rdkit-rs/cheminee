@@ -24,6 +24,6 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
     let index_manager = IndexManager::new(storage_dir, false)?;
     index_manager.delete(index_name.deref())?;
 
-    println!("Deleted index {}", index_path);
+    log::info!("Deleted index {}", index_path);
     Ok(())
 }

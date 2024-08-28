@@ -1,3 +1,5 @@
+#![deny(clippy::print_stdout)]
+
 pub mod command_line;
 pub mod indexing;
 pub mod pubchem;
