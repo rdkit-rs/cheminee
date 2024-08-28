@@ -62,6 +62,50 @@ desired results,
 "t" refers to the number of tautomers to be used for the query SMILES (if applicable), and "e" refers to the
 "extra query" which is a composite query for chemical descriptors as in the basic search implementation.
 
+Testing in Docker
+---
+
+Run the Cheminée image in a docker container:
+
+    docker run --rm -dt -p 4001:4001 --name cheminee ghcr.io/rdkit-rs/cheminee:0.1.29
+
+Exec into the container:
+
+    docker exec -it cheminee bash
+
+Check out the CLI endpoints:
+
+    cheminee -h
+
+Fetch some PubChem SDFs for testing. Each file has ~400K+ compounds; use <ctrl + c> to stop when you're happy with
+the number of files:
+
+    mkdir -p tmp/sdfs
+    cheminee fetch-pubchem -d tmp/sdfs
+
+Create an index. We only have one schema at the moment (i.e. "descriptor_v1"):
+
+    cheminee create-index -i tmp/cheminee/index0 -n descriptor_v1 -s exactmw
+
+Start indexing an SDF file. Note: Cheminée does a bulk write after every 10,000 compounds. So if you <ctrl + c>
+interrupt
+very soon after starting the indexing, you might end up with no indexed compounds. If you want to follow along and kill
+early for some simple testing, use "
+RUST_LOG=info". Once you see a
+statement such as "10000 compounds processed so far" and you are happy with the number, then feel free to interrupt the
+indexing:
+
+    RUST_LOG=info cheminee index-sdf -s tmp/sdfs/Compound_000000001_000500000.sdf.gz -i tmp/cheminee/index0
+
+Or omit the "RUST_LOG=info" if you want better performance and you plan to let it finish.
+
+Go to "localhost:4001" in your favorite browser to test out the API endpoints. Note: for this test case, use "index0"
+for the index
+fields. Alternatively, test out the CLI some more:
+
+    cheminee -h
+    cheminee <CLI action> -h
+
 Cutting A New Release
 ---
 
