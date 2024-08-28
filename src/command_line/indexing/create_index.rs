@@ -52,6 +52,6 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
         sort_by.map(|s| s.as_str()),
     )?;
 
-    println!("New index created at {}", index_path);
+    log::info!("New index created at {}", index_path);
     Ok(())
 }

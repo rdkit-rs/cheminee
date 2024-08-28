@@ -40,7 +40,7 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
         }
     }
 
-    println!("successes: {}, errors: {}", success_count, error_count);
+    log::info!("successes: {}, errors: {}", success_count, error_count);
 
     Ok(())
 }

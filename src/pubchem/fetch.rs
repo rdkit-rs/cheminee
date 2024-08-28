@@ -31,7 +31,7 @@ pub async fn down_all_current_sdf(p: impl AsRef<Path>) -> eyre::Result<()> {
 
     let current_dir = std::env::current_dir().unwrap();
     for capture in captures {
-        println!("working on {}", capture);
+        log::info!("working on {}", capture);
         let mut output_file = tokio::fs::File::create(current_dir.join(&p).join(capture))
             .await
             .unwrap();
