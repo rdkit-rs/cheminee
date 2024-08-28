@@ -1,7 +1,8 @@
-use std::collections::HashMap;
-
+use bitvec::macros::internal::funty::Fundamental;
+use rayon::prelude::*;
 use rdkit::{MolBlockIter, ROMol, RWMol};
-use serde_json::{Map, Value};
+use std::collections::HashMap;
+use std::sync::{Arc, Mutex};
 use tantivy::schema::Field;
 
 use crate::command_line::prelude::*;
@@ -35,7 +36,7 @@ pub fn command() -> Command {
         )
 }
 
-pub fn action(matches: &ArgMatches) -> eyre::Result<usize> {
+pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
     let sdf_path = matches
         .get_one::<String>("sdf")
         .ok_or(eyre::eyre!("Failed to extract sdf path"))?;
@@ -78,75 +79,157 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<usize> {
     let smiles_field = schema.get_field("smiles")?;
     let fingerprint_field = schema.get_field("fingerprint")?;
     let extra_data_field = schema.get_field("extra_data")?;
-    let descriptors_fields = KNOWN_DESCRIPTORS
+    let descriptor_fields = KNOWN_DESCRIPTORS
         .iter()
         .map(|kd| (*kd, schema.get_field(kd).unwrap()))
         .collect::<HashMap<&str, Field>>();
 
     let mut counter = 0;
+    // let mut failed_counter = 0;
+    let failed_counter: Arc<Mutex<usize>> = Arc::new(Mutex::new(0));
+
+    let chunksize = 1000;
+    let mut mol_vec = Vec::with_capacity(chunksize);
     for mol in mol_iter {
         if mol.is_err() {
+            let mut num = failed_counter.lock().unwrap();
+            *num += 1;
             continue;
         }
 
         let mol = mol.unwrap();
-        let mol: ROMol = mol.to_ro_mol();
+        mol_vec.push(mol.to_ro_mol());
 
-        // By default, do not attempt to fix problematic molecules
-        let process_result = process_cpd(mol.as_smiles().as_str(), false);
-        if process_result.is_err() {
-            continue;
-        }
+        if mol_vec.len() == chunksize {
+            let _ = mol_vec
+                .clone()
+                .into_par_iter()
+                .map(|m| {
+                    let doc = create_tantivy_doc(
+                        m,
+                        smiles_field,
+                        fingerprint_field,
+                        &descriptor_fields,
+                        extra_data_field,
+                    );
 
-        let (canon_taut, fp, computed) = process_result.unwrap();
+                    match doc {
+                        Ok(doc) => {
+                            let write_operation = index_writer.add_document(doc);
 
-        let json: serde_json::Value = serde_json::to_value(&computed)?;
-        let descriptors_map: Map<String, Value> = if let serde_json::Value::Object(map) = json {
-            map
-        } else {
-            panic!("not an object");
-        };
+                            match write_operation {
+                                Ok(_) => (),
+                                Err(_) => {
+                                    println!("Failed doc creation");
+                                    let mut num = failed_counter.lock().unwrap();
+                                    *num += 1;
+                                }
+                            }
+                        }
+                        Err(_) => {
+                            println!("Failed doc creation");
+                            let mut num = failed_counter.lock().unwrap();
+                            *num += 1;
+                        }
+                    }
+                })
+                .collect::<Vec<_>>();
 
-        let mut doc = doc!(
-            smiles_field => canon_taut.as_smiles(),
-            fingerprint_field => fp.0.into_vec()
-        );
+            index_writer.commit()?;
+            mol_vec.clear();
+            counter += chunksize;
 
-        for field in KNOWN_DESCRIPTORS {
-            if let Some(serde_json::Value::Number(val)) = descriptors_map.get(field) {
-                let current_field = *descriptors_fields
-                    .get(field)
-                    .ok_or(eyre::eyre!("Failed to extract field"))?;
-                let current_value = val
-                    .as_f64()
-                    .ok_or(eyre::eyre!("Failed to convert descriptor to float"))?;
-                if field.starts_with("Num") || field.starts_with("lipinski") {
-                    doc.add_field_value(current_field, current_value as i64);
-                } else {
-                    doc.add_field_value(current_field, current_value);
-                };
+            if counter > 0 && counter % 10_000 == 0 {
+                println!("{:?} compounds processed so far", counter);
             }
         }
-
-        let scaffold_matches = scaffold_search(&canon_taut, &PARSED_SCAFFOLDS)?;
-
-        let scaffold_json = match scaffold_matches.is_empty() {
-            true => serde_json::json!({"scaffolds": vec![-1]}),
-            false => serde_json::json!({"scaffolds": scaffold_matches}),
-        };
-
-        doc.add_field_value(extra_data_field, scaffold_json);
-
-        index_writer.add_document(doc)?;
-
-        if counter > 0 && counter % 10_000 == 0 {
-            index_writer.commit()?;
-            println!("{:?} compounds written so far", counter);
-        }
-
-        counter += 1;
     }
 
-    index_writer.commit()?;
-    Ok(counter)
+    if !mol_vec.is_empty() {
+        let _ = mol_vec
+            .clone()
+            .into_par_iter()
+            .map(|m| {
+                let doc = create_tantivy_doc(
+                    m,
+                    smiles_field,
+                    fingerprint_field,
+                    &descriptor_fields,
+                    extra_data_field,
+                );
+
+                match doc {
+                    Ok(doc) => {
+                        let write_operation = index_writer.add_document(doc);
+
+                        match write_operation {
+                            Ok(_) => (),
+                            Err(_) => {
+                                println!("Failed doc creation");
+                                let mut num = failed_counter.lock().unwrap();
+                                *num += 1;
+                            }
+                        }
+                    }
+                    Err(_) => {
+                        println!("Failed doc creation");
+                        let mut num = failed_counter.lock().unwrap();
+                        *num += 1;
+                    }
+                }
+            })
+            .collect::<Vec<_>>();
+
+        index_writer.commit()?;
+        counter += mol_vec.len();
+    }
+
+    println!(
+        "A total of {:?} compounds were processed. Of those, {:?} compounds could not be indexed.",
+        counter,
+        failed_counter.lock().unwrap()
+    );
+
+    Ok(())
+}
+
+fn create_tantivy_doc(
+    mol: ROMol,
+    smiles_field: Field,
+    fingerprint_field: Field,
+    descriptor_fields: &HashMap<&str, Field>,
+    extra_data_field: Field,
+) -> eyre::Result<tantivy::Document> {
+    // By default, do not attempt to fix problematic molecules
+    let (canon_taut, fp, descriptors) = process_cpd(mol.as_smiles().as_str(), false)?;
+
+    let mut doc = doc!(
+        smiles_field => canon_taut.as_smiles(),
+        fingerprint_field => fp.0.into_vec()
+    );
+
+    for field in KNOWN_DESCRIPTORS {
+        if let Some(val) = descriptors.get(field) {
+            let current_field = *descriptor_fields
+                .get(field)
+                .ok_or(eyre::eyre!("Failed to extract field"))?;
+            if field.starts_with("Num") || field.starts_with("lipinski") {
+                let int = val.as_f64() as i64;
+                doc.add_field_value(current_field, int);
+            } else {
+                doc.add_field_value(current_field, val.as_f64());
+            };
+        }
+    }
+
+    let scaffold_matches = scaffold_search(&canon_taut, &PARSED_SCAFFOLDS)?;
+
+    let scaffold_json = match scaffold_matches.is_empty() {
+        true => serde_json::json!({"scaffolds": vec![-1]}),
+        false => serde_json::json!({"scaffolds": scaffold_matches}),
+    };
+
+    doc.add_field_value(extra_data_field, scaffold_json);
+
+    Ok(doc)
 }
