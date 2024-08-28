@@ -85,7 +85,6 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
         .collect::<HashMap<&str, Field>>();
 
     let mut counter = 0;
-    // let mut failed_counter = 0;
     let failed_counter: Arc<Mutex<usize>> = Arc::new(Mutex::new(0));
 
     let chunksize = 1000;
@@ -120,14 +119,14 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
                             match write_operation {
                                 Ok(_) => (),
                                 Err(_) => {
-                                    println!("Failed doc creation");
+                                    log::warn!("Failed doc creation");
                                     let mut num = failed_counter.lock().unwrap();
                                     *num += 1;
                                 }
                             }
                         }
                         Err(_) => {
-                            println!("Failed doc creation");
+                            log::warn!("Failed doc creation");
                             let mut num = failed_counter.lock().unwrap();
                             *num += 1;
                         }
@@ -140,7 +139,7 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
             counter += chunksize;
 
             if counter > 0 && counter % 10_000 == 0 {
-                println!("{:?} compounds processed so far", counter);
+                log::info!("{:?} compounds processed so far", counter);
             }
         }
     }
@@ -165,14 +164,14 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
                         match write_operation {
                             Ok(_) => (),
                             Err(_) => {
-                                println!("Failed doc creation");
+                                log::warn!("Failed doc creation");
                                 let mut num = failed_counter.lock().unwrap();
                                 *num += 1;
                             }
                         }
                     }
                     Err(_) => {
-                        println!("Failed doc creation");
+                        log::warn!("Failed doc creation");
                         let mut num = failed_counter.lock().unwrap();
                         *num += 1;
                     }
@@ -184,7 +183,7 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
         counter += mol_vec.len();
     }
 
-    println!(
+    log::info!(
         "A total of {:?} compounds were processed. Of those, {:?} compounds could not be indexed.",
         counter,
         failed_counter.lock().unwrap()
