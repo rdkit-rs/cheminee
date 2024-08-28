@@ -3,18 +3,12 @@ use clap::*;
 
 #[tokio::main]
 async fn main() -> eyre::Result<()> {
-    if let Some(rust_debug) = std::env::var_os("RUST_DEBUG") {
+    if std::env::var_os("RUST_LOG").is_some() {
         tracing_subscriber::fmt()
-            .with_env_filter(
-                rust_debug
-                    .to_str()
-                    .ok_or(eyre::eyre!("could not convert RUST_DEBUG to str"))?,
-            )
+            .with_env_filter(tracing_subscriber::EnvFilter::from_default_env())
             .init();
     } else {
-        tracing_subscriber::fmt()
-            .with_env_filter("poem=info,tokio-runtime-worker=debug")
-            .init();
+        tracing_subscriber::fmt().with_env_filter("info").init();
     }
 
     let app = Command::new("cheminee")
