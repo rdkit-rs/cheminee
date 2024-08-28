@@ -93,7 +93,7 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
         let (smiles, extra_data) =
             get_smiles_and_extra_data(result, &searcher, smiles_field, extra_data_field)?;
 
-        println!(
+        log::info!(
             "{:#?}",
             &[StructureSearchHit {
                 extra_data,
@@ -104,7 +104,7 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
             }]
         );
     } else {
-        println!("No exact match result for {:?}", query_smiles);
+        log::info!("No exact match result for {:?}", query_smiles);
     }
 
     Ok(())

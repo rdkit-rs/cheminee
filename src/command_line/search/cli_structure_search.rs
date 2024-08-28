@@ -101,9 +101,9 @@ pub fn cli_structure_search(method: &str, matches: &ArgMatches) -> eyre::Result<
     let final_results = aggregate_search_hits(searcher, results, used_tautomers, smiles)?;
 
     if final_results.len() > result_limit {
-        println!("{:#?}", &final_results[..result_limit]);
+        log::info!("{:#?}", &final_results[..result_limit]);
     } else {
-        println!("{:#?}", final_results)
+        log::info!("{:#?}", final_results)
     }
 
     Ok(())

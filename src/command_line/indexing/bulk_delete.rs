@@ -48,11 +48,11 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
             Ok(parsed_query) => {
                 let delete_operation = deleter.delete_query(parsed_query);
                 match delete_operation {
-                    Ok(_) => println!("Deleting \"{}\"", smiles),
-                    Err(e) => println!("Failed to delete \"{}\": {}", smiles, e),
+                    Ok(_) => log::info!("Deleting \"{}\"", smiles),
+                    Err(e) => log::info!("Failed to delete \"{}\": {}", smiles, e),
                 }
             }
-            Err(e) => println!("Failed to construct delete query for \"{}\": {}", smiles, e),
+            Err(e) => log::info!("Failed to construct delete query for \"{}\": {}", smiles, e),
         }
     }
 

@@ -80,12 +80,12 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
                             match write_operation {
                                 Ok(_) => (),
                                 Err(e) => {
-                                    println!("Failed doc creation: {:?}", e);
+                                    log::info!("Failed doc creation: {:?}", e);
                                 }
                             }
                         }
                         Err(e) => {
-                            println!("Failed doc creation: {:?}", e);
+                            log::info!("Failed doc creation: {:?}", e);
                         }
                     }
                 })
