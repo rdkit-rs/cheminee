@@ -6,7 +6,7 @@ use poem::{handler, Route};
 use poem_openapi::param::{Path, Query};
 use poem_openapi::payload::Json;
 
-const MOL_BLOCK: &'static str = r#"
+const MOL_BLOCK: &str = r#"
   -OEChem-05172223082D
 
  31 30  0     1  0  0  0  0  0999 V2000
