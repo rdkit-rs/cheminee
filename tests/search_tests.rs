@@ -17,7 +17,7 @@ use tantivy::{
 fn test_build_identity_query() {
     let descriptors: HashMap<_, _> = [("NumAtoms".to_string(), 10.0)].into_iter().collect();
     let query = build_identity_query(&descriptors, "", &None);
-    assert_eq!(query, "NumAtoms:[10 TO 10]");
+    assert_eq!(query, "NumAtoms:10");
 }
 
 #[test]

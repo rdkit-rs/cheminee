@@ -84,7 +84,7 @@ pub fn build_identity_query(
         if STRUCTURE_MATCH_DESCRIPTORS.contains(&k.as_str()) {
             let re = Regex::new(&format!("{k}:")).unwrap();
             if !re.is_match(extra_query) {
-                query_parts.push(format!("{k}:[{v} TO {v}]"));
+                query_parts.push(format!("{k}:{v}"));
             }
         }
     }
