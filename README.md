@@ -95,7 +95,7 @@ Run the Cheminée image in a docker container. Note: in this command, logging is
 follow along during the SDF indexing step below. If you prefer to follow along, then replace "RUST_LOG=off" with "
 RUST_LOG=info" but note that performance will be a bit slower:
 
-    docker run --rm -dt -e RUST_LOG=off -p 4001:4001 --name cheminee ghcr.io/rdkit-rs/cheminee:0.1.30
+    docker run --rm -dt -e RUST_LOG=off -p 4001:4001 --name cheminee ghcr.io/rdkit-rs/cheminee:0.1.31
 
 Exec into the container:
 
