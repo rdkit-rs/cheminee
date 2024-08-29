@@ -87,7 +87,7 @@ Create an index. We only have one schema at the moment (i.e. "descriptor_v1"):
 
     cheminee create-index -i tmp/cheminee/index0 -n descriptor_v1 -s exactmw
 
-Start indexing an SDF file. Note: Cheminée does a bulk write after every 10,000 compounds. So if you <ctrl + c>
+Start indexing an SDF file. Note: Cheminée does a bulk write after every 1,000 compounds. So if you <ctrl + c>
 interrupt
 very soon after starting the indexing, you might end up with no indexed compounds. If you want to follow along and kill
 early for some simple testing, use "
