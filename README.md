@@ -14,12 +14,15 @@ Tested on Rust Stabe 1.76 (`rustup default 1.76`)
 Intended Functionality
 ---
 
-Cheminée is intended to work via CLI (e.g. for diagnostics) and API endpoints. "Substructure search" is
-the first intended functionality, but Cheminée will eventually support "superstructure search", "similarity search",
-and exact matches. Aside from structure searching, the API also supports standardization of SMILES in bulk as
-well as indexing via Tantivy. Users can also search for compounds by RDKit chemical descriptors (e.g. "exactmw", "
-NumAtoms", etc).
-
+Cheminée is intended to work via CLI (e.g. for diagnostics) and API endpoints. Cheminée currently supports CLI and API
+endpoints for "identity search" (i.e. exact structure match), "substructure search", and "superstructure search". We
+plan to create a Tanimoto-based "similarity search" endpoint in the near future. Aside from structure searching, the API
+also supports endpoints for standardization
+of SMILES in bulk, as well as molecular format conversions (e.g. smiles-to-molblock and molblock-to-smiles). Indexing
+endpoints (e.g. index creation, bulk indexing, compound deletion, index deletion) are
+executed using Tantivy. Users can utilize the "basic search" (i.e. non-structure search) endpoint to search for
+compounds by RDKit chemical descriptors (e.g. "exactmw", "NumAtoms",
+etc.) or any other metadata you decided to include when indexing.
 
 The API
 ---
@@ -46,21 +49,44 @@ Basic Search
 
 For example:
 
-     cargo run -- search -i "/tmp/cheminee/scaffolds-index0" -q "exactmw: [10 TO 10000] AND NumAtoms: [8 TO 100]" -l 10
+     cargo run -- basic-search -i "/tmp/cheminee/index0" -q "exactmw: [10 TO 10000] AND NumAtoms: [8 TO 100]" -l 10
 
-Here, "i" refers to the index path, "q" refers to the composite query of chemical descriptor values, and "l" refers
-to the number of desired results.
+Here, "i" refers to the index path, "q" refers to a composite query of chemical descriptor values and/or other indexed
+data types, and "l" refers to the number of desired results (defaulted to 1000).
 
 Substructure Search
 
 For example:
 
-    cargo run -- substructure-search -i /tmp/cheminee/scaffolds-index0 -s CCC -r 10 -t 10 -e "exactmw: [20 TO 200]"
+    cargo run -- substructure-search -i /tmp/cheminee/index0 -s CCC -r 10 -t 10 -u true -e "exactmw: [20 TO 200]"
 
-Similar to basic search, "i" refers to the index path, "s" refers to the query SMILES, "r" refers to the number of
-desired results,
-"t" refers to the number of tautomers to be used for the query SMILES (if applicable), and "e" refers to the
-"extra query" which is a composite query for chemical descriptors as in the basic search implementation.
+Similar to basic search, "i" refers to the index path. "s" refers to the query SMILES, "r" refers to the number of
+desired results (defaulted to 1000), "t" refers to the number of tautomers to be used for the query SMILES if
+applicable (defaulted to 0), "u" dictates whether to use indexed scaffolds to speed up the search (defaulted to "true"),
+and "e" refers to the "extra query" which is a composite query for chemical descriptors or other index data types as in
+the basic search implementation.
+
+Superstructure Search
+
+For example:
+
+    cargo run -- superstructure-search -i /tmp/cheminee/index0 -s c1ccccc1CCc1ccccc1CC -r 10 -t 10 -u true -e "exactmw: [20 TO 200]"
+
+The input arguments here are the same as used for substructure search.
+
+Identity Search
+
+For example:
+
+    cargo run -- identity-search -i /tmp/cheminee/index0 -s c1ccccc1CC -e "exactmw: [20 TO 200]" -u true
+
+Note: for identity search there is no need to specify the number of desired results (we are assuming you only want one
+result), nor is there any need to specify any tautomers (we will look for the canonical tautomer of the query). Note:
+the extra query above isn't necessary in this case, but if you have quasi-duplicate compound records (e.g. same
+molecule, but some differing metadata), you can use the extra query to get more specific, otherwise Cheminée will stop
+searching for the query once it finds an exact structure match (even if there are other duplicate structures present in
+the
+database).
 
 Testing in Docker
 ---
