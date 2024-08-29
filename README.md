@@ -91,9 +91,11 @@ database).
 Testing in Docker
 ---
 
-Run the Cheminée image in a docker container:
+Run the Cheminée image in a docker container. Note: in this command, logging is turned off, so you won't be able to
+follow along during the SDF indexing step below. If you prefer to follow along, then replace "RUST_LOG=off" with "
+RUST_LOG=info" but note that performance will be a bit slower:
 
-    docker run --rm -dt -p 4001:4001 --name cheminee ghcr.io/rdkit-rs/cheminee:0.1.30
+    docker run --rm -dt -e RUST_LOG=off -p 4001:4001 --name cheminee ghcr.io/rdkit-rs/cheminee:0.1.30
 
 Exec into the container:
 
@@ -115,15 +117,13 @@ Create an index. We only have one schema at the moment (i.e. "descriptor_v1"):
 
 Start indexing an SDF file. Note: Cheminée does a bulk write after every 1,000 compounds. So if you <ctrl + c>
 interrupt
-very soon after starting the indexing, you might end up with no indexed compounds. If you want to follow along and kill
-early for some simple testing, use "
-RUST_LOG=info". Once you see a
+very soon after you start the indexing, you might end up with no indexed compounds. If you want to follow along and kill
+early for some simple testing, replace "RUST_LOG=off" with "RUST_LOG=info" in the docker run command above. Once you see
+a
 statement such as "10000 compounds processed so far" and you are happy with the number, then feel free to interrupt the
 indexing:
 
-    RUST_LOG=info cheminee index-sdf -s tmp/sdfs/Compound_000000001_000500000.sdf.gz -i tmp/cheminee/index0
-
-Or omit the "RUST_LOG=info" if you want better performance and you plan to let it finish.
+    cheminee index-sdf -s tmp/sdfs/Compound_000000001_000500000.sdf.gz -i tmp/cheminee/index0
 
 Go to "localhost:4001" in your favorite browser to test out the API endpoints. Note: for this test case, use "index0"
 for the index
