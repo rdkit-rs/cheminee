@@ -20,7 +20,7 @@ pub struct StructureValidationError {
     pub error: String,
 }
 
-pub const STRUCTURE_MATCH_DESCRIPTORS: [&str; 20] = [
+pub const STRUCTURE_MATCH_DESCRIPTORS: [&str; 19] = [
     "NumAliphaticHeterocycles",
     "NumAliphaticRings",
     "NumAmideBonds",
@@ -39,7 +39,6 @@ pub const STRUCTURE_MATCH_DESCRIPTORS: [&str; 20] = [
     "NumSaturatedRings",
     "NumSpiroAtoms",
     "NumUnspecifiedAtomStereoCenters",
-    "exactmw",
     "lipinskiHBA",
 ];
 
