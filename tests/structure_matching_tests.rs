@@ -9,8 +9,8 @@ fn test_exact_match() {
     let romol1 = ROMol::from_smiles(smiles1).unwrap();
     let romol2 = ROMol::from_smiles(smiles2).unwrap();
 
-    assert!(exact_match(&romol1, &romol1.clone()));
-    assert!(!exact_match(&romol1, &romol2));
+    assert!(exact_match(&romol1, &romol1.clone(), true));
+    assert!(!exact_match(&romol1, &romol2, true));
 }
 
 #[test]

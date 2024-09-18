@@ -86,6 +86,7 @@ fn test_identity_search() {
         &None,
         query_fingerprint.0.as_bitslice(),
         &query_descriptors,
+        true,
         &extra_query,
     )
     .unwrap();
@@ -149,6 +150,7 @@ fn test_substructure_search() {
         "substructure",
         true,
         10,
+        true,
         &extra_query,
     )
     .unwrap();
@@ -213,6 +215,7 @@ fn test_superstructure_search() {
         "superstructure-search",
         true,
         10,
+        true,
         &extra_query,
     )
     .unwrap();

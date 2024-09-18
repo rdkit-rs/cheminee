@@ -182,6 +182,7 @@ async fn test_index_and_search_endpoints() {
             Query(smi3.to_string()),
             Query(None),
             Query(None),
+            Query(None),
         )
         .await;
 
@@ -199,6 +200,7 @@ async fn test_index_and_search_endpoints() {
             Query(None),
             Query(None),
             Query(None),
+            Query(None),
         )
         .await;
 
@@ -211,6 +213,7 @@ async fn test_index_and_search_endpoints() {
         .v1_index_search_superstructure(
             Path(index_name.to_string()),
             Query("C1=CC=CC=C1CCC2=CC=CC=C2".to_string()),
+            Query(None),
             Query(None),
             Query(None),
             Query(None),

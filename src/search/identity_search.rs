@@ -14,6 +14,7 @@ pub fn identity_search(
     scaffold_matches: &Option<Vec<u64>>,
     query_fingerprint: &BitSlice<u8, Lsb0>,
     query_descriptors: &HashMap<String, f64>,
+    use_chirality: bool,
     extra_query: &str,
 ) -> eyre::Result<Option<DocAddress>> {
     let schema = searcher.schema();
@@ -47,7 +48,8 @@ pub fn identity_search(
         let fp_match = query_fingerprint == fingerprint_bits;
 
         if fp_match {
-            let mol_exact_match = exact_match(&ROMol::from_smiles(smiles)?, query_mol);
+            let mol_exact_match =
+                exact_match(&ROMol::from_smiles(smiles)?, query_mol, use_chirality);
             if mol_exact_match {
                 return Ok(Some(docaddr));
             }

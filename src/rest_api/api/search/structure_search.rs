@@ -13,6 +13,7 @@ use tantivy::Index;
 pub fn v1_index_search_structure(
     index: eyre::Result<Index>,
     smiles: String,
+    use_chirality: bool,
     method: &str,
     result_limit: usize,
     tautomer_limit: usize,
@@ -68,6 +69,7 @@ pub fn v1_index_search_structure(
         method,
         use_scaffolds,
         result_limit,
+        use_chirality,
         extra_query,
     );
 
@@ -98,6 +100,7 @@ pub fn v1_index_search_structure(
                         method,
                         use_scaffolds,
                         result_limit,
+                        use_chirality,
                         extra_query,
                     )
                     .ok()

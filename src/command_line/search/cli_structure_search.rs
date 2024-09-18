@@ -12,10 +12,17 @@ pub fn cli_structure_search(method: &str, matches: &ArgMatches) -> eyre::Result<
     let smiles = matches
         .get_one::<String>("smiles")
         .ok_or(eyre::eyre!("Failed to extract SMILES"))?;
+    let use_chirality = matches.get_one::<String>("use-chirality");
     let result_limit = matches.get_one::<String>("result-limit");
     let tautomer_limit = matches.get_one::<String>("tautomer-limit");
     let extra_query = matches.get_one::<String>("extra-query");
     let use_scaffolds = matches.get_one::<String>("use-scaffolds");
+
+    let use_chirality = if let Some(use_chirality) = use_chirality {
+        !matches!(use_chirality.as_str(), "false")
+    } else {
+        false
+    };
 
     let result_limit = if let Some(result_limit) = result_limit {
         result_limit.parse::<usize>()?
@@ -59,6 +66,7 @@ pub fn cli_structure_search(method: &str, matches: &ArgMatches) -> eyre::Result<
         method,
         use_scaffolds,
         result_limit,
+        use_chirality,
         &extra_query,
     )?;
 
@@ -80,6 +88,7 @@ pub fn cli_structure_search(method: &str, matches: &ArgMatches) -> eyre::Result<
                         method,
                         use_scaffolds,
                         result_limit,
+                        use_chirality,
                         &extra_query,
                     )
                     .ok()

@@ -11,6 +11,7 @@ pub fn v1_index_search_identity(
     index_manager: &IndexManager,
     index: String,
     query_smiles: String,
+    use_chirality: bool,
     extra_query: &str,
     use_scaffolds: bool,
 ) -> GetStructureSearchResponse {
@@ -60,6 +61,7 @@ pub fn v1_index_search_identity(
         &matching_scaffolds,
         fingerprint.0.as_bitslice(),
         &descriptors,
+        use_chirality,
         extra_query,
     );
 
