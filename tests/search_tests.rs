@@ -98,7 +98,8 @@ fn test_substructure_search() {
     let index_smiles = "C1=CC=CC=C1CC2=CC=CC=C2";
     let (index_mol, index_fingerprint, index_descriptors) =
         process_cpd(index_smiles, false).unwrap();
-    let index_scaffolds = scaffold_search(&index_mol, &PARSED_SCAFFOLDS).unwrap();
+    let index_scaffolds =
+        scaffold_search(&index_fingerprint.0, &index_mol, &PARSED_SCAFFOLDS).unwrap();
 
     let query_smiles = "C1=CC=CC=C1";
     let query_mol = standardize_smiles(query_smiles, false).unwrap();
@@ -163,7 +164,8 @@ fn test_superstructure_search() {
     let index_smiles = "C1=CC=CC=C1";
     let (index_mol, index_fingerprint, index_descriptors) =
         process_cpd(index_smiles, false).unwrap();
-    let index_scaffolds = scaffold_search(&index_mol, &PARSED_SCAFFOLDS).unwrap();
+    let index_scaffolds =
+        scaffold_search(&index_fingerprint.0, &index_mol, &PARSED_SCAFFOLDS).unwrap();
 
     let query_smiles = "C1=CC=CC=C1CC2=CC=CC=C2";
     let query_mol = standardize_smiles(query_smiles, false).unwrap();

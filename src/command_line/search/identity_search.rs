@@ -86,7 +86,11 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
     let (query_canon_taut, fingerprint, descriptors) = prepare_query_structure(query_smiles)?;
 
     let matching_scaffolds = if use_scaffolds {
-        Some(scaffold_search(&query_canon_taut, &PARSED_SCAFFOLDS)?)
+        Some(scaffold_search(
+            &fingerprint.0,
+            &query_canon_taut,
+            &PARSED_SCAFFOLDS,
+        )?)
     } else {
         None
     };

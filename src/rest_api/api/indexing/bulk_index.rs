@@ -133,11 +133,11 @@ fn bulk_request_doc_to_tantivy_doc(
 
     let mut doc = tantivy::doc!(
         smiles_field => tautomer.as_smiles(),
-        fingerprint_field => fingerprint.0.into_vec()
+        fingerprint_field => fingerprint.0.clone().into_vec()
     );
 
     let scaffolds = &PARSED_SCAFFOLDS;
-    let scaffold_matches = scaffold_search(&tautomer, scaffolds)?;
+    let scaffold_matches = scaffold_search(&fingerprint.0, &tautomer, scaffolds)?;
 
     let scaffold_json = match scaffold_matches.is_empty() {
         true => serde_json::json!({"scaffolds": vec![-1]}),

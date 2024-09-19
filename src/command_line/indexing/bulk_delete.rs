@@ -65,10 +65,10 @@ pub fn create_delete_query(
     smiles: &str,
     query_parser: &QueryParser,
 ) -> eyre::Result<Box<dyn Query>> {
-    let (canon_taut, _fingerprint, descriptors) = process_cpd(smiles, false)?;
+    let (canon_taut, fingerprint, descriptors) = process_cpd(smiles, false)?;
 
     let canon_smiles = canon_taut.as_smiles();
-    let matching_scaffolds = scaffold_search(&canon_taut, &PARSED_SCAFFOLDS);
+    let matching_scaffolds = scaffold_search(&fingerprint.0, &canon_taut, &PARSED_SCAFFOLDS);
     let matching_scaffolds = match matching_scaffolds {
         Ok(matching_scaffolds) => Some(matching_scaffolds),
         Err(_) => None,
