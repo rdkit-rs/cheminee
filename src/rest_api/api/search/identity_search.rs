@@ -2,8 +2,7 @@ use crate::indexing::index_manager::IndexManager;
 use crate::rest_api::api::{GetStructureSearchResponse, StructureResponseError};
 use crate::search::scaffold_search::{scaffold_search, PARSED_SCAFFOLDS};
 use crate::search::{
-    get_smiles_and_extra_data, identity_search::identity_search, prepare_query_structure,
-    StructureSearchHit,
+    aggregate_search_hits, identity_search::identity_search, prepare_query_structure,
 };
 use poem_openapi::payload::Json;
 
@@ -11,6 +10,7 @@ pub fn v1_index_search_identity(
     index_manager: &IndexManager,
     index: String,
     query_smiles: String,
+    use_chirality: bool,
     extra_query: &str,
     use_scaffolds: bool,
 ) -> GetStructureSearchResponse {
@@ -54,36 +54,35 @@ pub fn v1_index_search_identity(
         None
     };
 
-    let result = identity_search(
+    let results = identity_search(
         &searcher,
         &query_canon_taut,
         &matching_scaffolds,
         fingerprint.0.as_bitslice(),
         &descriptors,
+        use_chirality,
         extra_query,
     );
 
-    match result {
-        Ok(Some(result)) => {
-            let schema = searcher.schema();
-            let smiles_field = schema.get_field("smiles").unwrap();
-            let extra_data_field = schema.get_field("extra_data").unwrap();
-
-            let (smiles, extra_data) =
-                get_smiles_and_extra_data(result, &searcher, smiles_field, extra_data_field)
-                    .unwrap();
-
-            GetStructureSearchResponse::Ok(Json(vec![StructureSearchHit {
-                extra_data,
-                smiles,
-                score: 1.0,
-                query: query_smiles,
-                used_tautomers: false,
-            }]))
+    let results = match results {
+        Ok(results) => results,
+        Err(e) => {
+            return GetStructureSearchResponse::Err(Json(StructureResponseError {
+                error: e.to_string(),
+            }))
         }
-        Ok(None) => GetStructureSearchResponse::Ok(Json(Vec::new())),
-        Err(e) => GetStructureSearchResponse::Err(Json(StructureResponseError {
-            error: e.to_string(),
-        })),
-    }
+    };
+
+    let final_results = aggregate_search_hits(searcher, results, false, &query_smiles);
+
+    let final_results = match final_results {
+        Ok(final_results) => final_results,
+        Err(e) => {
+            return GetStructureSearchResponse::Err(Json(StructureResponseError {
+                error: e.to_string(),
+            }))
+        }
+    };
+
+    GetStructureSearchResponse::Ok(Json(final_results))
 }

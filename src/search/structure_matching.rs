@@ -1,8 +1,9 @@
 use bitvec::prelude::BitSlice;
 use rdkit::*;
 
-pub fn exact_match(romol1: &ROMol, romol2: &ROMol) -> bool {
-    let params = SubstructMatchParameters::default();
+pub fn exact_match(romol1: &ROMol, romol2: &ROMol, use_chirality: bool) -> bool {
+    let mut params = SubstructMatchParameters::default();
+    params.set_use_chirality(use_chirality);
     let match1 = substruct_match(romol1, romol2, &params);
     let match2 = substruct_match(romol2, romol1, &params);
     !(match1.is_empty() || match2.is_empty())

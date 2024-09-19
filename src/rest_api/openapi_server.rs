@@ -195,11 +195,19 @@ impl Api {
         &self,
         index: Path<String>,
         smiles: Query<String>,
+        use_chirality: Query<Option<String>>,
         result_limit: Query<Option<usize>>,
         tautomer_limit: Query<Option<usize>>,
         extra_query: Query<Option<String>>,
         use_scaffolds: Query<Option<String>>,
     ) -> GetStructureSearchResponse {
+        // by default, we will ignore chirality
+        let use_chirality = if let Some(use_chirality) = use_chirality.0 {
+            !matches!(use_chirality.as_str(), "false")
+        } else {
+            false
+        };
+
         let result_limit = if let Some(result_limit) = result_limit.0 {
             result_limit
         } else {
@@ -230,6 +238,7 @@ impl Api {
         v1_index_search_structure(
             index,
             smiles.0,
+            use_chirality,
             "substructure",
             result_limit,
             tautomer_limit,
@@ -244,11 +253,19 @@ impl Api {
         &self,
         index: Path<String>,
         smiles: Query<String>,
+        use_chirality: Query<Option<String>>,
         result_limit: Query<Option<usize>>,
         tautomer_limit: Query<Option<usize>>,
         extra_query: Query<Option<String>>,
         use_scaffolds: Query<Option<String>>,
     ) -> GetStructureSearchResponse {
+        // by default, we will ignore chirality
+        let use_chirality = if let Some(use_chirality) = use_chirality.0 {
+            !matches!(use_chirality.as_str(), "false")
+        } else {
+            false
+        };
+
         let result_limit = if let Some(result_limit) = result_limit.0 {
             result_limit
         } else {
@@ -279,6 +296,7 @@ impl Api {
         v1_index_search_structure(
             index,
             smiles.0,
+            use_chirality,
             "superstructure",
             result_limit,
             tautomer_limit,
@@ -293,9 +311,17 @@ impl Api {
         &self,
         index: Path<String>,
         smiles: Query<String>,
+        use_chirality: Query<Option<String>>,
         extra_query: Query<Option<String>>,
         use_scaffolds: Query<Option<String>>,
     ) -> GetStructureSearchResponse {
+        // by default, we will ignore chirality
+        let use_chirality = if let Some(use_chirality) = use_chirality.0 {
+            !matches!(use_chirality.as_str(), "false")
+        } else {
+            false
+        };
+
         let extra_query = if let Some(extra_query) = extra_query.0 {
             extra_query
         } else {
@@ -313,6 +339,7 @@ impl Api {
             &self.index_manager,
             index.to_string(),
             smiles.0,
+            use_chirality,
             &extra_query,
             use_scaffolds,
         )

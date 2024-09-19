@@ -3,14 +3,15 @@ use rdkit::*;
 
 #[test]
 fn test_exact_match() {
-    let smiles1 = "CCC";
-    let smiles2 = "CCCC";
+    let smiles1 = "OC[C@H]1OC=C[C@@H](O)[C@@H]1O";
+    let smiles2 = "OCC1([H])OC=CC([H])(O)C1([H])O";
 
     let romol1 = ROMol::from_smiles(smiles1).unwrap();
     let romol2 = ROMol::from_smiles(smiles2).unwrap();
 
-    assert!(exact_match(&romol1, &romol1.clone()));
-    assert!(!exact_match(&romol1, &romol2));
+    assert!(exact_match(&romol1, &romol1.clone(), true));
+    assert!(exact_match(&romol1, &romol2, false));
+    assert!(!exact_match(&romol1, &romol2, true));
 }
 
 #[test]

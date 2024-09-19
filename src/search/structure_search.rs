@@ -18,6 +18,7 @@ pub fn structure_search(
     method: &str,
     use_scaffolds: bool,
     result_limit: usize,
+    use_chirality: bool,
     extra_query: &str,
 ) -> eyre::Result<HashSet<DocAddress>> {
     let schema = searcher.schema();
@@ -75,7 +76,8 @@ pub fn structure_search(
         };
 
         if fp_match {
-            let params = SubstructMatchParameters::default();
+            let mut params = SubstructMatchParameters::default();
+            params.set_use_chirality(use_chirality);
             let mol_substruct_match = if method == "substructure" {
                 substruct_match(&ROMol::from_smiles(smiles)?, query_mol, &params)
             } else {

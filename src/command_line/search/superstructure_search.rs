@@ -20,6 +20,14 @@ pub fn command() -> Command {
                 .num_args(1),
         )
         .arg(
+            Arg::new("use-chirality")
+                .required(false)
+                .long("use-chirality")
+                .short('c')
+                .help("Indicates whether chirality should be taken into account for the search")
+                .num_args(1),
+        )
+        .arg(
             Arg::new("result-limit")
                 .required(false)
                 .long("result-limit")
