@@ -90,7 +90,7 @@ fn test_identity_search() {
         &extra_query,
     )
     .unwrap();
-    assert!(result.is_some());
+    assert_eq!(result.len(), 1);
 }
 
 #[test]

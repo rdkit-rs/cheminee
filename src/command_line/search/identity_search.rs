@@ -1,8 +1,7 @@
 use crate::command_line::prelude::*;
 use crate::search::scaffold_search::{scaffold_search, PARSED_SCAFFOLDS};
 use crate::search::{
-    get_smiles_and_extra_data, identity_search::identity_search, prepare_query_structure,
-    StructureSearchHit,
+    aggregate_search_hits, identity_search::identity_search, prepare_query_structure,
 };
 
 pub const NAME: &str = "identity-search";
@@ -92,7 +91,7 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
         None
     };
 
-    let result = identity_search(
+    let results = identity_search(
         &searcher,
         &query_canon_taut,
         &matching_scaffolds,
@@ -102,27 +101,9 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
         &extra_query,
     )?;
 
-    if let Some(result) = result {
-        let schema = searcher.schema();
-        let smiles_field = schema.get_field("smiles")?;
-        let extra_data_field = schema.get_field("extra_data")?;
+    let final_results = aggregate_search_hits(searcher, results, false, query_smiles)?;
 
-        let (smiles, extra_data) =
-            get_smiles_and_extra_data(result, &searcher, smiles_field, extra_data_field)?;
-
-        log::info!(
-            "{:#?}",
-            &[StructureSearchHit {
-                extra_data,
-                smiles,
-                score: 1.0,
-                query: query_smiles.into(),
-                used_tautomers: false,
-            }]
-        );
-    } else {
-        log::info!("No exact match result for {:?}", query_smiles);
-    }
+    log::info!("{:#?}", final_results);
 
     Ok(())
 }

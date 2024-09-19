@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use bitvec::prelude::{BitSlice, Lsb0};
 use rdkit::ROMol;
@@ -16,7 +16,7 @@ pub fn identity_search(
     query_descriptors: &HashMap<String, f64>,
     use_chirality: bool,
     extra_query: &str,
-) -> eyre::Result<Option<DocAddress>> {
+) -> eyre::Result<HashSet<DocAddress>> {
     let schema = searcher.schema();
 
     let query = build_identity_query(query_descriptors, extra_query, scaffold_matches);
@@ -26,6 +26,8 @@ pub fn identity_search(
 
     let smiles_field = schema.get_field("smiles")?;
     let fingerprint_field = schema.get_field("fingerprint")?;
+
+    let mut filtered_results: HashSet<DocAddress> = HashSet::new();
 
     for docaddr in initial_results {
         let doc = searcher.doc(docaddr)?;
@@ -51,12 +53,12 @@ pub fn identity_search(
             let mol_exact_match =
                 exact_match(&ROMol::from_smiles(smiles)?, query_mol, use_chirality);
             if mol_exact_match {
-                return Ok(Some(docaddr));
+                filtered_results.insert(docaddr);
             }
         }
     }
 
-    Ok(None)
+    Ok(filtered_results)
 }
 
 pub fn build_identity_query(
