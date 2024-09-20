@@ -28,7 +28,11 @@ pub fn structure_search(
     let query_fingerprint = query_fingerprint.0.as_bitslice();
 
     let scaffold_matches = if use_scaffolds {
-        Some(scaffold_search(query_mol, &PARSED_SCAFFOLDS)?)
+        Some(scaffold_search(
+            query_fingerprint,
+            query_mol,
+            &PARSED_SCAFFOLDS,
+        )?)
     } else {
         None
     };
