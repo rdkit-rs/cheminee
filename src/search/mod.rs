@@ -1,12 +1,13 @@
 use std::collections::{HashMap, HashSet};
 
+use crate::search::compound_processing::process_cpd;
 use poem_openapi_derive::Object;
+use rayon::prelude::*;
 use rdkit::{
     detect_chemistry_problems, Fingerprint, MolSanitizeException, ROMol, SmilesParserParams,
 };
-use tantivy::{schema::Field, DocAddress, Searcher};
-
-use crate::search::compound_processing::process_cpd;
+use tantivy::schema::Field;
+use tantivy::{DocAddress, Searcher};
 
 pub mod basic_search;
 pub mod compound_processing;
@@ -78,7 +79,36 @@ pub struct StructureSearchHit {
     pub used_tautomers: bool,
 }
 
-pub fn get_smiles_and_extra_data(
+pub fn aggregate_query_hits(
+    searcher: Searcher,
+    results: HashSet<DocAddress>,
+    query: &str,
+) -> eyre::Result<Vec<QuerySearchHit>> {
+    let schema = searcher.schema();
+    let smiles_field = schema.get_field("smiles")?;
+    let extra_data_field = schema.get_field("extra_data")?;
+
+    let final_results = results
+        .into_par_iter()
+        .filter_map(|result| {
+            let smiles_and_extra_data =
+                get_smiles_and_extra_data(result, &searcher, smiles_field, extra_data_field);
+
+            match smiles_and_extra_data {
+                Ok((smiles, extra_data)) => Some(QuerySearchHit {
+                    extra_data,
+                    smiles,
+                    query: query.into(),
+                }),
+                Err(_) => None,
+            }
+        })
+        .collect::<Vec<_>>();
+
+    Ok(final_results)
+}
+
+fn get_smiles_and_extra_data(
     docaddr: DocAddress,
     searcher: &Searcher,
     smiles_field: Field,
@@ -103,60 +133,4 @@ pub fn get_smiles_and_extra_data(
     };
 
     Ok((smiles.to_string(), extra_data.to_string()))
-}
-
-pub fn aggregate_query_hits(
-    searcher: Searcher,
-    results: HashSet<DocAddress>,
-    query: &str,
-) -> eyre::Result<Vec<QuerySearchHit>> {
-    let mut final_results: Vec<QuerySearchHit> = Vec::new();
-    let schema = searcher.schema();
-    let smiles_field = schema.get_field("smiles")?;
-    let extra_data_field = schema.get_field("extra_data")?;
-
-    for result in results {
-        let (smiles, extra_data) =
-            get_smiles_and_extra_data(result, &searcher, smiles_field, extra_data_field)?;
-
-        final_results.push(QuerySearchHit {
-            extra_data,
-            smiles,
-            query: query.into(),
-        })
-    }
-
-    Ok(final_results)
-}
-
-pub fn aggregate_search_hits(
-    searcher: Searcher,
-    results: HashSet<DocAddress>,
-    tautomers_used: bool,
-    query: &str,
-) -> eyre::Result<Vec<StructureSearchHit>> {
-    let schema = searcher.schema();
-    let smiles_field = schema.get_field("smiles")?;
-    let extra_data_field = schema.get_field("extra_data")?;
-
-    let score: f32 = 1.0; // every substructure match should get a 1
-
-    let final_results = results
-        .iter()
-        .map(|result| {
-            let (smiles, extra_data) =
-                get_smiles_and_extra_data(*result, &searcher, smiles_field, extra_data_field)
-                    .unwrap();
-
-            StructureSearchHit {
-                extra_data,
-                smiles,
-                score,
-                query: query.into(),
-                used_tautomers: tautomers_used,
-            }
-        })
-        .collect::<Vec<_>>();
-
-    Ok(final_results)
 }

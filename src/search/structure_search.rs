@@ -1,16 +1,18 @@
-use std::collections::{HashMap, HashSet};
-
-use bitvec::prelude::{BitSlice, Lsb0};
-use rdkit::{substruct_match, ROMol, SubstructMatchParameters};
-use regex::Regex;
-use tantivy::{DocAddress, Searcher};
-
 use crate::search::compound_processing::get_cpd_properties;
 use crate::search::scaffold_search::{scaffold_search, PARSED_SCAFFOLDS};
 use crate::search::{
     basic_search::basic_search, structure_matching::substructure_match_fp,
     STRUCTURE_MATCH_DESCRIPTORS,
 };
+use bitvec::macros::internal::funty::Fundamental;
+use bitvec::prelude::{BitSlice, Lsb0};
+use rayon::prelude::*;
+use rdkit::{substruct_match, ROMol, SubstructMatchParameters};
+use regex::Regex;
+use std::collections::{HashMap, HashSet};
+use std::sync::{Arc, Mutex};
+use tantivy::schema::Field;
+use tantivy::{DocAddress, Searcher};
 
 pub fn structure_search(
     searcher: &Searcher,
@@ -20,7 +22,7 @@ pub fn structure_search(
     result_limit: usize,
     use_chirality: bool,
     extra_query: &str,
-) -> eyre::Result<HashSet<DocAddress>> {
+) -> eyre::Result<HashSet<(String, String)>> {
     let schema = searcher.schema();
 
     let (query_fingerprint, query_descriptors) = get_cpd_properties(query_mol)?;
@@ -44,57 +46,107 @@ pub fn structure_search(
     };
 
     let tantivy_limit = 100_000;
-    let filtered_results1 = basic_search(searcher, &query, tantivy_limit)?;
+    let initial_results = basic_search(searcher, &query, tantivy_limit)?;
 
     let smiles_field = schema.get_field("smiles")?;
     let fingerprint_field = schema.get_field("fingerprint")?;
+    let extra_data_field = schema.get_field("extra_data")?;
 
-    let mut filtered_results2: HashSet<DocAddress> = HashSet::new();
+    let result_count: Arc<Mutex<usize>> = Arc::new(Mutex::new(0));
+    let query_mol_mutex = Arc::new(Mutex::new(query_mol.clone()));
 
-    for docaddr in filtered_results1 {
-        if filtered_results2.len() >= result_limit {
-            break;
-        }
+    let filtered_results = initial_results
+        .into_par_iter()
+        .filter_map(|result| {
+            let mut num = result_count.lock().unwrap();
 
-        let doc = searcher.doc(docaddr)?;
+            if num.as_usize() > result_limit {
+                None
+            } else {
+                let struct_match = structure_match(
+                    result,
+                    smiles_field,
+                    fingerprint_field,
+                    extra_data_field,
+                    &searcher,
+                    &query_mol_mutex.lock().unwrap(),
+                    query_fingerprint,
+                    method,
+                    use_chirality,
+                );
 
-        let smiles = doc
-            .get_first(smiles_field)
-            .ok_or(eyre::eyre!("Tantivy smiles retrieval failed"))?
-            .as_text()
-            .ok_or(eyre::eyre!("Failed to stringify smiles"))?;
+                if let Ok(struct_match) = struct_match {
+                    *num += 1;
+                    struct_match
+                } else {
+                    None
+                }
+            }
+        })
+        .collect::<HashSet<(String, String)>>();
 
-        // TO-DO: find a zero-copy bitvec container
-        let fingerprint = doc
-            .get_first(fingerprint_field)
-            .ok_or(eyre::eyre!("Tantivy fingerprint retrieval failed"))?
-            .as_bytes()
-            .ok_or(eyre::eyre!("Failed to read fingerprint as bytes"))?;
+    Ok(filtered_results)
+}
 
-        let fingerprint_bits = BitSlice::<u8, Lsb0>::from_slice(fingerprint);
+pub fn structure_match(
+    docaddr: DocAddress,
+    smiles_field: Field,
+    fingerprint_field: Field,
+    extra_data_field: Field,
+    searcher: &Searcher,
+    query_mol: &ROMol,
+    query_fingerprint: &BitSlice<u8>,
+    method: &str,
+    use_chirality: bool,
+) -> eyre::Result<Option<(String, String)>> {
+    let doc = searcher.doc(docaddr)?;
 
-        let fp_match = if method == "substructure" {
-            substructure_match_fp(query_fingerprint, fingerprint_bits)
+    let smiles = doc
+        .get_first(smiles_field)
+        .ok_or(eyre::eyre!("Tantivy smiles retrieval failed"))?
+        .as_text()
+        .ok_or(eyre::eyre!("Failed to stringify smiles"))?;
+
+    // TO-DO: find a zero-copy bitvec container
+    let fingerprint = doc
+        .get_first(fingerprint_field)
+        .ok_or(eyre::eyre!("Tantivy fingerprint retrieval failed"))?
+        .as_bytes()
+        .ok_or(eyre::eyre!("Failed to read fingerprint as bytes"))?;
+
+    let fingerprint_bits = BitSlice::<u8, Lsb0>::from_slice(fingerprint);
+
+    let fp_match = if method == "substructure" {
+        substructure_match_fp(query_fingerprint, fingerprint_bits)
+    } else {
+        substructure_match_fp(fingerprint_bits, query_fingerprint)
+    };
+
+    if fp_match {
+        let mut params = SubstructMatchParameters::default();
+        params.set_use_chirality(use_chirality);
+
+        let mol_substruct_match = if method == "substructure" {
+            substruct_match(&ROMol::from_smiles(smiles)?, query_mol, &params)
         } else {
-            substructure_match_fp(fingerprint_bits, query_fingerprint)
+            substruct_match(query_mol, &ROMol::from_smiles(smiles)?, &params)
         };
 
-        if fp_match {
-            let mut params = SubstructMatchParameters::default();
-            params.set_use_chirality(use_chirality);
-            let mol_substruct_match = if method == "substructure" {
-                substruct_match(&ROMol::from_smiles(smiles)?, query_mol, &params)
-            } else {
-                substruct_match(query_mol, &ROMol::from_smiles(smiles)?, &params)
+        if !mol_substruct_match.is_empty() && query_mol.as_smiles() != smiles {
+            let extra_data = match doc.get_first(extra_data_field) {
+                Some(extra_data) => serde_json::to_string(
+                    extra_data
+                        .as_json()
+                        .ok_or(eyre::eyre!("Failed to jsonify extra data"))?,
+                )?,
+                None => "".to_string(),
             };
 
-            if !mol_substruct_match.is_empty() && query_mol.as_smiles() != smiles {
-                filtered_results2.insert(docaddr);
-            }
+            return Ok(Some((smiles.to_string(), extra_data)));
         }
     }
 
-    Ok(filtered_results2)
+    Ok(None)
 }
 
 pub fn build_substructure_query(

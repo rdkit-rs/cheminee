@@ -1,6 +1,6 @@
 use crate::command_line::prelude::*;
 use crate::search::structure_search::structure_search;
-use crate::search::{aggregate_search_hits, compound_processing::*, validate_structure};
+use crate::search::{compound_processing::*, validate_structure, StructureSearchHit};
 use rayon::iter::ParallelIterator;
 use rayon::prelude::IntoParallelIterator;
 use std::cmp::min;
@@ -9,7 +9,7 @@ pub fn cli_structure_search(method: &str, matches: &ArgMatches) -> eyre::Result<
     let index_path = matches
         .get_one::<String>("index")
         .ok_or(eyre::eyre!("Failed to extract index path"))?;
-    let smiles = matches
+    let query_smiles = matches
         .get_one::<String>("smiles")
         .ok_or(eyre::eyre!("Failed to extract SMILES"))?;
     let use_chirality = matches.get_one::<String>("use-chirality");
@@ -53,12 +53,12 @@ pub fn cli_structure_search(method: &str, matches: &ArgMatches) -> eyre::Result<
     let reader = index.reader()?;
     let searcher = reader.searcher();
 
-    let problems = validate_structure(smiles)?;
+    let problems = validate_structure(query_smiles)?;
     if !problems.is_empty() {
         return Err(eyre::eyre!("Failed structure validation"));
     };
 
-    let query_canon_taut = standardize_smiles(smiles, false)?;
+    let query_canon_taut = standardize_smiles(query_smiles, false)?;
 
     let mut results = structure_search(
         &searcher,
@@ -97,7 +97,7 @@ pub fn cli_structure_search(method: &str, matches: &ArgMatches) -> eyre::Result<
 
             for results_set in tautomer_results {
                 if results.len() < result_limit {
-                    results.extend(results_set);
+                    results.extend(results_set.clone());
                 }
             }
 
@@ -107,7 +107,16 @@ pub fn cli_structure_search(method: &str, matches: &ArgMatches) -> eyre::Result<
         }
     }
 
-    let final_results = aggregate_search_hits(searcher, results, used_tautomers, smiles)?;
+    let final_results = results
+        .into_par_iter()
+        .map(|(smiles, extra_data)| StructureSearchHit {
+            extra_data,
+            smiles,
+            score: 1.0,
+            query: query_smiles.into(),
+            used_tautomers,
+        })
+        .collect::<Vec<_>>();
 
     if final_results.len() > result_limit {
         log::info!("{:#?}", &final_results[..result_limit]);
