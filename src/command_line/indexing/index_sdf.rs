@@ -204,7 +204,7 @@ fn create_tantivy_doc(
 
     let mut doc = doc!(
         smiles_field => canon_taut.as_smiles(),
-        fingerprint_field => fp.0.into_vec()
+        fingerprint_field => fp.0.as_raw_slice()
     );
 
     for field in KNOWN_DESCRIPTORS {
@@ -221,7 +221,7 @@ fn create_tantivy_doc(
         }
     }
 
-    let scaffold_matches = scaffold_search(&canon_taut, &PARSED_SCAFFOLDS)?;
+    let scaffold_matches = scaffold_search(&fp.0, &canon_taut, &PARSED_SCAFFOLDS)?;
 
     let scaffold_json = match scaffold_matches.is_empty() {
         true => serde_json::json!({"scaffolds": vec![-1]}),

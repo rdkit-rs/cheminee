@@ -54,7 +54,7 @@ fn test_identity_search() {
 
     let mut doc = doc!(
         smiles_field => query_mol.as_smiles(),
-        fingerprint_field => query_fingerprint.0.clone().into_vec(),
+        fingerprint_field => query_fingerprint.0.as_raw_slice(),
     );
 
     for (descriptor, val) in &query_descriptors {
@@ -102,7 +102,8 @@ fn test_substructure_search() {
     let index_smiles = "C1=CC=CC=C1CC2=CC=CC=C2";
     let (index_mol, index_fingerprint, index_descriptors) =
         process_cpd(index_smiles, false).unwrap();
-    let index_scaffolds = scaffold_search(&index_mol, &PARSED_SCAFFOLDS).unwrap();
+    let index_scaffolds =
+        scaffold_search(&index_fingerprint.0, &index_mol, &PARSED_SCAFFOLDS).unwrap();
 
     let query_smiles = "C1=CC=CC=C1";
     let query_mol = standardize_smiles(query_smiles, false).unwrap();
@@ -117,7 +118,7 @@ fn test_substructure_search() {
 
     let mut doc = doc!(
         smiles_field => index_mol.as_smiles(),
-        fingerprint_field => index_fingerprint.0.clone().into_vec(),
+        fingerprint_field => index_fingerprint.0.as_raw_slice(),
         extra_data_field => json![{ "scaffolds": index_scaffolds }],
     );
 
@@ -167,7 +168,8 @@ fn test_superstructure_search() {
     let index_smiles = "C1=CC=CC=C1";
     let (index_mol, index_fingerprint, index_descriptors) =
         process_cpd(index_smiles, false).unwrap();
-    let index_scaffolds = scaffold_search(&index_mol, &PARSED_SCAFFOLDS).unwrap();
+    let index_scaffolds =
+        scaffold_search(&index_fingerprint.0, &index_mol, &PARSED_SCAFFOLDS).unwrap();
 
     let query_smiles = "C1=CC=CC=C1CC2=CC=CC=C2";
     let query_mol = standardize_smiles(query_smiles, false).unwrap();
@@ -182,7 +184,7 @@ fn test_superstructure_search() {
 
     let mut doc = doc!(
         smiles_field => index_mol.as_smiles(),
-        fingerprint_field => index_fingerprint.0.clone().into_vec(),
+        fingerprint_field => index_fingerprint.0.as_raw_slice(),
         extra_data_field => json![{ "scaffolds": index_scaffolds }],
     );
 
