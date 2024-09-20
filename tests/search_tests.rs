@@ -50,7 +50,7 @@ fn test_identity_search() {
 
     let mut doc = doc!(
         smiles_field => test_smiles,
-        fingerprint_field => query_fingerprint.0.clone().into_vec()
+        fingerprint_field => query_fingerprint.0.as_raw_slice()
     );
 
     for (descriptor, val) in &query_descriptors {
@@ -114,7 +114,7 @@ fn test_substructure_search() {
 
     let mut doc = doc!(
         smiles_field => index_mol.as_smiles(),
-        fingerprint_field => index_fingerprint.0.clone().into_vec(),
+        fingerprint_field => index_fingerprint.0.as_raw_slice(),
         extra_data_field => json![{ "scaffolds": index_scaffolds }],
     );
 
@@ -180,7 +180,7 @@ fn test_superstructure_search() {
 
     let mut doc = doc!(
         smiles_field => index_mol.as_smiles(),
-        fingerprint_field => index_fingerprint.0.clone().into_vec(),
+        fingerprint_field => index_fingerprint.0.as_raw_slice(),
         extra_data_field => json![{ "scaffolds": index_scaffolds }],
     );
 

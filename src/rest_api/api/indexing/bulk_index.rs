@@ -131,9 +131,11 @@ fn bulk_request_doc_to_tantivy_doc(
         return Err(eyre::eyre!("not an object"));
     };
 
+    // let fp = fingerprint.0.as_raw_slice();
+
     let mut doc = tantivy::doc!(
         smiles_field => tautomer.as_smiles(),
-        fingerprint_field => fingerprint.0.clone().into_vec()
+        fingerprint_field => fingerprint.0.as_raw_slice()
     );
 
     let scaffolds = &PARSED_SCAFFOLDS;

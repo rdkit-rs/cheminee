@@ -119,7 +119,7 @@ fn create_tantivy_doc(
 
     let mut doc = doc!(
         smiles_field => canon_taut.as_smiles(),
-        fingerprint_field => fingerprint.0.clone().into_vec()
+        fingerprint_field => fingerprint.0.as_raw_slice()
     );
 
     let scaffold_matches = scaffold_search(&fingerprint.0, &canon_taut, &PARSED_SCAFFOLDS)?;

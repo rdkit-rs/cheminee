@@ -40,7 +40,7 @@ fn test_create_delete_query() {
 
     let mut doc = doc!(
         smiles_field => canon_taut.as_smiles(),
-        fingerprint_field => fingerprint.0.clone().into_vec()
+        fingerprint_field => fingerprint.0.as_raw_slice()
     );
 
     for (descriptor, val) in &descriptors {
