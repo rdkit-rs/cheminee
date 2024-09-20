@@ -1,8 +1,9 @@
 use crate::command_line::prelude::*;
 use crate::search::scaffold_search::{scaffold_search, PARSED_SCAFFOLDS};
 use crate::search::{
-    aggregate_search_hits, identity_search::identity_search, prepare_query_structure,
+    identity_search::identity_search, prepare_query_structure, StructureSearchHit,
 };
+use rayon::prelude::*;
 
 pub const NAME: &str = "identity-search";
 
@@ -101,7 +102,16 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
         &extra_query,
     )?;
 
-    let final_results = aggregate_search_hits(searcher, results, false, query_smiles)?;
+    let final_results = results
+        .into_par_iter()
+        .map(|(smiles, extra_data)| StructureSearchHit {
+            extra_data,
+            smiles,
+            score: 1.0,
+            query: query_smiles.into(),
+            used_tautomers: false,
+        })
+        .collect::<Vec<_>>();
 
     log::info!("{:#?}", final_results);
 

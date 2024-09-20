@@ -48,9 +48,13 @@ fn test_identity_search() {
     let smiles_field = builder.add_text_field("smiles", STRING | STORED);
     let fingerprint_field = builder.add_bytes_field("fingerprint", FAST | STORED);
 
+    let json_options: JsonObjectOptions =
+        JsonObjectOptions::from(TEXT | STORED).set_expand_dots_enabled();
+    let _extra_data_field = builder.add_json_field("extra_data", json_options);
+
     let mut doc = doc!(
-        smiles_field => test_smiles,
-        fingerprint_field => query_fingerprint.0.clone().into_vec()
+        smiles_field => query_mol.as_smiles(),
+        fingerprint_field => query_fingerprint.0.clone().into_vec(),
     );
 
     for (descriptor, val) in &query_descriptors {

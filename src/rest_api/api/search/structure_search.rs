@@ -1,9 +1,7 @@
 use crate::rest_api::api::{GetStructureSearchResponse, StructureResponseError};
 use crate::search::compound_processing::standardize_smiles;
 use crate::search::structure_search::structure_search;
-use crate::search::{
-    aggregate_search_hits, compound_processing::get_tautomers, validate_structure,
-};
+use crate::search::{compound_processing::get_tautomers, validate_structure, StructureSearchHit};
 use poem_openapi::payload::Json;
 use rayon::iter::IntoParallelIterator;
 use rayon::iter::ParallelIterator;
@@ -12,7 +10,7 @@ use tantivy::Index;
 
 pub fn v1_index_search_structure(
     index: eyre::Result<Index>,
-    smiles: String,
+    query_smiles: String,
     use_chirality: bool,
     method: &str,
     result_limit: usize,
@@ -41,7 +39,7 @@ pub fn v1_index_search_structure(
 
     let searcher = reader.searcher();
 
-    let problems_result = validate_structure(&smiles);
+    let problems_result = validate_structure(&query_smiles);
 
     let problems_exist = match problems_result {
         Ok(problems) => !problems.is_empty(),
@@ -54,7 +52,7 @@ pub fn v1_index_search_structure(
         }));
     };
 
-    let query_canon_taut = match standardize_smiles(&smiles, false) {
+    let query_canon_taut = match standardize_smiles(&query_smiles, false) {
         Ok(romol) => romol,
         Err(e) => {
             return GetStructureSearchResponse::Err(Json(StructureResponseError {
@@ -109,7 +107,7 @@ pub fn v1_index_search_structure(
 
             for results_set in tautomer_results {
                 if results.len() < result_limit {
-                    results.extend(results_set);
+                    results.extend(results_set.clone());
                 }
             }
 
@@ -119,16 +117,16 @@ pub fn v1_index_search_structure(
         }
     }
 
-    let final_results = aggregate_search_hits(searcher, results, used_tautomers, &smiles);
-
-    let final_results = match final_results {
-        Ok(final_results) => final_results,
-        Err(e) => {
-            return GetStructureSearchResponse::Err(Json(StructureResponseError {
-                error: e.to_string(),
-            }))
-        }
-    };
+    let final_results = results
+        .into_par_iter()
+        .map(|(smiles, extra_data)| StructureSearchHit {
+            extra_data,
+            smiles,
+            score: 1.0,
+            query: query_smiles.clone(),
+            used_tautomers,
+        })
+        .collect::<Vec<_>>();
 
     if final_results.len() > result_limit {
         GetStructureSearchResponse::Ok(Json(final_results[..result_limit].into()))

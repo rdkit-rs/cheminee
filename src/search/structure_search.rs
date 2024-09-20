@@ -3,7 +3,7 @@ use std::collections::{HashMap, HashSet};
 use bitvec::prelude::{BitSlice, Lsb0};
 use rdkit::{substruct_match, ROMol, SubstructMatchParameters};
 use regex::Regex;
-use tantivy::{DocAddress, Searcher};
+use tantivy::Searcher;
 
 use crate::search::compound_processing::get_cpd_properties;
 use crate::search::scaffold_search::{scaffold_search, PARSED_SCAFFOLDS};
@@ -20,7 +20,7 @@ pub fn structure_search(
     result_limit: usize,
     use_chirality: bool,
     extra_query: &str,
-) -> eyre::Result<HashSet<DocAddress>> {
+) -> eyre::Result<HashSet<(String, String)>> {
     let schema = searcher.schema();
 
     let (query_fingerprint, query_descriptors) = get_cpd_properties(query_mol)?;
@@ -44,8 +44,9 @@ pub fn structure_search(
 
     let smiles_field = schema.get_field("smiles")?;
     let fingerprint_field = schema.get_field("fingerprint")?;
+    let extra_data_field = schema.get_field("extra_data")?;
 
-    let mut filtered_results2: HashSet<DocAddress> = HashSet::new();
+    let mut filtered_results2: HashSet<(String, String)> = HashSet::new();
 
     for docaddr in filtered_results1 {
         if filtered_results2.len() >= result_limit {
@@ -85,7 +86,16 @@ pub fn structure_search(
             };
 
             if !mol_substruct_match.is_empty() && query_mol.as_smiles() != smiles {
-                filtered_results2.insert(docaddr);
+                let extra_data = match doc.get_first(extra_data_field) {
+                    Some(extra_data) => serde_json::to_string(
+                        extra_data
+                            .as_json()
+                            .ok_or(eyre::eyre!("Failed to jsonify extra data"))?,
+                    )?,
+                    None => "".to_string(),
+                };
+
+                filtered_results2.insert((smiles.to_string(), extra_data));
             }
         }
     }

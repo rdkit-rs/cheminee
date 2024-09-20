@@ -2,9 +2,10 @@ use crate::indexing::index_manager::IndexManager;
 use crate::rest_api::api::{GetStructureSearchResponse, StructureResponseError};
 use crate::search::scaffold_search::{scaffold_search, PARSED_SCAFFOLDS};
 use crate::search::{
-    aggregate_search_hits, identity_search::identity_search, prepare_query_structure,
+    identity_search::identity_search, prepare_query_structure, StructureSearchHit,
 };
 use poem_openapi::payload::Json;
+use rayon::prelude::*;
 
 pub fn v1_index_search_identity(
     index_manager: &IndexManager,
@@ -64,19 +65,17 @@ pub fn v1_index_search_identity(
         extra_query,
     );
 
-    let results = match results {
-        Ok(results) => results,
-        Err(e) => {
-            return GetStructureSearchResponse::Err(Json(StructureResponseError {
-                error: e.to_string(),
-            }))
-        }
-    };
-
-    let final_results = aggregate_search_hits(searcher, results, false, &query_smiles);
-
-    let final_results = match final_results {
-        Ok(final_results) => final_results,
+    let final_results = match results {
+        Ok(results) => results
+            .into_par_iter()
+            .map(|(smiles, extra_data)| StructureSearchHit {
+                extra_data,
+                smiles,
+                score: 1.0,
+                query: query_smiles.clone(),
+                used_tautomers: false,
+            })
+            .collect::<Vec<_>>(),
         Err(e) => {
             return GetStructureSearchResponse::Err(Json(StructureResponseError {
                 error: e.to_string(),

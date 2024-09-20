@@ -3,7 +3,7 @@ use std::collections::{HashMap, HashSet};
 use bitvec::prelude::{BitSlice, Lsb0};
 use rdkit::ROMol;
 use regex::Regex;
-use tantivy::{DocAddress, Searcher};
+use tantivy::Searcher;
 
 use crate::search::structure_matching::exact_match;
 use crate::search::{basic_search::basic_search, STRUCTURE_MATCH_DESCRIPTORS};
@@ -16,7 +16,7 @@ pub fn identity_search(
     query_descriptors: &HashMap<String, f64>,
     use_chirality: bool,
     extra_query: &str,
-) -> eyre::Result<HashSet<DocAddress>> {
+) -> eyre::Result<HashSet<(String, String)>> {
     let schema = searcher.schema();
 
     let query = build_identity_query(query_descriptors, extra_query, scaffold_matches);
@@ -26,8 +26,9 @@ pub fn identity_search(
 
     let smiles_field = schema.get_field("smiles")?;
     let fingerprint_field = schema.get_field("fingerprint")?;
+    let extra_data_field = schema.get_field("extra_data")?;
 
-    let mut filtered_results: HashSet<DocAddress> = HashSet::new();
+    let mut filtered_results: HashSet<(String, String)> = HashSet::new();
 
     for docaddr in initial_results {
         let doc = searcher.doc(docaddr)?;
@@ -38,7 +39,6 @@ pub fn identity_search(
             .as_text()
             .ok_or(eyre::eyre!("Failed to stringify smiles"))?;
 
-        // TO-DO: find a zero-copy bitvec container
         let fingerprint = doc
             .get_first(fingerprint_field)
             .ok_or(eyre::eyre!("Tantivy fingerprint retrieval failed"))?
@@ -46,14 +46,22 @@ pub fn identity_search(
             .ok_or(eyre::eyre!("Failed to read fingerprint as bytes"))?;
 
         let fingerprint_bits = BitSlice::<u8, Lsb0>::from_slice(fingerprint);
-
         let fp_match = query_fingerprint == fingerprint_bits;
 
         if fp_match {
             let mol_exact_match =
                 exact_match(&ROMol::from_smiles(smiles)?, query_mol, use_chirality);
             if mol_exact_match {
-                filtered_results.insert(docaddr);
+                let extra_data = match doc.get_first(extra_data_field) {
+                    Some(extra_data) => serde_json::to_string(
+                        extra_data
+                            .as_json()
+                            .ok_or(eyre::eyre!("Failed to jsonify extra data"))?,
+                    )?,
+                    None => "".to_string(),
+                };
+
+                filtered_results.insert((smiles.to_string(), extra_data));
             }
         }
     }
