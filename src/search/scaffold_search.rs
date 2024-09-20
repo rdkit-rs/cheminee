@@ -42,9 +42,9 @@ pub fn scaffold_search(
     scaffolds: &Vec<Scaffold>,
 ) -> eyre::Result<Vec<u64>> {
     let mut matching_scaffolds: Vec<u64> = Vec::with_capacity(scaffolds.len());
-    for scaffold in scaffolds {
-        let params = SubstructMatchParameters::default();
+    let params = SubstructMatchParameters::default();
 
+    for scaffold in scaffolds {
         let fp_substruct_match =
             substructure_match_fp(scaffold.fp.lock().unwrap().as_bitslice(), query_fingerprint);
 
