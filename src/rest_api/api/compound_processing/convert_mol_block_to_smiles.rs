@@ -1,22 +1,8 @@
+use crate::rest_api::api::{ConvertedSmiles, ConvertedSmilesResponse};
 use crate::rest_api::models::MolBlock;
 use poem_openapi::payload::Json;
-use poem_openapi_derive::{ApiResponse, Object};
 use rayon::prelude::*;
 use rdkit::RWMol;
-
-#[derive(ApiResponse, Debug)]
-pub enum ConvertedSmilesResponse {
-    #[oai(status = "200")]
-    Ok(Json<Vec<ConvertedSmiles>>),
-}
-
-#[derive(Object, Debug)]
-pub struct ConvertedSmiles {
-    #[oai(skip_serializing_if_is_none)]
-    pub smiles: Option<String>,
-    #[oai(skip_serializing_if_is_none)]
-    pub error: Option<String>,
-}
 
 pub async fn v1_convert_mol_block_to_smiles(
     sanitize: String,
