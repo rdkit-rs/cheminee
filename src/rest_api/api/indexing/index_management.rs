@@ -3,75 +3,75 @@ use tantivy::Opstamp;
 
 #[derive(ApiResponse, Debug)]
 pub enum GetIndexResponse {
-    #[oai(status = "200")]
+    #[oai(status = "200", content_type = "application/json")]
     Ok(Json<IndexSchema>),
     #[oai(status = "400")]
     NotFound,
-    #[oai(status = "500")]
+    #[oai(status = "500", content_type = "application/json")]
     Err(Json<GetIndexesResponseError>),
 }
 
 #[derive(ApiResponse)]
 pub enum GetIndexesResponse {
-    #[oai(status = "200")]
+    #[oai(status = "200", content_type = "application/json")]
     Ok(Json<Vec<IndexMeta>>),
     #[oai(status = "400")]
     NotFound,
-    #[oai(status = "500")]
+    #[oai(status = "500", content_type = "application/json")]
     Err(Json<GetIndexesResponseError>),
 }
 
 #[derive(ApiResponse, Debug)]
 pub enum ListIndexesResponse {
-    #[oai(status = "200")]
+    #[oai(status = "200", content_type = "application/json")]
     Ok(Json<Vec<IndexMeta>>),
-    #[oai(status = "500")]
+    #[oai(status = "500", content_type = "application/json")]
     Err(Json<ListIndexResponseErr>),
 }
 
 #[derive(ApiResponse, Debug)]
 pub enum ListSchemasResponse {
-    #[oai(status = "200")]
+    #[oai(status = "200", content_type = "application/json")]
     Ok(Json<Vec<Schema>>),
 }
 
 #[derive(ApiResponse, Debug)]
 pub enum PostIndexesBulkIndexResponse {
-    #[oai(status = "200")]
+    #[oai(status = "200", content_type = "application/json")]
     Ok(Json<PostIndexBulkResponseOk>),
     #[oai(status = "404")]
     IndexDoesNotExist,
-    #[oai(status = "500")]
+    #[oai(status = "500", content_type = "application/json")]
     Err(Json<PostIndexBulkResponseError>),
 }
 
 #[derive(ApiResponse, Debug)]
 pub enum DeleteIndexesBulkDeleteResponse {
-    #[oai(status = "200")]
+    #[oai(status = "200", content_type = "application/json")]
     Ok(Json<DeleteIndexBulkResponseOk>),
     #[oai(status = "404")]
     IndexDoesNotExist,
-    #[oai(status = "500")]
+    #[oai(status = "500", content_type = "application/json")]
     Err(Json<DeleteIndexBulkResponseError>),
 }
 
 #[derive(ApiResponse, Debug)]
 pub enum PostIndexResponse {
-    #[oai(status = "200")]
+    #[oai(status = "200", content_type = "application/json")]
     Ok(Json<IndexMeta>),
     #[oai(status = "404")]
     SchemaDoesNotExist,
-    #[oai(status = "500")]
+    #[oai(status = "500", content_type = "application/json")]
     Err(Json<CreateIndexError>),
 }
 
 #[derive(ApiResponse, Debug)]
 pub enum DeleteIndexResponse {
-    #[oai(status = "200")]
+    #[oai(status = "200", content_type = "application/json")]
     Ok(Json<IndexMeta>),
     #[oai(status = "404")]
     IndexDoesNotExist,
-    #[oai(status = "500")]
+    #[oai(status = "500", content_type = "application/json")]
     Err(Json<DeleteIndexError>),
 }
 
