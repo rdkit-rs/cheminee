@@ -68,7 +68,7 @@ pub fn structure_search(
                     smiles_field,
                     fingerprint_field,
                     extra_data_field,
-                    &searcher,
+                    searcher,
                     &query_mol_mutex.lock().unwrap(),
                     query_fingerprint,
                     method,
