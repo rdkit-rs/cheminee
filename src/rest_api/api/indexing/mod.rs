@@ -13,9 +13,6 @@ pub use delete_index::*;
 mod get_index;
 pub use get_index::*;
 
-mod index_management;
-pub use index_management::*;
-
 mod list_indexes;
 pub use list_indexes::*;
 
