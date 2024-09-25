@@ -13,3 +13,6 @@ fn bench_scaffold_search(b: &mut Bencher) {
 
     b.iter(|| scaffold_search(&fp.0, &mol, &PARSED_SCAFFOLDS));
 }
+
+// running 1 test
+// test bench_scaffold_search ... bench:     756,170.85 ns/iter (+/- 27,301.91)
