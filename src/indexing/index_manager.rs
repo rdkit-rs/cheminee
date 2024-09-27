@@ -1,5 +1,6 @@
 use std::path::PathBuf;
 
+#[allow(deprecated)]
 use tantivy::{
     directory::MmapDirectory, schema::Schema, IndexBuilder, IndexSettings, IndexSortByField, Order,
     TantivyError,
@@ -62,6 +63,7 @@ impl IndexManager {
         Ok(index)
     }
 
+    #[allow(deprecated)]
     pub fn build_builder(
         schema: &Schema,
         sort_by: Option<&str>,

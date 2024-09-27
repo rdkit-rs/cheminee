@@ -231,3 +231,13 @@ pub struct QueryResponseError {
 pub struct StructureResponseError {
     pub error: String,
 }
+
+#[derive(ApiResponse, Debug)]
+pub enum MergeSegmentsResponse {
+    #[oai(status = "200", content_type = "application/json")]
+    Ok(Json<String>),
+    #[oai(status = "404")]
+    IndexDoesNotExist,
+    #[oai(status = "500")]
+    MergeFailed(Json<String>),
+}

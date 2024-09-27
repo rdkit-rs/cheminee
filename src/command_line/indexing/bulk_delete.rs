@@ -38,7 +38,7 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
     let (storage_dir, index_name) = split_path(index_path)?;
     let index_manager = IndexManager::new(storage_dir.deref(), false)?;
     let index = index_manager.open(index_name.deref())?;
-    let mut deleter = index.writer(16 * 1024 * 1024)?;
+    let mut deleter = index.writer::<tantivy::TantivyDocument>(16 * 1024 * 1024)?;
     let query_parser = QueryParser::for_index(&index, vec![]);
 
     for smiles in smiles_list {

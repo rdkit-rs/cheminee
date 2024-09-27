@@ -117,21 +117,20 @@ fn get_smiles_and_extra_data(
     smiles_field: Field,
     extra_data_field: Field,
 ) -> eyre::Result<(String, String)> {
-    let doc = searcher.doc(docaddr)?;
+    let doc = searcher.doc::<tantivy::TantivyDocument>(docaddr)?;
     let smiles = doc
         .get_first(smiles_field)
-        .ok_or(eyre::eyre!("Tantivy smiles retrieval failed"))?
-        .as_text()
-        .ok_or(eyre::eyre!("Failed to stringify smiles"))?;
+        .ok_or(eyre::eyre!("Tantivy smiles retrieval failed"))?;
+
+    let smiles = match smiles {
+        tantivy::schema::OwnedValue::Str(s) => s,
+        other => return Err(eyre::eyre!("expect string got {:?}", other)),
+    };
 
     let extra_data = doc.get_first(extra_data_field);
 
     let extra_data = match extra_data {
-        Some(extra_data) => serde_json::to_string(
-            extra_data
-                .as_json()
-                .ok_or(eyre::eyre!("Failed to jsonify extra data"))?,
-        )?,
+        Some(extra_data) => serde_json::to_string(extra_data)?,
         None => "".to_string(),
     };
 

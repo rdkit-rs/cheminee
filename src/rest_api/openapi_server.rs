@@ -2,11 +2,12 @@ use crate::indexing::index_manager::IndexManager;
 use crate::rest_api::api::{
     v1_convert_mol_block_to_smiles, v1_convert_smiles_to_mol_block, v1_delete_index,
     v1_delete_index_bulk, v1_get_index, v1_index_search_basic, v1_index_search_identity,
-    v1_index_search_structure, v1_list_indexes, v1_list_schemas, v1_post_index, v1_post_index_bulk,
-    v1_standardize, BulkRequest, ConvertedMolBlockResponse, ConvertedSmilesResponse,
-    DeleteIndexResponse, DeleteIndexesBulkDeleteResponse, GetIndexResponse, GetQuerySearchResponse,
-    GetStructureSearchResponse, ListIndexesResponse, ListSchemasResponse, PostIndexResponse,
-    PostIndexesBulkIndexResponse, StandardizeResponse,
+    v1_index_search_structure, v1_list_indexes, v1_list_schemas, v1_merge_segments, v1_post_index,
+    v1_post_index_bulk, v1_standardize, BulkRequest, ConvertedMolBlockResponse,
+    ConvertedSmilesResponse, DeleteIndexResponse, DeleteIndexesBulkDeleteResponse,
+    GetIndexResponse, GetQuerySearchResponse, GetStructureSearchResponse, ListIndexesResponse,
+    ListSchemasResponse, MergeSegmentsResponse, PostIndexResponse, PostIndexesBulkIndexResponse,
+    StandardizeResponse,
 };
 use crate::rest_api::models::{MolBlock, Smiles};
 
@@ -143,6 +144,13 @@ impl Api {
             schema.0,
             sort_by.0.as_deref(),
         )
+    }
+
+    // v1/indexes/inventory_items_v1/merge
+    #[oai(path = "/v1/indexes/:index/merge", method = "post")]
+    /// Merge segments inside the index
+    pub async fn v1_post_index_merge_segments(&self, index: Path<String>) -> MergeSegmentsResponse {
+        v1_merge_segments(&self.index_manager, index.to_string()).await
     }
 
     #[oai(path = "/v1/indexes/:index", method = "delete")]

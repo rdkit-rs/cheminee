@@ -99,20 +99,26 @@ pub fn structure_match(
     method: &str,
     use_chirality: bool,
 ) -> eyre::Result<Option<(String, String)>> {
-    let doc = searcher.doc(docaddr)?;
+    let doc = searcher.doc::<tantivy::TantivyDocument>(docaddr)?;
 
     let smiles = doc
         .get_first(smiles_field)
-        .ok_or(eyre::eyre!("Tantivy smiles retrieval failed"))?
-        .as_text()
-        .ok_or(eyre::eyre!("Failed to stringify smiles"))?;
+        .ok_or(eyre::eyre!("Tantivy smiles retrieval failed"))?;
+
+    let smiles = match smiles {
+        tantivy::schema::OwnedValue::Str(s) => s,
+        other => return Err(eyre::eyre!("expected string, got {:?}", other)),
+    };
 
     // TO-DO: find a zero-copy bitvec container
     let fingerprint = doc
         .get_first(fingerprint_field)
-        .ok_or(eyre::eyre!("Tantivy fingerprint retrieval failed"))?
-        .as_bytes()
-        .ok_or(eyre::eyre!("Failed to read fingerprint as bytes"))?;
+        .ok_or(eyre::eyre!("Tantivy fingerprint retrieval failed"))?;
+
+    let fingerprint = match fingerprint {
+        tantivy::schema::OwnedValue::Bytes(b) => b,
+        other => return Err(eyre::eyre!("expected bytes, got {:?}", other)),
+    };
 
     let fingerprint_bits = BitSlice::<u8, Lsb0>::from_slice(fingerprint);
 
@@ -132,13 +138,9 @@ pub fn structure_match(
             substruct_match(query_mol, &ROMol::from_smiles(smiles)?, &params)
         };
 
-        if !mol_substruct_match.is_empty() && query_mol.as_smiles() != smiles {
+        if !mol_substruct_match.is_empty() && query_mol.as_smiles() != *smiles {
             let extra_data = match doc.get_first(extra_data_field) {
-                Some(extra_data) => serde_json::to_string(
-                    extra_data
-                        .as_json()
-                        .ok_or(eyre::eyre!("Failed to jsonify extra data"))?,
-                )?,
+                Some(extra_data) => serde_json::to_string(extra_data)?,
                 None => "".to_string(),
             };
 

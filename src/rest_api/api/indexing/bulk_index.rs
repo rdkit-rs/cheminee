@@ -120,7 +120,7 @@ fn bulk_request_doc_to_tantivy_doc(
     fingerprint_field: Field,
     descriptors_fields: &HashMap<&str, Field>,
     extra_data_field: Field,
-) -> eyre::Result<tantivy::Document> {
+) -> eyre::Result<impl tantivy::Document> {
     // By default, do not attempt to fix problematic molecules
     let (tautomer, fingerprint, descriptors) = process_cpd(&bulk_request_doc.smiles, false)?;
 

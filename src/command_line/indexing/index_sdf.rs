@@ -198,7 +198,7 @@ fn create_tantivy_doc(
     fingerprint_field: Field,
     descriptor_fields: &HashMap<&str, Field>,
     extra_data_field: Field,
-) -> eyre::Result<tantivy::Document> {
+) -> eyre::Result<impl tantivy::Document> {
     // By default, do not attempt to fix problematic molecules
     let (canon_taut, fp, descriptors) = process_cpd(mol.as_smiles().as_str(), false)?;
 

@@ -106,7 +106,7 @@ fn create_tantivy_doc(
     fingerprint_field: Field,
     descriptor_fields: &HashMap<&str, Field>,
     extra_data_field: Field,
-) -> eyre::Result<tantivy::Document> {
+) -> eyre::Result<impl tantivy::Document> {
     let smiles = record
         .get("smiles")
         .ok_or(eyre::eyre!("Failed to extract smiles"))?
