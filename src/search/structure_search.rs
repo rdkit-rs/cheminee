@@ -75,11 +75,15 @@ pub fn structure_search(
                     use_chirality,
                 );
 
-                if let Ok(struct_match) = struct_match {
-                    *num += 1;
-                    struct_match
-                } else {
-                    None
+                match struct_match {
+                    Ok(struct_match) => {
+                        *num += 1;
+                        struct_match
+                    }
+                    Err(e) => {
+                        log::error!("{:?}", e);
+                        None
+                    }
                 }
             }
         })
