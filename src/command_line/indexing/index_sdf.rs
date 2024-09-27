@@ -34,6 +34,18 @@ pub fn command() -> Command {
                 .short('l')
                 .num_args(1),
         )
+        .arg(
+            Arg::new("chunk-size")
+                .required(false)
+                .long("chunk-size")
+                .num_args(1),
+        )
+        .arg(
+            Arg::new("commit")
+                .required(false)
+                .long("commit")
+                .num_args(0),
+        )
 }
 
 pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
@@ -44,6 +56,8 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
         .get_one::<String>("index")
         .ok_or(eyre::eyre!("Failed to extract index path"))?;
     let limit = matches.get_one::<String>("limit");
+    let chunksize: usize = *matches.get_one("chunk-size").unwrap_or(&1000); // TODO figure out how to parse usize from CLI flags
+    let commit: bool = matches.get_flag("commit");
 
     log::info!(
         "indexing path={}, index_dir={}, limit={:?}",
@@ -87,7 +101,6 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
     let mut counter = 0;
     let failed_counter: Arc<Mutex<usize>> = Arc::new(Mutex::new(0));
 
-    let chunksize = 1000;
     let mut mol_vec = Vec::with_capacity(chunksize);
     for mol in mol_iter {
         if mol.is_err() {
@@ -136,6 +149,10 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
 
             mol_vec.clear();
             counter += chunksize;
+
+            if commit {
+                index_writer.commit()?;
+            }
 
             if counter > 0 && counter % 10_000 == 0 {
                 log::info!("{:?} compounds processed so far", counter);

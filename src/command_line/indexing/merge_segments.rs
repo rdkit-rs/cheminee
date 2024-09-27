@@ -1,5 +1,4 @@
 use segment_manager::SegmentManager;
-use tantivy::directory::MmapDirectory;
 
 use crate::command_line::prelude::*;
 
@@ -20,13 +19,15 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
         .get_one::<String>("index")
         .ok_or(eyre::eyre!("Failed to extract index path"))?;
 
-    log::info!("indexing index_dir={}", index_dir);
+    log::info!("merge_segments index_dir={}", index_dir);
 
-    let mmap_index_dir = MmapDirectory::open(index_dir)?;
-    let index = tantivy::Index::open(mmap_index_dir)?;
+    let index = tantivy::Index::open_in_dir(&index_dir)?;
 
     let segment_manager = SegmentManager {};
     segment_manager.merge(&index)?;
+
+    let index = tantivy::Index::open_in_dir(&index_dir)?;
+    segment_manager.garbage_collect(&index)?;
 
     Ok(())
 }

@@ -12,6 +12,16 @@ impl SegmentManager {
 
         Ok(())
     }
+
+    // Remember to reopen the index for garbage collection, it what the tantivy-cli does
+    pub fn garbage_collect(&self, index: &Index) -> eyre::Result<()> {
+        index
+            .writer_with_num_threads::<tantivy::TantivyDocument>(1, 64 * 1024 * 1024)?
+            .garbage_collect_files()
+            .wait()?;
+
+        Ok(())
+    }
 }
 
 #[cfg(test)]
