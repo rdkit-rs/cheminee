@@ -19,10 +19,10 @@ fn descriptor_v1_schema() -> Schema {
         } else if field == "exactmw" {
             builder.add_f64_field(field, INDEXED | FAST);
         } else {
-            builder.add_f64_field(field, INDEXED | FAST);
+            builder.add_f64_field(field, INDEXED);
         }
     }
-    builder.add_bytes_field("fingerprint", FAST);
+    builder.add_bytes_field("fingerprint", STORED);
 
     let json_options: JsonObjectOptions =
         JsonObjectOptions::from(TEXT | STORED).set_expand_dots_enabled();
