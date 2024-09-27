@@ -45,11 +45,10 @@ pub fn identity_search(
                 use_chirality,
             );
 
-            if let Ok(confirmed_match) = confirmed_match {
-                confirmed_match
-            } else {
+            confirmed_match.unwrap_or_else(|e| {
+                log::error!("{:?}", e);
                 None
-            }
+            })
         })
         .collect::<HashSet<(String, String)>>();
 
