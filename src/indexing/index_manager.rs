@@ -1,9 +1,6 @@
 use std::path::PathBuf;
 
-use tantivy::{
-    directory::MmapDirectory, schema::Schema, IndexBuilder, IndexSettings, IndexSortByField, Order,
-    TantivyError,
-};
+use tantivy::{directory::MmapDirectory, schema::Schema, IndexBuilder, TantivyError};
 
 pub struct IndexManager {
     storage_dir: PathBuf,
@@ -27,14 +24,8 @@ impl IndexManager {
         Ok(Self { storage_dir })
     }
 
-    pub fn create(
-        &self,
-        name: &str,
-        schema: &Schema,
-        force: bool,
-        sort_by: Option<&str>,
-    ) -> eyre::Result<tantivy::Index> {
-        let builder = Self::build_builder(schema, sort_by)?;
+    pub fn create(&self, name: &str, schema: &Schema, force: bool) -> eyre::Result<tantivy::Index> {
+        let builder = Self::build_builder(schema)?;
         let index_path = self.storage_dir.join(name);
 
         if !index_path.exists() {
@@ -48,7 +39,7 @@ impl IndexManager {
                     std::fs::remove_dir_all(&index_path)?;
                     std::fs::create_dir(&index_path)?;
 
-                    let builder = Self::build_builder(schema, sort_by)?;
+                    let builder = Self::build_builder(schema)?;
                     builder.create_in_dir(&index_path)?
                 } else {
                     return Err(eyre::eyre!(
@@ -62,22 +53,8 @@ impl IndexManager {
         Ok(index)
     }
 
-    pub fn build_builder(
-        schema: &Schema,
-        sort_by: Option<&str>,
-    ) -> eyre::Result<tantivy::IndexBuilder> {
-        let mut builder = IndexBuilder::new().schema(schema.clone());
-        if let Some(sort_by) = sort_by {
-            let settings = IndexSettings {
-                sort_by_field: Some(IndexSortByField {
-                    field: sort_by.to_string(),
-                    order: Order::Asc,
-                }),
-                ..Default::default()
-            };
-            builder = builder.settings(settings);
-        }
-
+    pub fn build_builder(schema: &Schema) -> eyre::Result<tantivy::IndexBuilder> {
+        let builder = IndexBuilder::new().schema(schema.clone());
         Ok(builder)
     }
 

@@ -6,7 +6,7 @@ use rdkit::ROMol;
 use regex::Regex;
 use std::collections::{HashMap, HashSet};
 use std::sync::{Arc, Mutex};
-use tantivy::schema::Field;
+use tantivy::schema::{Field, OwnedValue};
 use tantivy::{DocAddress, Searcher};
 
 pub fn identity_search(
@@ -45,11 +45,10 @@ pub fn identity_search(
                 use_chirality,
             );
 
-            if let Ok(confirmed_match) = confirmed_match {
-                confirmed_match
-            } else {
+            confirmed_match.unwrap_or_else(|e| {
+                log::error!("{:?}", e);
                 None
-            }
+            })
         })
         .collect::<HashSet<(String, String)>>();
 
@@ -66,19 +65,25 @@ pub fn identity_match(
     query_fingerprint: &BitSlice<u8>,
     use_chirality: bool,
 ) -> eyre::Result<Option<(String, String)>> {
-    let doc = searcher.doc(docaddr)?;
+    let doc = searcher.doc::<tantivy::TantivyDocument>(docaddr)?;
 
     let smiles = doc
         .get_first(smiles_field)
-        .ok_or(eyre::eyre!("Tantivy smiles retrieval failed"))?
-        .as_text()
-        .ok_or(eyre::eyre!("Failed to stringify smiles"))?;
+        .ok_or(eyre::eyre!("Tantivy smiles retrieval failed"))?;
+
+    let smiles = match smiles {
+        OwnedValue::Str(s) => s,
+        other => return Err(eyre::eyre!("could not fetch smile, got {:?}", other)),
+    };
 
     let fingerprint = doc
         .get_first(fingerprint_field)
-        .ok_or(eyre::eyre!("Tantivy fingerprint retrieval failed"))?
-        .as_bytes()
-        .ok_or(eyre::eyre!("Failed to read fingerprint as bytes"))?;
+        .ok_or(eyre::eyre!("Tantivy fingerprint retrieval failed"))?;
+
+    let fingerprint = match fingerprint {
+        OwnedValue::Bytes(f) => f,
+        other => return Err(eyre::eyre!("could not fetch fingerprint, got {:?}", other)),
+    };
 
     let fingerprint_bits = BitSlice::<u8, Lsb0>::from_slice(fingerprint);
     let fp_match = query_fingerprint == fingerprint_bits;
@@ -87,11 +92,7 @@ pub fn identity_match(
         let mol_exact_match = exact_match(&ROMol::from_smiles(smiles)?, query_mol, use_chirality);
         if mol_exact_match {
             let extra_data = match doc.get_first(extra_data_field) {
-                Some(extra_data) => serde_json::to_string(
-                    extra_data
-                        .as_json()
-                        .ok_or(eyre::eyre!("Failed to jsonify extra data"))?,
-                )?,
+                Some(extra_data) => serde_json::to_string(extra_data)?,
                 None => "".to_string(),
             };
             return Ok(Some((smiles.to_string(), extra_data)));

@@ -18,3 +18,6 @@ pub use list_indexes::*;
 
 mod list_schemas;
 pub use list_schemas::*;
+
+mod merge_segments;
+pub use merge_segments::*;

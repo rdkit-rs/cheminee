@@ -13,7 +13,7 @@ fn index_manager() -> eyre::Result<()> {
 
     let schema = LIBRARY.get("descriptor_v1").unwrap();
 
-    let _index = index_manager.create("structure-search", schema, true, Some("exactmw"))?;
+    let _index = index_manager.create("structure-search", schema, true)?;
 
     let _index = index_manager.open("structure-search")?;
 

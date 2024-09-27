@@ -126,11 +126,7 @@ async fn test_index_and_search_endpoints() {
 
     // Test index creation
     let create_index_resp = test_api
-        .v1_post_index(
-            Path(index_path),
-            Query(schema_type),
-            Query(Some("exactmw".to_string())),
-        )
+        .v1_post_index(Path(index_path), Query(schema_type))
         .await;
 
     assert_eq!(
