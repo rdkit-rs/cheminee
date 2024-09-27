@@ -101,7 +101,6 @@ pub fn aggregate_query_hits(
                     query: query.into(),
                 }),
                 Err(e) => {
-                    panic!("{:?}", e);
                     log::error!("{:?}", e);
                     None
                 }
