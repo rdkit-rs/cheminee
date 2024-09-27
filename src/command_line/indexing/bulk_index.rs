@@ -91,11 +91,11 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
                 })
                 .collect::<Vec<_>>();
 
-            let _ = writer.commit();
-
             record_vec.clear();
         }
     }
+
+    let _ = writer.commit();
 
     Ok(())
 }

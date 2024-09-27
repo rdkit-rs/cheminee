@@ -134,7 +134,6 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
                 })
                 .collect::<Vec<_>>();
 
-            // index_writer.commit()?;
             mol_vec.clear();
             counter += chunksize;
 
@@ -179,9 +178,10 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
             })
             .collect::<Vec<_>>();
 
-        index_writer.commit()?;
         counter += mol_vec.len();
     }
+
+    let _ = index_writer.commit();
 
     log::info!(
         "A total of {:?} compounds were processed. Of those, {:?} compounds could not be indexed.",
