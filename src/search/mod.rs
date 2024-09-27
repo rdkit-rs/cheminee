@@ -100,7 +100,11 @@ pub fn aggregate_query_hits(
                     smiles,
                     query: query.into(),
                 }),
-                Err(_) => None,
+                Err(e) => {
+                    panic!("{:?}", e);
+                    log::error!("{:?}", e);
+                    None
+                }
             }
         })
         .collect::<Vec<_>>();

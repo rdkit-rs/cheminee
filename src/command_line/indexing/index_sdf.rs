@@ -134,7 +134,7 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
                 })
                 .collect::<Vec<_>>();
 
-            index_writer.commit()?;
+            // index_writer.commit()?;
             mol_vec.clear();
             counter += chunksize;
 

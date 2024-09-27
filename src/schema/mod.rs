@@ -15,12 +15,14 @@ fn descriptor_v1_schema() -> Schema {
     builder.add_text_field("smiles", STRING | STORED);
     for field in KNOWN_DESCRIPTORS {
         if field.starts_with("Num") || field.starts_with("lipinski") {
-            builder.add_i64_field(field, INDEXED | STORED);
+            builder.add_i64_field(field, INDEXED);
+        } else if field == "exactmw" {
+            builder.add_f64_field(field, INDEXED | FAST);
         } else {
-            builder.add_f64_field(field, FAST | STORED);
+            builder.add_f64_field(field, INDEXED | FAST);
         }
     }
-    builder.add_bytes_field("fingerprint", FAST | STORED);
+    builder.add_bytes_field("fingerprint", FAST);
 
     let json_options: JsonObjectOptions =
         JsonObjectOptions::from(TEXT | STORED).set_expand_dots_enabled();
