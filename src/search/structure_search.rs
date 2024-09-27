@@ -12,7 +12,7 @@ use regex::Regex;
 use std::collections::{HashMap, HashSet};
 use std::sync::{Arc, Mutex};
 use tantivy::schema::Field;
-use tantivy::{DocAddress, Searcher};
+use tantivy::{DocAddress, DocId, Searcher, SegmentOrdinal};
 
 pub fn structure_search(
     searcher: &Searcher,
@@ -22,7 +22,7 @@ pub fn structure_search(
     result_limit: usize,
     use_chirality: bool,
     extra_query: &str,
-) -> eyre::Result<HashSet<(String, String)>> {
+) -> eyre::Result<HashSet<(String, String, SegmentOrdinal, DocId)>> {
     let schema = searcher.schema();
 
     let (query_fingerprint, query_descriptors) = get_cpd_properties(query_mol)?;
@@ -87,7 +87,7 @@ pub fn structure_search(
                 }
             }
         })
-        .collect::<HashSet<(String, String)>>();
+        .collect::<HashSet<(String, String, SegmentOrdinal, DocId)>>();
 
     Ok(filtered_results)
 }
@@ -102,7 +102,7 @@ pub fn structure_match(
     query_fingerprint: &BitSlice<u8>,
     method: &str,
     use_chirality: bool,
-) -> eyre::Result<Option<(String, String)>> {
+) -> eyre::Result<Option<(String, String, SegmentOrdinal, DocId)>> {
     let doc = searcher.doc::<tantivy::TantivyDocument>(docaddr)?;
 
     let smiles = doc
@@ -148,7 +148,12 @@ pub fn structure_match(
                 None => "".to_string(),
             };
 
-            return Ok(Some((smiles.to_string(), extra_data)));
+            return Ok(Some((
+                smiles.to_string(),
+                extra_data,
+                docaddr.segment_ord,
+                docaddr.doc_id,
+            )));
         }
     }
 

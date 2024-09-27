@@ -4,10 +4,10 @@ use bitvec::prelude::{BitSlice, Lsb0};
 use rayon::prelude::*;
 use rdkit::ROMol;
 use regex::Regex;
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use tantivy::schema::{Field, OwnedValue};
-use tantivy::{DocAddress, Searcher};
+use tantivy::{DocAddress, DocId, Searcher, SegmentOrdinal};
 
 pub fn identity_search(
     searcher: &Searcher,
@@ -17,7 +17,7 @@ pub fn identity_search(
     query_descriptors: &HashMap<String, f64>,
     use_chirality: bool,
     extra_query: &str,
-) -> eyre::Result<HashSet<(String, String)>> {
+) -> eyre::Result<Vec<(String, String, SegmentOrdinal, DocId)>> {
     let schema = searcher.schema();
 
     let query = build_identity_query(query_descriptors, extra_query, scaffold_matches);
@@ -50,7 +50,7 @@ pub fn identity_search(
                 None
             })
         })
-        .collect::<HashSet<(String, String)>>();
+        .collect::<Vec<_>>();
 
     Ok(filtered_results)
 }
@@ -64,7 +64,7 @@ pub fn identity_match(
     query_mol: &ROMol,
     query_fingerprint: &BitSlice<u8>,
     use_chirality: bool,
-) -> eyre::Result<Option<(String, String)>> {
+) -> eyre::Result<Option<(String, String, SegmentOrdinal, DocId)>> {
     let doc = searcher.doc::<tantivy::TantivyDocument>(docaddr)?;
 
     let smiles = doc
@@ -95,7 +95,12 @@ pub fn identity_match(
                 Some(extra_data) => serde_json::to_string(extra_data)?,
                 None => "".to_string(),
             };
-            return Ok(Some((smiles.to_string(), extra_data)));
+            return Ok(Some((
+                smiles.to_string(),
+                extra_data,
+                docaddr.segment_ord,
+                docaddr.doc_id,
+            )));
         }
     }
 

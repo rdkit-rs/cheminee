@@ -1,6 +1,6 @@
 use crate::command_line::prelude::*;
 use crate::search::structure_search::structure_search;
-use crate::search::{compound_processing::*, validate_structure, StructureSearchHit};
+use crate::search::{compound_processing::*, sort_results, validate_structure, StructureSearchHit};
 use rayon::iter::ParallelIterator;
 use rayon::prelude::IntoParallelIterator;
 use std::cmp::min;
@@ -107,8 +107,10 @@ pub fn cli_structure_search(method: &str, matches: &ArgMatches) -> eyre::Result<
         }
     }
 
-    let final_results = results
-        .into_par_iter()
+    let mut data_results = results.into_iter().collect::<Vec<_>>();
+
+    let final_results = sort_results(&mut data_results)
+        .into_iter()
         .map(|(smiles, extra_data)| StructureSearchHit {
             extra_data,
             smiles,
