@@ -20,6 +20,7 @@ async fn main() -> eyre::Result<()> {
         .subcommand(command_line::indexing::create_index::command())
         .subcommand(command_line::indexing::delete_index::command())
         .subcommand(command_line::indexing::index_sdf::command())
+        .subcommand(command_line::indexing::merge_segments::command())
         .subcommand(command_line::pubchem::fetch_pubchem::command())
         .subcommand(command_line::pubchem::stream_pubchem_sdf::command())
         .subcommand(command_line::search::basic_search::command())
@@ -44,6 +45,9 @@ async fn main() -> eyre::Result<()> {
         }
         (command_line::indexing::index_sdf::NAME, matches) => {
             command_line::indexing::index_sdf::action(matches)
+        }
+        (command_line::indexing::merge_segments::NAME, matches) => {
+            command_line::indexing::merge_segments::action(matches)
         }
         (command_line::pubchem::fetch_pubchem::NAME, matches) => {
             command_line::pubchem::fetch_pubchem::action(matches).await

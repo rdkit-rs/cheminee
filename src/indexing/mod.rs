@@ -4,6 +4,7 @@ pub use tantivy::doc;
 use tantivy::{directory::MmapDirectory, schema::*, Index, IndexBuilder, TantivyError};
 
 pub mod index_manager;
+pub mod segment_manager;
 
 pub const KNOWN_DESCRIPTORS: [&str; 43] = [
     "CrippenClogP",

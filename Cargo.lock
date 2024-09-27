@@ -3452,13 +3452,3 @@ dependencies = [
  "cc",
  "pkg-config",
 ]
-
-[[patch.unused]]
-name = "tantivy-common"
-version = "0.6.0"
-source = "git+https://github.com/quickwit-oss/tantivy.git?rev=9ebc5ed053b5d7a61e9693ca7b2dec64ce244093#9ebc5ed053b5d7a61e9693ca7b2dec64ce244093"
-
-[[patch.unused]]
-name = "tantivy-sstable"
-version = "0.2.0"
-source = "git+https://github.com/quickwit-oss/tantivy.git?rev=9ebc5ed053b5d7a61e9693ca7b2dec64ce244093#9ebc5ed053b5d7a61e9693ca7b2dec64ce244093"

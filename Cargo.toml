@@ -33,7 +33,3 @@ zstd-sys = "=2.0.9"
 
 [dev-dependencies]
 tempdir = "0"
-
-[patch.crates-io]
-tantivy-common = { git = "https://github.com/quickwit-oss/tantivy.git", rev = "9ebc5ed053b5d7a61e9693ca7b2dec64ce244093" }
-tantivy-sstable = { git = "https://github.com/quickwit-oss/tantivy.git", rev = "9ebc5ed053b5d7a61e9693ca7b2dec64ce244093" }
