@@ -27,7 +27,7 @@ mod tests {
         let schema = crate::schema::LIBRARY.get("descriptor_v1").unwrap();
 
         let index_manager = IndexManager::new(temp_dir(), true).unwrap();
-        let index = index_manager.create("meep", schema, true, None).unwrap();
+        let index = index_manager.create("meep", schema, true).unwrap();
 
         let segments = index.searchable_segments().unwrap();
         assert_eq!(segments.len(), 0);

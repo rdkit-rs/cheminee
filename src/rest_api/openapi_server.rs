@@ -136,14 +136,8 @@ impl Api {
         &self,
         index: Path<String>,
         schema: Query<String>,
-        sort_by: Query<Option<String>>,
     ) -> PostIndexResponse {
-        v1_post_index(
-            &self.index_manager,
-            index.to_string(),
-            schema.0,
-            sort_by.0.as_deref(),
-        )
+        v1_post_index(&self.index_manager, index.to_string(), schema.0)
     }
 
     // v1/indexes/inventory_items_v1/merge
