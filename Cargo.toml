@@ -15,8 +15,9 @@ bitvec = "1"
 clap = "4"
 eyre = "0"
 lazy_static = "1.4"
+prometheus = "0"
 log = "0"
-poem = { version = "1", features = ["test"] }
+poem = { version = "1", features = ["test", "prometheus"] }
 poem-openapi = { version = "2", features = ["swagger-ui"] }
 poem-openapi-derive = "2"
 rand = "0.8.5"
@@ -26,7 +27,8 @@ regex = "1"
 reqwest = "0"
 serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1" }
-tantivy = "0.22"
+# tantivy = "0.22"
+tantivy = { path = "../tantivy" }
 tokio = { version = "1", features = ["full"] }
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 zstd-sys = "=2.0.9"

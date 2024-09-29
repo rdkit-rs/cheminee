@@ -11,6 +11,7 @@ use crate::rest_api::api::{
 };
 use crate::rest_api::models::{MolBlock, Smiles};
 
+use poem::web::Data;
 use poem::{listener::TcpListener, EndpointExt, Route, Server};
 use poem_openapi::{
     param::{Path, Query},
@@ -19,17 +20,10 @@ use poem_openapi::{
 };
 use std::path::PathBuf;
 
-const API_PREFIX: &str = "/api";
+pub const API_PREFIX: &str = "/api";
 
-pub fn api_service(
-    server_url: &str,
-    api_prefix: &str,
-    indexes_root: PathBuf,
-    create_storage_dir_if_missing: bool,
-) -> eyre::Result<OpenApiService<Api, ()>> {
-    let api = Api {
-        index_manager: IndexManager::new(indexes_root, create_storage_dir_if_missing)?,
-    };
+pub fn api_service(server_url: &str, api_prefix: &str) -> eyre::Result<OpenApiService<ApiV1, ()>> {
+    let api = ApiV1::default();
     let openapi_service = OpenApiService::new(api, "Cheminée", "1.0")
         .server(format!("{}{}", server_url, api_prefix))
         .description("Cheminée: The Chemical Structure Search Engine")
@@ -43,12 +37,8 @@ pub async fn run_api_service(
     index_path: PathBuf,
     create_storage_dir_if_missing: bool,
 ) -> eyre::Result<()> {
-    let api_service = api_service(
-        server_url,
-        API_PREFIX,
-        index_path,
-        create_storage_dir_if_missing,
-    )?;
+    let index_manager = IndexManager::new(index_path, create_storage_dir_if_missing)?;
+    let api_service = api_service(server_url, API_PREFIX)?;
     let ui = api_service.swagger_ui();
 
     let spec = api_service.spec();
@@ -62,7 +52,9 @@ pub async fn run_api_service(
         )
         .nest(API_PREFIX, api_service)
         .nest("/", ui)
-        .with(logging_middleware);
+        .with(logging_middleware)
+        .data(index_manager);
+
     Server::new(TcpListener::bind(bind))
         .run_with_graceful_shutdown(
             app,
@@ -76,12 +68,11 @@ pub async fn run_api_service(
     Ok(())
 }
 
-pub struct Api {
-    pub index_manager: IndexManager,
-}
+#[derive(Default)]
+pub struct ApiV1 {}
 
 #[OpenApi]
-impl Api {
+impl ApiV1 {
     #[oai(path = "/v1/standardize", method = "post")]
     /// Pass a list of SMILES through fragment_parent, uncharger, and canonicalization routines
     pub async fn v1_standardize(
@@ -119,14 +110,18 @@ impl Api {
 
     #[oai(path = "/v1/indexes", method = "get")]
     /// List indexes
-    pub async fn v1_list_indexes(&self) -> ListIndexesResponse {
-        v1_list_indexes(&self.index_manager)
+    pub async fn v1_list_indexes(&self, index_manager: Data<&IndexManager>) -> ListIndexesResponse {
+        v1_list_indexes(index_manager.0)
     }
 
     #[oai(path = "/v1/indexes/:index", method = "get")]
     /// Get extended information about an index
-    pub async fn v1_get_index(&self, index: Path<String>) -> GetIndexResponse {
-        v1_get_index(&self.index_manager, index.to_string())
+    pub async fn v1_get_index(
+        &self,
+        index: Path<String>,
+        index_manager: Data<&IndexManager>,
+    ) -> GetIndexResponse {
+        v1_get_index(index_manager.0, index.to_string())
     }
 
     // v1/indexes/inventory_items_v1?schema=v1_descriptors
@@ -136,21 +131,30 @@ impl Api {
         &self,
         index: Path<String>,
         schema: Query<String>,
+        index_manager: Data<&IndexManager>,
     ) -> PostIndexResponse {
-        v1_post_index(&self.index_manager, index.to_string(), schema.0)
+        v1_post_index(index_manager.0, index.to_string(), schema.0)
     }
 
     // v1/indexes/inventory_items_v1/merge
     #[oai(path = "/v1/indexes/:index/merge", method = "post")]
     /// Merge segments inside the index
-    pub async fn v1_post_index_merge_segments(&self, index: Path<String>) -> MergeSegmentsResponse {
-        v1_merge_segments(&self.index_manager, index.to_string()).await
+    pub async fn v1_post_index_merge_segments(
+        &self,
+        index: Path<String>,
+        index_manager: Data<&IndexManager>,
+    ) -> MergeSegmentsResponse {
+        v1_merge_segments(index_manager.0, index.to_string()).await
     }
 
     #[oai(path = "/v1/indexes/:index", method = "delete")]
     /// Delete an index
-    pub async fn v1_delete_index(&self, index: Path<String>) -> DeleteIndexResponse {
-        v1_delete_index(&self.index_manager, index.to_string())
+    pub async fn v1_delete_index(
+        &self,
+        index: Path<String>,
+        index_manager: Data<&IndexManager>,
+    ) -> DeleteIndexResponse {
+        v1_delete_index(index_manager.0, index.to_string())
     }
 
     #[oai(path = "/v1/indexes/:index/bulk_index", method = "post")]
@@ -160,8 +164,9 @@ impl Api {
         &self,
         index: Path<String>,
         bulk_request: Json<BulkRequest>,
+        index_manager: Data<&IndexManager>,
     ) -> PostIndexesBulkIndexResponse {
-        v1_post_index_bulk(&self.index_manager, index.to_string(), bulk_request.0).await
+        v1_post_index_bulk(index_manager.0, index.to_string(), bulk_request.0).await
     }
 
     #[oai(path = "/v1/indexes/:index/bulk_delete", method = "delete")]
@@ -170,8 +175,9 @@ impl Api {
         &self,
         index: Path<String>,
         bulk_request: Json<BulkRequest>,
+        index_manager: Data<&IndexManager>,
     ) -> DeleteIndexesBulkDeleteResponse {
-        v1_delete_index_bulk(&self.index_manager, index.to_string(), bulk_request.0).await
+        v1_delete_index_bulk(index_manager.0, index.to_string(), bulk_request.0).await
     }
 
     #[oai(path = "/v1/indexes/:index/search/basic", method = "get")]
@@ -181,14 +187,11 @@ impl Api {
         index: Path<String>,
         query: Query<String>,
         limit: Query<Option<usize>>,
+        index_manager: Data<&IndexManager>,
     ) -> GetQuerySearchResponse {
-        let limit = if let Some(limit) = limit.0 {
-            limit
-        } else {
-            usize::try_from(1000).unwrap()
-        };
+        let limit = limit.0.unwrap_or(1000);
 
-        v1_index_search_basic(&self.index_manager, index.to_string(), query.0, limit)
+        v1_index_search_basic(index_manager.0, index.to_string(), query.0, limit)
     }
 
     #[oai(path = "/v1/indexes/:index/search/substructure", method = "get")]
@@ -197,45 +200,20 @@ impl Api {
         &self,
         index: Path<String>,
         smiles: Query<String>,
-        use_chirality: Query<Option<String>>,
+        use_chirality: Query<Option<bool>>,
         result_limit: Query<Option<usize>>,
         tautomer_limit: Query<Option<usize>>,
         extra_query: Query<Option<String>>,
-        use_scaffolds: Query<Option<String>>,
+        use_scaffolds: Query<Option<bool>>,
+        index_manager: Data<&IndexManager>,
     ) -> GetStructureSearchResponse {
-        // by default, we will ignore chirality
-        let use_chirality = if let Some(use_chirality) = use_chirality.0 {
-            !matches!(use_chirality.as_str(), "false")
-        } else {
-            false
-        };
+        let use_chirality = use_chirality.0.unwrap_or(false);
+        let result_limit = result_limit.0.unwrap_or(1000);
+        let tautomer_limit = tautomer_limit.0.unwrap_or(0);
+        let extra_query = extra_query.0.unwrap_or_default();
+        let use_scaffolds = use_scaffolds.0.unwrap_or(true);
 
-        let result_limit = if let Some(result_limit) = result_limit.0 {
-            result_limit
-        } else {
-            usize::try_from(1000).unwrap()
-        };
-
-        let tautomer_limit = if let Some(tautomer_limit) = tautomer_limit.0 {
-            tautomer_limit
-        } else {
-            usize::try_from(0).unwrap()
-        };
-
-        let extra_query = if let Some(extra_query) = extra_query.0 {
-            extra_query
-        } else {
-            "".to_string()
-        };
-
-        // by default, we will use scaffold-based indexing
-        let use_scaffolds = if let Some(use_scaffolds) = use_scaffolds.0 {
-            matches!(use_scaffolds.as_str(), "true")
-        } else {
-            true
-        };
-
-        let index = self.index_manager.open(&index);
+        let index = index_manager.0.open(&index);
 
         v1_index_search_structure(
             index,
@@ -260,6 +238,7 @@ impl Api {
         tautomer_limit: Query<Option<usize>>,
         extra_query: Query<Option<String>>,
         use_scaffolds: Query<Option<String>>,
+        index_manager: Data<&IndexManager>,
     ) -> GetStructureSearchResponse {
         // by default, we will ignore chirality
         let use_chirality = if let Some(use_chirality) = use_chirality.0 {
@@ -293,7 +272,7 @@ impl Api {
             true
         };
 
-        let index = self.index_manager.open(&index);
+        let index = index_manager.0.open(&index);
 
         v1_index_search_structure(
             index,
@@ -316,6 +295,7 @@ impl Api {
         use_chirality: Query<Option<String>>,
         extra_query: Query<Option<String>>,
         use_scaffolds: Query<Option<String>>,
+        index_manager: Data<&IndexManager>,
     ) -> GetStructureSearchResponse {
         // by default, we will ignore chirality
         let use_chirality = if let Some(use_chirality) = use_chirality.0 {
@@ -338,7 +318,7 @@ impl Api {
         };
 
         v1_index_search_identity(
-            &self.index_manager,
+            index_manager.0,
             index.to_string(),
             smiles.0,
             use_chirality,
@@ -349,12 +329,7 @@ impl Api {
 }
 
 pub fn output_spec(server_url: &str, output: &str) -> eyre::Result<()> {
-    let api_service = api_service(
-        server_url,
-        API_PREFIX,
-        std::path::PathBuf::from("/tmp/cheminee"),
-        false,
-    )?;
+    let api_service = api_service(server_url, API_PREFIX)?;
 
     let spec = api_service.spec();
 

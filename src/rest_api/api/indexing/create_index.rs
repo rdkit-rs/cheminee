@@ -13,14 +13,22 @@ pub fn v1_post_index(
         None => return PostIndexResponse::SchemaDoesNotExist,
     };
 
-    let tantivy_index = index_manager.create(&index, schema, false);
+    match index_manager.exists(&index) {
+        Ok(Some(_)) => return PostIndexResponse::IndexExists,
+        Ok(None) => (),
+        Err(e) => {
+            return PostIndexResponse::ServerErr(Json(CreateIndexError {
+                error: e.to_string(),
+            }))
+        }
+    }
 
-    match tantivy_index {
+    match index_manager.create(&index, schema, false) {
         Ok(_) => PostIndexResponse::Ok(Json(IndexMeta {
             name: index,
             schema: schema_name,
         })),
-        Err(e) => PostIndexResponse::Err(Json(CreateIndexError {
+        Err(e) => PostIndexResponse::ServerErr(Json(CreateIndexError {
             error: e.to_string(),
         })),
     }

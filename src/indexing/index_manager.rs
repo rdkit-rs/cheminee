@@ -1,9 +1,13 @@
 use std::path::PathBuf;
+use std::sync::Arc;
 
 use tantivy::{directory::MmapDirectory, schema::Schema, IndexBuilder, TantivyError};
+use tokio::sync::RwLock;
 
+#[derive(Clone)]
 pub struct IndexManager {
     storage_dir: PathBuf,
+    lock: Arc<RwLock<()>>,
 }
 
 impl IndexManager {
@@ -21,7 +25,10 @@ impl IndexManager {
             std::fs::create_dir_all(&storage_dir)?;
         }
 
-        Ok(Self { storage_dir })
+        Ok(Self {
+            storage_dir,
+            lock: Arc::new(RwLock::new(())),
+        })
     }
 
     pub fn create(&self, name: &str, schema: &Schema, force: bool) -> eyre::Result<tantivy::Index> {
