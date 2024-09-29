@@ -5,6 +5,7 @@ use tantivy::{directory::MmapDirectory, schema::Schema, IndexBuilder, TantivyErr
 use tokio::sync::RwLock;
 
 #[derive(Clone)]
+#[allow(dead_code)]
 pub struct IndexManager {
     storage_dir: PathBuf,
     lock: Arc<RwLock<()>>,

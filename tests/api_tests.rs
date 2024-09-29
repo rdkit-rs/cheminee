@@ -1,17 +1,17 @@
 use cheminee::indexing::index_manager::IndexManager;
-use cheminee::rest_api::api::{BulkRequest, BulkRequestDoc, StandardizeResponse};
-use cheminee::rest_api::models::{MolBlock, Smiles};
-use cheminee::rest_api::openapi_server::{api_service, ApiV1, API_PREFIX};
+use cheminee::rest_api::api::{ApiV1, StandardizeResponse};
+use cheminee::rest_api::models::Smiles;
+use cheminee::rest_api::openapi_server::{api_service, API_PREFIX};
 
-use cheminee::search::compound_processing::process_cpd;
 use poem::test::TestResponse;
-use poem::{handler, Endpoint, Response, Route};
-use poem::{EndpointExt, IntoEndpoint};
-use poem_openapi::param::{Path, Query};
+use poem::EndpointExt;
+use poem::{handler, Endpoint, Route};
+use poem_openapi::param::Query;
 use poem_openapi::payload::Json;
+use tantivy::Index;
 use tempdir::TempDir;
 
-const MOL_BLOCK: &str = r#"
+const _MOL_BLOCK: &str = r#"
   -OEChem-05172223082D
 
  31 30  0     1  0  0  0  0  0999 V2000
@@ -121,6 +121,38 @@ fn build_test_client() -> eyre::Result<(poem::test::TestClient<impl Endpoint>, I
     Ok((test_client, index_manager))
 }
 
+fn fill_test_index(tantivy_index: Index) -> eyre::Result<()> {
+    // Write some docs direct to the index
+    let schema = tantivy_index.schema();
+    let smiles = schema.get_field("smiles").unwrap();
+    let num_atoms = schema.get_field("NumAtoms").unwrap();
+    let extra_data = schema.get_field("extra_data").unwrap();
+
+    let mut writer = tantivy_index.writer::<tantivy::TantivyDocument>(16 * 1024 * 1024)?;
+
+    let smiles_and_descriptors = vec![
+        ("CCC", 8, serde_json::json!({"extra": "data"})),
+        ("C1=CC=CC=C1", 8, serde_json::json!({"extra": "data"})),
+        (
+            "C1=CC=CC=C1CCC2=CC=CC=C2",
+            28,
+            serde_json::json!({"extra": "data"}),
+        ),
+    ];
+
+    for (compound_smiles, compound_num_atoms, compound_extra_data) in smiles_and_descriptors {
+        writer.add_document(tantivy::doc!(
+            smiles => compound_smiles,
+            num_atoms => compound_num_atoms as i64,
+            extra_data => compound_extra_data
+        ))?;
+    }
+
+    writer.commit()?;
+
+    Ok(())
+}
+
 #[allow(dead_code)]
 async fn dump_body(response: &mut TestResponse) {
     let body = response.0.take_body();
@@ -207,29 +239,8 @@ async fn test_basic_search() -> eyre::Result<()> {
         false,
     )?;
 
-    // Skip the API to write some docs
-    {
-        let schema = tantivy_index.schema();
-        let smiles = schema.get_field("smiles").unwrap();
-        let num_atoms = schema.get_field("NumAtoms").unwrap();
-
-        let mut writer = tantivy_index.writer::<tantivy::TantivyDocument>(16 * 1024 * 1024)?;
-
-        let smiles_and_descriptors = vec![
-            ("CCC", 8),
-            ("C1=CC=CC=C1", 8),
-            ("C1=CC=CC=C1CCC2=CC=CC=C2", 28),
-        ];
-
-        for (smiles_string, smiles_num_atoms) in smiles_and_descriptors {
-            writer.add_document(tantivy::doc!(
-                smiles => smiles_string,
-                num_atoms => smiles_num_atoms as i64
-            ))?;
-        }
-
-        writer.commit()?;
-    }
+    // Write some docs direct to the index
+    fill_test_index(tantivy_index)?;
 
     let response = test_client
         .get(format!("/api/v1/indexes/{index_name}/search/basic"))
@@ -239,7 +250,7 @@ async fn test_basic_search() -> eyre::Result<()> {
     response.assert_status("200".parse()?);
     response
         .assert_json(&serde_json::json!([{
-            "extra_data": "",
+            "extra_data": r#"{"extra":"data"}"#, // TODO: can we return extra data as JSON?
             "query": "NumAtoms:[13 TO 100]",
             "smiles": "C1=CC=CC=C1CCC2=CC=CC=C2"
         }]))
@@ -248,19 +259,30 @@ async fn test_basic_search() -> eyre::Result<()> {
     Ok(())
 }
 
-// // Test basic search
-// let basic_resp = test_api
-//     .v1_index_search_basic(
-//         Path(index_name.to_string()),
-//         Query("NumAtoms:[13 TO 100]".to_string()),
-//         Query(None),
-//     )
-//     .await;
+#[tokio::test]
+async fn test_identity_search() -> eyre::Result<()> {
+    let index_name = "test-api-index";
+    let schema_name = "descriptor_v1";
+    let (test_client, index_manager) = build_test_client()?;
 
-// assert_eq!(
-//     format!("{:?}", basic_resp),
-//     "Ok(Json([QuerySearchHit { extra_data: \"{\\\"scaffolds\\\":[0,126]}\", smiles: \"c1ccc(CCc2ccccc2)cc1\", query: \"NumAtoms:[13 TO 100]\" }]))"
-// );
+    let tantivy_index = index_manager.create(
+        index_name,
+        cheminee::schema::LIBRARY.get(schema_name).unwrap(),
+        false,
+    )?;
+
+    fill_test_index(tantivy_index)?;
+
+    let response = test_client
+        .get(format!("/api/v1/indexes/{index_name}/search/identity"))
+        .query("smiles", &"C1=CC=CC=C1CCC2=CC=CC=C2")
+        .send()
+        .await;
+    response.assert_status("200".parse()?);
+    response.assert_json(&serde_json::json!([])).await;
+
+    Ok(())
+}
 
 // // Test identity search
 // let identity_resp = test_api
