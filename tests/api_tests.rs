@@ -1,13 +1,17 @@
 use cheminee::indexing::index_manager::IndexManager;
 use cheminee::rest_api::openapi_server::{api_service, API_PREFIX};
+use std::collections::HashMap;
 
+use cheminee::indexing::{combine_json_objects, KNOWN_DESCRIPTORS};
+use cheminee::search::compound_processing::process_cpd;
+use cheminee::search::scaffold_search::{scaffold_search, PARSED_SCAFFOLDS};
 use poem::test::TestResponse;
 use poem::EndpointExt;
 use poem::{Endpoint, Route};
 use tantivy::collector::TopDocs;
 use tantivy::query::QueryParser;
-use tantivy::schema::Value;
-use tantivy::Index;
+use tantivy::schema::{Field, Value};
+use tantivy::{doc, Index};
 use tempdir::TempDir;
 
 const MOL_BLOCK: &str = r#"
@@ -94,28 +98,57 @@ fn build_test_client() -> eyre::Result<(poem::test::TestClient<impl Endpoint>, I
 fn fill_test_index(tantivy_index: Index) -> eyre::Result<()> {
     // Write some docs direct to the index
     let schema = tantivy_index.schema();
-    let smiles = schema.get_field("smiles").unwrap();
-    let num_atoms = schema.get_field("NumAtoms").unwrap();
-    let extra_data = schema.get_field("extra_data").unwrap();
-
     let mut writer = tantivy_index.writer::<tantivy::TantivyDocument>(16 * 1024 * 1024)?;
 
-    let smiles_and_descriptors = vec![
-        ("CCC", 8, serde_json::json!({"extra": "data"})),
-        ("C1=CC=CC=C1", 8, serde_json::json!({"extra": "data"})),
+    let smiles_field = schema.get_field("smiles")?;
+    let extra_data_field = schema.get_field("extra_data")?;
+    let fingerprint_field = schema.get_field("fingerprint")?;
+    let descriptor_fields = KNOWN_DESCRIPTORS
+        .iter()
+        .map(|kd| (*kd, schema.get_field(kd).unwrap()))
+        .collect::<HashMap<&str, Field>>();
+
+    let smiles_and_extra_data = vec![
+        ("CC", serde_json::json!({"extra": "data"})),
+        ("C1=CC=CC=C1", serde_json::json!({"extra": "data"})),
         (
-            "c1ccc(CCc2ccccc2)cc1",
-            28,
+            "C1=CC=CC=C1CCC2=CC=CC=C2",
             serde_json::json!({"extra": "data"}),
         ),
     ];
 
-    for (compound_smiles, compound_num_atoms, compound_extra_data) in smiles_and_descriptors {
-        writer.add_document(tantivy::doc!(
-            smiles => compound_smiles,
-            num_atoms => compound_num_atoms as i64,
-            extra_data => compound_extra_data
-        ))?;
+    for (smiles, extra_data) in smiles_and_extra_data {
+        let (canon_taut, fingerprint, descriptors) = process_cpd(smiles, false)?;
+
+        let mut doc = doc!(
+            smiles_field => canon_taut.as_smiles(),
+            fingerprint_field => fingerprint.0.as_raw_slice()
+        );
+
+        let scaffold_matches = scaffold_search(&fingerprint.0, &canon_taut, &PARSED_SCAFFOLDS)?;
+
+        let scaffold_json = match scaffold_matches.is_empty() {
+            true => serde_json::json!({"scaffolds": vec![-1]}),
+            false => serde_json::json!({"scaffolds": scaffold_matches}),
+        };
+
+        let extra_data_json = combine_json_objects(Some(scaffold_json), Some(extra_data));
+        if let Some(extra_data_json) = extra_data_json {
+            doc.add_field_value(extra_data_field, extra_data_json);
+        }
+
+        for field in KNOWN_DESCRIPTORS {
+            if let Some(val) = descriptors.get(field) {
+                if field.starts_with("Num") || field.starts_with("lipinski") {
+                    let int = *val as i64;
+                    doc.add_field_value(*descriptor_fields.get(field).unwrap(), int);
+                } else {
+                    doc.add_field_value(*descriptor_fields.get(field).unwrap(), *val);
+                };
+            }
+        }
+
+        writer.add_document(doc)?;
     }
 
     writer.commit()?;
@@ -177,7 +210,7 @@ async fn test_bulk_indexing() -> eyre::Result<()> {
         .post(format!("/api/v1/indexes/{index_name}/bulk_index"))
         .body_json(&serde_json::json!({
             "docs": [{
-                "smiles": "CCC",
+                "smiles": "CC",
                 "extra_data": {"meow": "mix", "for": "cats"}
             }, {
                 "smiles": "C1=CC=CC=C1",
@@ -215,7 +248,7 @@ async fn test_bulk_indexing() -> eyre::Result<()> {
                 .to_owned()
         })
         .collect::<Vec<_>>();
-    assert_eq!(&docs, &["CCC", "c1ccccc1", "c1ccc(CCc2ccccc2)cc1",]);
+    assert_eq!(&docs, &["CC", "c1ccccc1", "c1ccc(CCc2ccccc2)cc1",]);
 
     Ok(())
 }
@@ -243,7 +276,7 @@ async fn test_basic_search() -> eyre::Result<()> {
     response.assert_status_is_ok();
     response
         .assert_json(&serde_json::json!([{
-            "extra_data": {"extra":"data"},
+            "extra_data": {"extra": "data", "scaffolds": [0, 126]},
             "query": "NumAtoms:[13 TO 100]",
             "smiles": "c1ccc(CCc2ccccc2)cc1"
         }]))
@@ -272,7 +305,15 @@ async fn test_identity_search() -> eyre::Result<()> {
         .send()
         .await;
     response.assert_status_is_ok();
-    response.assert_json(&serde_json::json!([])).await; // TODO: @javier why do I get zero results?
+    response
+        .assert_json(&serde_json::json!([{
+            "extra_data": {"extra": "data", "scaffolds": [0, 126]},
+            "query": "C1=CC=CC=C1CCC2=CC=CC=C2",
+            "score": 1.0,
+            "smiles": "c1ccc(CCc2ccccc2)cc1",
+            "used_tautomers": false
+        }]))
+        .await;
 
     Ok(())
 }
@@ -293,12 +334,19 @@ async fn test_substructure_search() -> eyre::Result<()> {
 
     let response = test_client
         .get(format!("/api/v1/indexes/{index_name}/search/substructure"))
-        .query("smiles", &"C1=CC=CC=C1CCC2=CC=CC=C2")
+        .query("smiles", &"C1=CC=CC=C1")
         .send()
         .await;
     response.assert_status_is_ok();
-    response.assert_json(&serde_json::json!([])).await; // TODO: @javier why do I get zero results?
-
+    response
+        .assert_json(&serde_json::json!([{
+            "extra_data": {"extra": "data", "scaffolds": [0, 126]},
+            "query": "C1=CC=CC=C1",
+            "score": 1.0,
+            "smiles": "c1ccc(CCc2ccccc2)cc1",
+            "used_tautomers": false
+        }]))
+        .await;
     Ok(())
 }
 
@@ -324,7 +372,24 @@ async fn test_superstructure_search() -> eyre::Result<()> {
         .send()
         .await;
     response.assert_status_is_ok();
-    response.assert_json(&serde_json::json!([])).await; // TODO: @javier why do I get zero results?
+    response
+        .assert_json(&serde_json::json!([
+            {
+                "extra_data": {"extra": "data", "scaffolds": [-1]},
+                "query": "C1=CC=CC=C1CCC2=CC=CC=C2",
+                "score": 1.0,
+                "smiles": "CC",
+                "used_tautomers": false
+            },
+            {
+                "extra_data": {"extra": "data", "scaffolds": [0]},
+                "query": "C1=CC=CC=C1CCC2=CC=CC=C2",
+                "score": 1.0,
+                "smiles": "c1ccccc1",
+                "used_tautomers": false
+            }
+        ]))
+        .await;
 
     Ok(())
 }
