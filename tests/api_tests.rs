@@ -11,7 +11,7 @@ use poem_openapi::payload::Json;
 use tantivy::Index;
 use tempdir::TempDir;
 
-const _MOL_BLOCK: &str = r#"
+const MOL_BLOCK: &str = r#"
   -OEChem-05172223082D
 
  31 30  0     1  0  0  0  0  0999 V2000
@@ -458,6 +458,96 @@ async fn test_delete_index() -> eyre::Result<()> {
         }))
         .await;
     assert_eq!(index_manager.list().unwrap().len(), 0);
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_mol_block_to_smiles_with_sanitiz() -> eyre::Result<()> {
+    let (test_client, _) = build_test_client()?;
+
+    let response = test_client
+        .post("/api/v1/convert/mol_block_to_smiles")
+        .body_json(&serde_json::json!([{"mol_block": MOL_BLOCK}]))
+        .query("sanitize", &"true")
+        .send()
+        .await;
+    response.assert_status_is_ok();
+    response
+        .assert_json(&serde_json::json!([{"smiles": "CC(=O)OC(CC(=O)[O-])C[N+](C)(C)C"}]))
+        .await;
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_mol_block_to_smiles_without_sanitize() -> eyre::Result<()> {
+    let (test_client, _) = build_test_client()?;
+
+    let response = test_client
+        .post("/api/v1/convert/mol_block_to_smiles")
+        .body_json(&serde_json::json!([{"mol_block": MOL_BLOCK}]))
+        .query("sanitize", &"false")
+        .send()
+        .await;
+    response.assert_status_is_ok();
+    response
+        .assert_json(&serde_json::json!([{"smiles": "[H]C([H])([H])C(=O)OC([H])(C([H])([H])C(=O)[O-])C([H])([H])[N+](C([H])([H])[H])(C([H])([H])[H])C([H])([H])[H]"}]))
+        .await;
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_smile_to_mol_block() -> eyre::Result<()> {
+    let (test_client, _) = build_test_client()?;
+
+    let response = test_client
+        .post("/api/v1/convert/smiles_to_mol_block")
+        .body_json(&serde_json::json!([{"smiles": "CC(=O)OC(CC(=O)[O-])C[N+](C)(C)C"}]))
+        .query("sanitize", &"false")
+        .send()
+        .await;
+    response.assert_status_is_ok();
+
+    let expected_mol_block = r#"
+     RDKit          2D
+
+ 14 13  0  0  0  0  0  0  0  0999 V2000
+    1.2990   -2.2500    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0
+    2.5981   -1.5000    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0
+    3.8971   -2.2500    0.0000 O   0  0  0  0  0  0  0  0  0  0  0  0
+    2.5981   -0.0000    0.0000 O   0  0  0  0  0  0  0  0  0  0  0  0
+    3.8971    0.7500    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0
+    5.1962   -0.0000    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0
+    6.4952    0.7500    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0
+    6.4952    2.2500    0.0000 O   0  0  0  0  0  0  0  0  0  0  0  0
+    7.7942   -0.0000    0.0000 O   0  0  0  0  0  1  0  0  0  0  0  0
+    3.8971    2.2500    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0
+    2.5981    3.0000    0.0000 N   0  0  0  0  0  4  0  0  0  0  0  0
+    3.3481    4.2990    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0
+    1.8481    1.7010    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0
+    1.2990    3.7500    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0
+  1  2  1  0
+  2  3  2  0
+  2  4  1  0
+  4  5  1  0
+  5  6  1  0
+  6  7  1  0
+  7  8  2  0
+  7  9  1  0
+  5 10  1  0
+ 10 11  1  0
+ 11 12  1  0
+ 11 13  1  0
+ 11 14  1  0
+M  CHG  2   9  -1  11   1
+M  END
+"#;
+
+    response
+        .assert_json(&serde_json::json!([{"mol_block": expected_mol_block}]))
+        .await;
 
     Ok(())
 }
