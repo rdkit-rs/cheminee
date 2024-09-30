@@ -4,7 +4,6 @@ use crate::search::{
     basic_search::basic_search, structure_matching::substructure_match_fp,
     STRUCTURE_MATCH_DESCRIPTORS,
 };
-use bitvec::macros::internal::funty::Fundamental;
 use bitvec::prelude::{BitSlice, Lsb0};
 use rayon::prelude::*;
 use rdkit::{substruct_match, ROMol, SubstructMatchParameters};
@@ -12,7 +11,7 @@ use regex::Regex;
 use std::collections::{HashMap, HashSet};
 use std::sync::{Arc, Mutex};
 use tantivy::schema::Field;
-use tantivy::{DocAddress, Searcher};
+use tantivy::{DocAddress, DocId, Searcher, SegmentOrdinal};
 
 pub fn structure_search(
     searcher: &Searcher,
@@ -22,7 +21,7 @@ pub fn structure_search(
     result_limit: usize,
     use_chirality: bool,
     extra_query: &str,
-) -> eyre::Result<HashSet<(String, String)>> {
+) -> eyre::Result<HashSet<(String, String, SegmentOrdinal, DocId)>> {
     let schema = searcher.schema();
 
     let (query_fingerprint, query_descriptors) = get_cpd_properties(query_mol)?;
@@ -52,42 +51,41 @@ pub fn structure_search(
     let fingerprint_field = schema.get_field("fingerprint")?;
     let extra_data_field = schema.get_field("extra_data")?;
 
-    let result_count: Arc<Mutex<usize>> = Arc::new(Mutex::new(0));
     let query_mol_mutex = Arc::new(Mutex::new(query_mol.clone()));
 
-    let filtered_results = initial_results
-        .into_par_iter()
-        .filter_map(|result| {
-            let mut num = result_count.lock().unwrap();
+    let mut result_count: usize = 0;
+    let mut filtered_results: HashSet<(String, String, SegmentOrdinal, DocId)> = HashSet::new();
 
-            if num.as_usize() > result_limit {
-                None
-            } else {
+    for chunk in initial_results.chunks(1000) {
+        if result_count > result_limit {
+            break;
+        }
+
+        let results_subset = chunk
+            .into_par_iter()
+            .filter_map(|result| {
                 let struct_match = structure_match(
-                    result,
+                    *result,
                     smiles_field,
                     fingerprint_field,
                     extra_data_field,
-                    &searcher,
+                    searcher,
                     &query_mol_mutex.lock().unwrap(),
                     query_fingerprint,
                     method,
                     use_chirality,
                 );
 
-                match struct_match {
-                    Ok(struct_match) => {
-                        *num += 1;
-                        struct_match
-                    }
-                    Err(e) => {
-                        log::error!("{:?}", e);
-                        None
-                    }
-                }
-            }
-        })
-        .collect::<HashSet<(String, String)>>();
+                struct_match.unwrap_or_else(|e| {
+                    log::error!("{:?}", e);
+                    None
+                })
+            })
+            .collect::<HashSet<(String, String, SegmentOrdinal, DocId)>>();
+
+        result_count += results_subset.len();
+        filtered_results.extend(results_subset);
+    }
 
     Ok(filtered_results)
 }
@@ -102,7 +100,7 @@ pub fn structure_match(
     query_fingerprint: &BitSlice<u8>,
     method: &str,
     use_chirality: bool,
-) -> eyre::Result<Option<(String, String)>> {
+) -> eyre::Result<Option<(String, String, SegmentOrdinal, DocId)>> {
     let doc = searcher.doc::<tantivy::TantivyDocument>(docaddr)?;
 
     let smiles = doc
@@ -148,7 +146,12 @@ pub fn structure_match(
                 None => "".to_string(),
             };
 
-            return Ok(Some((smiles.to_string(), extra_data)));
+            return Ok(Some((
+                smiles.to_string(),
+                extra_data,
+                docaddr.segment_ord,
+                docaddr.doc_id,
+            )));
         }
     }
 

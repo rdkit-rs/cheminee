@@ -1,9 +1,8 @@
 use crate::command_line::prelude::*;
 use crate::search::scaffold_search::{scaffold_search, PARSED_SCAFFOLDS};
 use crate::search::{
-    identity_search::identity_search, prepare_query_structure, StructureSearchHit,
+    identity_search::identity_search, prepare_query_structure, sort_results, StructureSearchHit,
 };
-use rayon::prelude::*;
 
 pub const NAME: &str = "identity-search";
 
@@ -96,7 +95,7 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
         None
     };
 
-    let results = identity_search(
+    let mut data_results = identity_search(
         &searcher,
         &query_canon_taut,
         &matching_scaffolds,
@@ -106,8 +105,8 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
         &extra_query,
     )?;
 
-    let final_results = results
-        .into_par_iter()
+    let final_results = sort_results(&mut data_results)
+        .into_iter()
         .map(|(smiles, extra_data)| StructureSearchHit {
             extra_data,
             smiles,

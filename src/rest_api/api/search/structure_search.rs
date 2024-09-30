@@ -1,7 +1,9 @@
 use crate::rest_api::api::{GetStructureSearchResponse, StructureResponseError};
 use crate::search::compound_processing::standardize_smiles;
 use crate::search::structure_search::structure_search;
-use crate::search::{compound_processing::get_tautomers, validate_structure, StructureSearchHit};
+use crate::search::{
+    compound_processing::get_tautomers, sort_results, validate_structure, StructureSearchHit,
+};
 use poem_openapi::payload::Json;
 use rayon::iter::IntoParallelIterator;
 use rayon::iter::ParallelIterator;
@@ -89,7 +91,7 @@ pub fn v1_index_search_structure(
         let tautomer_limit = min(tautomers.len(), tautomer_limit);
 
         if !tautomers.is_empty() {
-            let tautomer_results = &tautomers[..tautomer_limit]
+            let tautomer_results = tautomers[..tautomer_limit]
                 .into_par_iter()
                 .filter_map(|taut| {
                     structure_search(
@@ -107,7 +109,7 @@ pub fn v1_index_search_structure(
 
             for results_set in tautomer_results {
                 if results.len() < result_limit {
-                    results.extend(results_set.clone());
+                    results.extend(results_set);
                 }
             }
 
@@ -117,8 +119,10 @@ pub fn v1_index_search_structure(
         }
     }
 
-    let final_results = results
-        .into_par_iter()
+    let mut data_results = results.into_iter().collect::<Vec<_>>();
+
+    let final_results = sort_results(&mut data_results)
+        .into_iter()
         .map(|(smiles, extra_data)| StructureSearchHit {
             extra_data,
             smiles,

@@ -2,10 +2,9 @@ use crate::indexing::index_manager::IndexManager;
 use crate::rest_api::api::{GetStructureSearchResponse, StructureResponseError};
 use crate::search::scaffold_search::{scaffold_search, PARSED_SCAFFOLDS};
 use crate::search::{
-    identity_search::identity_search, prepare_query_structure, StructureSearchHit,
+    identity_search::identity_search, prepare_query_structure, sort_results, StructureSearchHit,
 };
 use poem_openapi::payload::Json;
-use rayon::prelude::*;
 
 pub fn v1_index_search_identity(
     index_manager: &IndexManager,
@@ -55,7 +54,7 @@ pub fn v1_index_search_identity(
         None
     };
 
-    let results = identity_search(
+    let data_results = identity_search(
         &searcher,
         &query_canon_taut,
         &matching_scaffolds,
@@ -65,9 +64,9 @@ pub fn v1_index_search_identity(
         extra_query,
     );
 
-    let final_results = match results {
-        Ok(results) => results
-            .into_par_iter()
+    let final_results = match data_results {
+        Ok(mut data_results) => sort_results(&mut data_results)
+            .into_iter()
             .map(|(smiles, extra_data)| StructureSearchHit {
                 extra_data,
                 smiles,
