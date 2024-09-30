@@ -552,64 +552,37 @@ M  END
     Ok(())
 }
 
-// #[tokio::test]
-// async fn test_compound_processing_endpoints() {
-//     let test_api = ApiV1::default();
+#[tokio::test]
+async fn test_standardization_without_attempt_fix() -> eyre::Result<()> {
+    let (test_client, _) = build_test_client()?;
 
-//     // Test molblock-to-smiles conversion with sanitization
-//     let mol_block = Json(vec![MolBlock {
-//         mol_block: MOL_BLOCK.to_string(),
-//     }]);
+    let response = test_client
+        .post("/api/v1/standardize")
+        .body_json(&serde_json::json!([{"smiles": "CC(=O)OC(CC(=O)[O-])CN(C)(C)C"}]))
+        .send()
+        .await;
+    response.assert_status_is_ok();
+    response
+        .assert_json(&serde_json::json!([{"error": "could not convert smiles to romol (exception)", "smiles": "CC(=O)OC(CC(=O)[O-])CN(C)(C)C"}]))
+        .await;
 
-//     let mol_block_resp = test_api
-//         .v1_convert_mol_block_to_smiles(Query("true".to_string()), mol_block)
-//         .await;
+    Ok(())
+}
 
-//     assert_eq!(
-//         format!("{:?}", mol_block_resp),
-//         "Ok(Json([ConvertedSmiles { smiles: Some(\"CC(=O)OC(CC(=O)[O-])C[N+](C)(C)C\"), error: None }]))"
-//     );
+#[tokio::test]
+async fn test_standardization_with_attempt_fix() -> eyre::Result<()> {
+    let (test_client, _) = build_test_client()?;
 
-//     // Test molblock-to-smiles conversion without sanitization
-//     let mol_block = Json(vec![MolBlock {
-//         mol_block: MOL_BLOCK.to_string(),
-//     }]);
+    let response = test_client
+        .post("/api/v1/standardize")
+        .body_json(&serde_json::json!([{"smiles": "CC(=O)OC(CC(=O)[O-])CN(C)(C)C"}]))
+        .query("attempt_fix", &"true")
+        .send()
+        .await;
+    response.assert_status_is_ok();
+    response
+        .assert_json(&serde_json::json!([{"smiles": "CC(=O)OC(CC(=O)O)C[N+](C)(C)C"}]))
+        .await;
 
-//     let mol_block_no_sanitize_resp = test_api
-//         .v1_convert_mol_block_to_smiles(Query("false".to_string()), mol_block)
-//         .await;
-
-//     assert_eq!(
-//         format!("{:?}", mol_block_no_sanitize_resp),
-//         "Ok(Json([ConvertedSmiles { smiles: Some(\"[H]C([H])([H])C(=O)OC([H])(C([H])([H])C(=O)[O-])C([H])([H])[N+](C([H])([H])[H])(C([H])([H])[H])C([H])([H])[H]\"), error: None }]))"
-//     );
-
-//     // Test smiles-to-molblock conversion
-//     let smiles = Json(vec![Smiles {
-//         smiles: "CC(=O)OC(CC(=O)[O-])C[N+](C)(C)C".to_string(),
-//     }]);
-
-//     let smiles_resp = test_api.v1_convert_smiles_to_mol_block(smiles).await;
-//     assert!(format!("{:?}", smiles_resp).contains("Ok(Json([ConvertedMolBlock { mol_block: Some("));
-
-//     // Test standardization with no attempted fix
-//     let smiles = Json(vec![Smiles {
-//         smiles: "CC(=O)OC(CC(=O)[O-])CN(C)(C)C".to_string(),
-//     }]);
-
-//     let stdz_no_fix_resp = test_api.v1_standardize(smiles, Query(None)).await;
-//     assert!(format!("{:?}", stdz_no_fix_resp).contains("could not convert smiles to romol"));
-
-//     // Test standardization with attempted fix
-//     let smiles = Json(vec![Smiles {
-//         smiles: "CC(=O)OC(CC(=O)[O-])CN(C)(C)C".to_string(),
-//     }]);
-
-//     let stdz_yes_fix_resp = test_api
-//         .v1_standardize(smiles, Query(Some("true".to_string())))
-//         .await;
-//     assert_eq!(
-//         format!("{:?}", stdz_yes_fix_resp),
-//         "Ok(Json([StandardizedSmiles { smiles: Some(\"CC(=O)OC(CC(=O)O)C[N+](C)(C)C\"), error: None }]))"
-//     );
-// }
+    Ok(())
+}
