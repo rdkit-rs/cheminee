@@ -144,6 +144,7 @@ impl ApiV1 {
         v1_index_search_basic(index_manager.0, index.to_string(), query.0, limit)
     }
 
+    #[allow(clippy::too_many_arguments)]
     #[oai(path = "/v1/indexes/:index/search/substructure", method = "get")]
     /// Perform substructure search against index
     pub async fn v1_index_search_substructure(
