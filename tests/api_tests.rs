@@ -6,6 +6,7 @@ use poem::EndpointExt;
 use poem::{Endpoint, Route};
 use tantivy::collector::TopDocs;
 use tantivy::query::QueryParser;
+use tantivy::schema::Value;
 use tantivy::Index;
 use tempdir::TempDir;
 
@@ -167,12 +168,10 @@ async fn test_bulk_indexing() -> eyre::Result<()> {
     let index_name = "test-api-index";
     let schema_name = "descriptor_v1";
     let (test_client, index_manager) = build_test_client()?;
+    let schema = cheminee::schema::LIBRARY.get(schema_name).unwrap();
+    let smiles_field = schema.get_field("smiles").unwrap();
 
-    let tantivy_index = index_manager.create(
-        index_name,
-        cheminee::schema::LIBRARY.get(schema_name).unwrap(),
-        false,
-    )?;
+    let tantivy_index = index_manager.create(index_name, schema, false)?;
 
     let response = test_client
         .post(format!("/api/v1/indexes/{index_name}/bulk_index"))
@@ -206,10 +205,17 @@ async fn test_bulk_indexing() -> eyre::Result<()> {
     assert_eq!(results.len(), 3);
 
     let docs = results
-        .iter()
-        .each(|(_, doc_id)| searcher.doc::<tantivy::TantivyDocument>(doc_id).unwrap())
+        .into_iter()
+        .map(|(_, doc_id)| searcher.doc::<tantivy::TantivyDocument>(doc_id).unwrap())
+        .map(|td| {
+            td.get_first(smiles_field)
+                .unwrap()
+                .as_str()
+                .unwrap()
+                .to_owned()
+        })
         .collect::<Vec<_>>();
-    panic!("{:#?}", docs);
+    assert_eq!(&docs, &["CCC", "c1ccccc1", "c1ccc(CCc2ccccc2)cc1",]);
 
     Ok(())
 }
