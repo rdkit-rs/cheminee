@@ -433,34 +433,34 @@ async fn test_bulk_delete() -> eyre::Result<()> {
     Ok(())
 }
 
-// // Test bulk delete
-// let bulk_delete_request_docs = smiles_vec
-//     .into_iter()
-//     .map(|s| BulkRequestDoc {
-//         smiles: s.into(),
-//         extra_data: None,
-//     })
-//     .collect::<Vec<_>>();
+#[tokio::test]
+async fn test_delete_index() -> eyre::Result<()> {
+    let index_name = "test-api-index";
+    let schema_name = "descriptor_v1";
+    let (test_client, index_manager) = build_test_client()?;
 
-// let bulk_delete_request = Json(BulkRequest {
-//     docs: bulk_delete_request_docs,
-// });
+    index_manager.create(
+        index_name,
+        cheminee::schema::LIBRARY.get(schema_name).unwrap(),
+        false,
+    )?;
+    assert_eq!(index_manager.list().unwrap().len(), 1);
 
-// let bulk_delete_resp = test_api
-//     .v1_delete_indexes_bulk_delete(Path(index_name.to_string()), bulk_delete_request)
-//     .await;
+    let response = test_client
+        .delete(format!("/api/v1/indexes/{index_name}"))
+        .send()
+        .await;
+    response.assert_status_is_ok();
+    response
+        .assert_json(&serde_json::json!({
+            "name": "test-api-index",
+            "schema": "descriptor_v1",
+        }))
+        .await;
+    assert_eq!(index_manager.list().unwrap().len(), 0);
 
-// assert_eq!(
-//     format!("{:?}", bulk_delete_resp),
-//     "Ok(Json(DeleteIndexBulkResponseOk { statuses: [DeleteIndexBulkResponseOkStatus { opcode: Some(4), error: None }, DeleteIndexBulkResponseOkStatus { opcode: Some(5), error: None }, DeleteIndexBulkResponseOkStatus { opcode: Some(6), error: None }] }))"
-// );
-
-// // Test delete index
-// let delete_index_resp = test_api.v1_delete_index(Path(index_name.to_string())).await;
-// assert_eq!(
-//     format!("{:?}", delete_index_resp),
-//     "Ok(Json(IndexMeta { name: \"test-api-index\", schema: \"descriptor_v1\" }))"
-// );
+    Ok(())
+}
 
 // #[tokio::test]
 // async fn test_compound_processing_endpoints() {
