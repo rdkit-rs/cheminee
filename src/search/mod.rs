@@ -1,4 +1,4 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 
 use crate::search::compound_processing::process_cpd;
 use poem_openapi_derive::Object;
@@ -81,7 +81,7 @@ pub struct StructureSearchHit {
 
 pub fn aggregate_query_hits(
     searcher: Searcher,
-    results: HashSet<DocAddress>,
+    results: Vec<DocAddress>,
     query: &str,
 ) -> eyre::Result<Vec<QuerySearchHit>> {
     let schema = searcher.schema();

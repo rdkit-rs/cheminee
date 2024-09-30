@@ -79,7 +79,7 @@ pub fn cli_structure_search(method: &str, matches: &ArgMatches) -> eyre::Result<
         let tautomer_limit = min(tautomers.len(), tautomer_limit);
 
         if !tautomers.is_empty() {
-            let tautomer_results = &tautomers[..tautomer_limit]
+            let tautomer_results = tautomers[..tautomer_limit]
                 .into_par_iter()
                 .filter_map(|taut| {
                     structure_search(
@@ -97,7 +97,7 @@ pub fn cli_structure_search(method: &str, matches: &ArgMatches) -> eyre::Result<
 
             for results_set in tautomer_results {
                 if results.len() < result_limit {
-                    results.extend(results_set.clone());
+                    results.extend(results_set);
                 }
             }
 
