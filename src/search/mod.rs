@@ -65,7 +65,7 @@ pub fn validate_structure(smiles: &str) -> eyre::Result<Vec<MolSanitizeException
 
 #[derive(Object, Debug)]
 pub struct QuerySearchHit {
-    pub extra_data: String,
+    pub extra_data: serde_json::Value,
     pub smiles: String,
     pub query: String,
 }
@@ -116,7 +116,7 @@ fn get_smiles_and_extra_data(
     searcher: &Searcher,
     smiles_field: Field,
     extra_data_field: Field,
-) -> eyre::Result<(String, String)> {
+) -> eyre::Result<(String, serde_json::Value)> {
     let doc = searcher.doc::<tantivy::TantivyDocument>(docaddr)?;
     let smiles = doc
         .get_first(smiles_field)
@@ -127,12 +127,14 @@ fn get_smiles_and_extra_data(
         other => return Err(eyre::eyre!("expect string got {:?}", other)),
     };
 
+    // TODO: sure would be nice if it was easier to take a tantivy OwnedValue and turn it in to a serde_json Object!
     let extra_data = doc.get_first(extra_data_field);
-
     let extra_data = match extra_data {
-        Some(extra_data) => serde_json::to_string(extra_data)?,
-        None => "".to_string(),
+        Some(tantivy::schema::OwnedValue::Object(obj_map)) => {
+            serde_json::from_str(&serde_json::to_string(&obj_map)?)?
+        }
+        Some(_) | None => serde_json::Value::Object(Default::default()),
     };
 
-    Ok((smiles.to_string(), extra_data.to_string()))
+    Ok((smiles.to_string(), extra_data))
 }

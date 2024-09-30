@@ -250,7 +250,7 @@ async fn test_basic_search() -> eyre::Result<()> {
     response.assert_status_is_ok();
     response
         .assert_json(&serde_json::json!([{
-            "extra_data": r#"{"extra":"data"}"#, // TODO: can we return extra data as JSON?
+            "extra_data": {"extra":"data"},
             "query": "NumAtoms:[13 TO 100]",
             "smiles": "c1ccc(CCc2ccccc2)cc1"
         }]))
