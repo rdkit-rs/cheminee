@@ -72,7 +72,7 @@ pub struct QuerySearchHit {
 
 #[derive(Object, Debug, Clone)]
 pub struct StructureSearchHit {
-    pub extra_data: String,
+    pub extra_data: serde_json::Value,
     pub smiles: String,
     pub score: f32,
     pub query: String,
@@ -147,8 +147,8 @@ fn get_smiles_and_extra_data(
 }
 
 pub fn sort_results(
-    results: &mut [(String, String, SegmentOrdinal, DocId)],
-) -> Vec<(String, String)> {
+    results: &mut [(String, serde_json::Value, SegmentOrdinal, DocId)],
+) -> Vec<(String, serde_json::Value)> {
     results.sort_by(|a, b| {
         let cmp = a.2.cmp(&b.2);
 
