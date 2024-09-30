@@ -91,6 +91,7 @@ pub fn structure_search(
     Ok(filtered_results)
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn structure_match(
     docaddr: DocAddress,
     smiles_field: Field,

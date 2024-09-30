@@ -178,6 +178,7 @@ impl ApiV1 {
         )
     }
 
+    #[allow(clippy::too_many_arguments)]
     #[oai(path = "/v1/indexes/:index/search/superstructure", method = "get")]
     /// Perform superstructure search against index
     pub async fn v1_index_search_superstructure(
