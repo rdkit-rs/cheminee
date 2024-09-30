@@ -1,13 +1,9 @@
 use cheminee::indexing::index_manager::IndexManager;
-use cheminee::rest_api::api::{ApiV1, StandardizeResponse};
-use cheminee::rest_api::models::Smiles;
 use cheminee::rest_api::openapi_server::{api_service, API_PREFIX};
 
 use poem::test::TestResponse;
 use poem::EndpointExt;
-use poem::{handler, Endpoint, Route};
-use poem_openapi::param::Query;
-use poem_openapi::payload::Json;
+use poem::{Endpoint, Route};
 use tantivy::Index;
 use tempdir::TempDir;
 
