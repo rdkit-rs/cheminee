@@ -1,3 +1,4 @@
+use crate::search::sort_docs;
 use rayon::prelude::*;
 use tantivy::{collector::TopDocs, query::QueryParser, DocAddress, Searcher};
 
@@ -18,18 +19,4 @@ pub fn basic_search(
 
     sort_docs(&mut final_results);
     Ok(final_results)
-}
-
-fn sort_docs(results: &mut [DocAddress]) {
-    results.sort_by(|a, b| {
-        let cmp = a.segment_ord.cmp(&b.segment_ord);
-
-        if cmp == std::cmp::Ordering::Equal {
-            a.doc_id
-                .partial_cmp(&b.doc_id)
-                .unwrap_or(std::cmp::Ordering::Equal)
-        } else {
-            cmp
-        }
-    });
 }

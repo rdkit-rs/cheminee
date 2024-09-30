@@ -146,6 +146,20 @@ fn get_smiles_and_extra_data(
     Ok((smiles.to_string(), extra_data))
 }
 
+pub fn sort_docs(results: &mut [DocAddress]) {
+    results.sort_by(|a, b| {
+        let cmp = a.segment_ord.cmp(&b.segment_ord);
+
+        if cmp == std::cmp::Ordering::Equal {
+            a.doc_id
+                .partial_cmp(&b.doc_id)
+                .unwrap_or(std::cmp::Ordering::Equal)
+        } else {
+            cmp
+        }
+    });
+}
+
 pub fn sort_results(
     results: &mut [(String, serde_json::Value, SegmentOrdinal, DocId)],
 ) -> Vec<(String, serde_json::Value)> {
