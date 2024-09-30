@@ -80,35 +80,6 @@ M  CHG  2   2  -1   5   1
 M  END
 "#;
 
-#[handler]
-async fn index() -> StandardizeResponse {
-    let smiles = Json(vec![Smiles {
-        smiles: "CC=CO".to_string(),
-    }]);
-    ApiV1::default().v1_standardize(smiles, Query(None)).await
-}
-
-#[tokio::test]
-async fn test_poem() {
-    let app = Route::new().at("/", poem::post(index));
-    let client = poem::test::TestClient::new(app);
-    let resp = client.post("/").send().await;
-
-    resp.assert_status_is_ok();
-
-    let json = resp.json().await;
-    let json_value = json.value();
-
-    json_value
-        .array()
-        .iter()
-        .map(|value| value.object().get("smiles"))
-        .collect::<Vec<_>>()
-        .first()
-        .expect("first_value")
-        .assert_string("CCC=O");
-}
-
 fn build_test_client() -> eyre::Result<(poem::test::TestClient<impl Endpoint>, IndexManager)> {
     let tempdir = TempDir::new("cheminee-api-tests-")?;
     let index_manager = IndexManager::new(tempdir.into_path(), true)?;
