@@ -1,4 +1,4 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 
 use crate::search::compound_processing::process_cpd;
 use poem_openapi_derive::Object;
@@ -7,7 +7,7 @@ use rdkit::{
     detect_chemistry_problems, Fingerprint, MolSanitizeException, ROMol, SmilesParserParams,
 };
 use tantivy::schema::Field;
-use tantivy::{DocAddress, Searcher};
+use tantivy::{DocAddress, DocId, Searcher, SegmentOrdinal};
 
 pub mod basic_search;
 pub mod compound_processing;
@@ -81,25 +81,23 @@ pub struct StructureSearchHit {
 
 pub fn aggregate_query_hits(
     searcher: Searcher,
-    results: HashSet<DocAddress>,
+    results: Vec<DocAddress>,
     query: &str,
 ) -> eyre::Result<Vec<QuerySearchHit>> {
     let schema = searcher.schema();
     let smiles_field = schema.get_field("smiles")?;
     let extra_data_field = schema.get_field("extra_data")?;
 
-    let final_results = results
+    let mut data_results = results
         .into_par_iter()
         .filter_map(|result| {
             let smiles_and_extra_data =
                 get_smiles_and_extra_data(result, &searcher, smiles_field, extra_data_field);
 
             match smiles_and_extra_data {
-                Ok((smiles, extra_data)) => Some(QuerySearchHit {
-                    extra_data,
-                    smiles,
-                    query: query.into(),
-                }),
+                Ok((smiles, extra_data)) => {
+                    Some((smiles, extra_data, result.segment_ord, result.doc_id))
+                }
                 Err(e) => {
                     log::error!("{:?}", e);
                     None
@@ -108,7 +106,16 @@ pub fn aggregate_query_hits(
         })
         .collect::<Vec<_>>();
 
-    Ok(final_results)
+    let sorted_results = sort_results(&mut data_results)
+        .into_iter()
+        .map(|(smiles, extra_data)| QuerySearchHit {
+            extra_data,
+            smiles,
+            query: query.into(),
+        })
+        .collect::<Vec<_>>();
+
+    Ok(sorted_results)
 }
 
 fn get_smiles_and_extra_data(
@@ -137,4 +144,23 @@ fn get_smiles_and_extra_data(
     };
 
     Ok((smiles.to_string(), extra_data))
+}
+
+pub fn sort_results(
+    results: &mut [(String, String, SegmentOrdinal, DocId)],
+) -> Vec<(String, String)> {
+    results.sort_by(|a, b| {
+        let cmp = a.2.cmp(&b.2);
+
+        if cmp == std::cmp::Ordering::Equal {
+            a.3.partial_cmp(&b.3).unwrap_or(std::cmp::Ordering::Equal)
+        } else {
+            cmp
+        }
+    });
+
+    results
+        .iter_mut()
+        .map(|(data1, data2, _, _)| (data1.to_owned(), data2.to_owned()))
+        .collect::<Vec<_>>()
 }
