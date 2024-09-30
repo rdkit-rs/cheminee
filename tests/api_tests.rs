@@ -4,6 +4,8 @@ use cheminee::rest_api::openapi_server::{api_service, API_PREFIX};
 use poem::test::TestResponse;
 use poem::EndpointExt;
 use poem::{Endpoint, Route};
+use tantivy::collector::TopDocs;
+use tantivy::query::QueryParser;
 use tantivy::Index;
 use tempdir::TempDir;
 
@@ -166,11 +168,19 @@ async fn test_bulk_indexing() -> eyre::Result<()> {
     let schema_name = "descriptor_v1";
     let (test_client, index_manager) = build_test_client()?;
 
-    let _tantivy_index = index_manager.create(
+    let tantivy_index = index_manager.create(
         index_name,
         cheminee::schema::LIBRARY.get(schema_name).unwrap(),
         false,
     )?;
+
+    // ("CCC", 8, serde_json::json!({"extra": "data"})),
+    // ("C1=CC=CC=C1", 8, serde_json::json!({"extra": "data"})),
+    // (
+    //     "C1=CC=CC=C1CCC2=CC=CC=C2",
+    //     28,
+    //     serde_json::json!({"extra": "data"}),
+    // ),
 
     // and for good measure, make sure we get an error if called a second time
     // Test index creation
@@ -180,6 +190,12 @@ async fn test_bulk_indexing() -> eyre::Result<()> {
             "docs": [{
                 "smiles": "CCC",
                 "extra_data": {"meow": "mix", "for": "cats"}
+            }, {
+                "smiles": "C1=CC=CC=C1",
+                "extra_data": {"purina": "puppy chow", "for": "dogs"}
+            }, {
+                "smiles": "C1=CC=CC=C1CCC2=CC=CC=C2",
+                "extra_data": {"fish": "food", "for": "fish"}
             }]
         }))
         .send()
@@ -187,9 +203,17 @@ async fn test_bulk_indexing() -> eyre::Result<()> {
     response.assert_status_is_ok();
     response
         .assert_json(&serde_json::json!({
-            "statuses": [{"error": null, "opcode": 0}]
+            "statuses": [{"error": null, "opcode": 0}, {"error": null, "opcode": 1}, {"error": null, "opcode": 2}]
         }))
         .await;
+
+    let query_parser = QueryParser::for_index(&tantivy_index, vec![]);
+    let query = query_parser.parse_query("*")?;
+
+    let reader = tantivy_index.reader()?;
+    let searcher = reader.searcher();
+    let results = searcher.search(&query, &TopDocs::with_limit(100))?;
+    assert_eq!(results.len(), 3);
 
     Ok(())
 }
