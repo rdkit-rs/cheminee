@@ -174,16 +174,6 @@ async fn test_bulk_indexing() -> eyre::Result<()> {
         false,
     )?;
 
-    // ("CCC", 8, serde_json::json!({"extra": "data"})),
-    // ("C1=CC=CC=C1", 8, serde_json::json!({"extra": "data"})),
-    // (
-    //     "C1=CC=CC=C1CCC2=CC=CC=C2",
-    //     28,
-    //     serde_json::json!({"extra": "data"}),
-    // ),
-
-    // and for good measure, make sure we get an error if called a second time
-    // Test index creation
     let response = test_client
         .post(format!("/api/v1/indexes/{index_name}/bulk_index"))
         .body_json(&serde_json::json!({
@@ -214,6 +204,12 @@ async fn test_bulk_indexing() -> eyre::Result<()> {
     let searcher = reader.searcher();
     let results = searcher.search(&query, &TopDocs::with_limit(100))?;
     assert_eq!(results.len(), 3);
+
+    let docs = results
+        .iter()
+        .each(|(_, doc_id)| searcher.doc::<tantivy::TantivyDocument>(doc_id).unwrap())
+        .collect::<Vec<_>>();
+    panic!("{:#?}", docs);
 
     Ok(())
 }
