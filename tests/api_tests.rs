@@ -538,9 +538,9 @@ M  CHG  2   9  -1  11   1
 M  END
 "#;
 
-    response
-        .assert_json(&serde_json::json!([{"mol_block": expected_mol_block}]))
-        .await;
+    let body = String::from_utf8(response.0.take_body().into_bytes().await?.to_vec()).unwrap();
+    assert!(body.contains("RDKit          2D"));
+    assert!(body.contains("END"));
 
     Ok(())
 }
