@@ -55,6 +55,7 @@ pub fn identity_search(
     Ok(filtered_results)
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn identity_match(
     docaddr: DocAddress,
     smiles_field: Field,
