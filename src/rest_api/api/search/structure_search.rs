@@ -10,6 +10,7 @@ use rayon::iter::ParallelIterator;
 use std::cmp::min;
 use tantivy::Index;
 
+#[allow(clippy::too_many_arguments)]
 pub fn v1_index_search_structure(
     index: eyre::Result<Index>,
     query_smiles: String,

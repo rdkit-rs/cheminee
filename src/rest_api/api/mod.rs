@@ -1,3 +1,6 @@
+mod api_v1;
+pub use api_v1::ApiV1;
+
 mod indexing;
 pub use indexing::*;
 

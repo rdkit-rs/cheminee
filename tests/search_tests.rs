@@ -1,16 +1,18 @@
+use bitvec::store::BitStore;
 use cheminee::search::compound_processing::{process_cpd, standardize_smiles};
 use cheminee::search::identity_search::{build_identity_query, identity_search};
 use cheminee::search::scaffold_search::{scaffold_search, PARSED_SCAFFOLDS};
 use cheminee::search::structure_search::{
     build_substructure_query, build_superstructure_query, structure_search,
 };
+use cheminee::search::{sort_docs, sort_results};
 use serde_json::json;
 use std::collections::HashMap;
 use tantivy::schema::{JsonObjectOptions, TEXT};
 use tantivy::{
     doc,
     schema::{SchemaBuilder, FAST, INDEXED, STORED, STRING},
-    IndexBuilder,
+    DocAddress, DocId, IndexBuilder, SegmentOrdinal,
 };
 
 #[test]
@@ -34,6 +36,58 @@ fn test_build_superstructure_query() {
     assert_eq!(
         query,
         "NumAtoms:[0 TO 10] AND (extra_data.scaffolds:0 OR extra_data.scaffolds:1 OR extra_data.scaffolds:-1)"
+    );
+}
+
+#[test]
+fn test_sort_docs() {
+    let doc1 = DocAddress::new(1, 0);
+    let doc2 = DocAddress::new(1, 1);
+    let doc3 = DocAddress::new(0, 1);
+
+    let mut doc_vec = vec![doc1, doc2, doc3];
+
+    sort_docs(&mut doc_vec);
+
+    assert_eq!(doc_vec, vec![doc3, doc1, doc2]);
+}
+
+#[test]
+fn test_sort_results() {
+    let mut results = vec![
+        (
+            "CC".to_string(),
+            json!({"extra":"data"}),
+            SegmentOrdinal::new(1),
+            DocId::new(0),
+        ),
+        (
+            "c1ccccc1".to_string(),
+            json!({"extra":"data"}),
+            SegmentOrdinal::new(1),
+            DocId::new(1),
+        ),
+        (
+            "c1ccc(CCc2ccccc2)cc1".to_string(),
+            json!({"extra":"data"}),
+            SegmentOrdinal::new(0),
+            DocId::new(1),
+        ),
+    ];
+
+    sort_results(&mut results);
+    assert_eq!(
+        results,
+        vec![
+            (
+                "c1ccc(CCc2ccccc2)cc1".to_string(),
+                json!({"extra": "data"}),
+                0,
+                1
+            ),
+            ("CC".to_string(), json!({"extra": "data"}), 1, 0),
+            ("c1ccccc1".to_string(), json!({"extra": "data"}), 1, 1)
+        ]
     );
 }
 

@@ -17,7 +17,7 @@ pub fn identity_search(
     query_descriptors: &HashMap<String, f64>,
     use_chirality: bool,
     extra_query: &str,
-) -> eyre::Result<Vec<(String, String, SegmentOrdinal, DocId)>> {
+) -> eyre::Result<Vec<(String, serde_json::Value, SegmentOrdinal, DocId)>> {
     let schema = searcher.schema();
 
     let query = build_identity_query(query_descriptors, extra_query, scaffold_matches);
@@ -55,6 +55,7 @@ pub fn identity_search(
     Ok(filtered_results)
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn identity_match(
     docaddr: DocAddress,
     smiles_field: Field,
@@ -64,7 +65,7 @@ pub fn identity_match(
     query_mol: &ROMol,
     query_fingerprint: &BitSlice<u8>,
     use_chirality: bool,
-) -> eyre::Result<Option<(String, String, SegmentOrdinal, DocId)>> {
+) -> eyre::Result<Option<(String, serde_json::Value, SegmentOrdinal, DocId)>> {
     let doc = searcher.doc::<tantivy::TantivyDocument>(docaddr)?;
 
     let smiles = doc
@@ -92,8 +93,8 @@ pub fn identity_match(
         let mol_exact_match = exact_match(&ROMol::from_smiles(smiles)?, query_mol, use_chirality);
         if mol_exact_match {
             let extra_data = match doc.get_first(extra_data_field) {
-                Some(extra_data) => serde_json::to_string(extra_data)?,
-                None => "".to_string(),
+                Some(extra_data) => serde_json::from_str(&serde_json::to_string(extra_data)?)?,
+                None => serde_json::Value::Object(Default::default()),
             };
             return Ok(Some((
                 smiles.to_string(),

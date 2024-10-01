@@ -81,8 +81,10 @@ pub enum PostIndexResponse {
     Ok(Json<crate::rest_api::api::IndexMeta>),
     #[oai(status = "404")]
     SchemaDoesNotExist,
+    #[oai(status = "400")]
+    IndexExists,
     #[oai(status = "500", content_type = "application/json")]
-    Err(Json<crate::rest_api::api::CreateIndexError>),
+    ServerErr(Json<crate::rest_api::api::CreateIndexError>),
 }
 
 #[derive(ApiResponse, Debug)]
@@ -167,7 +169,7 @@ pub struct GetIndexesResponseError {
     pub error: String,
 }
 
-#[derive(Object, Debug)]
+#[derive(Object, Debug, serde::Serialize)]
 pub struct IndexMeta {
     pub name: String,
     pub schema: String,

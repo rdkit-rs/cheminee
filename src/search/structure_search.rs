@@ -21,7 +21,7 @@ pub fn structure_search(
     result_limit: usize,
     use_chirality: bool,
     extra_query: &str,
-) -> eyre::Result<HashSet<(String, String, SegmentOrdinal, DocId)>> {
+) -> eyre::Result<HashSet<(String, serde_json::Value, SegmentOrdinal, DocId)>> {
     let schema = searcher.schema();
 
     let (query_fingerprint, query_descriptors) = get_cpd_properties(query_mol)?;
@@ -54,7 +54,8 @@ pub fn structure_search(
     let query_mol_mutex = Arc::new(Mutex::new(query_mol.clone()));
 
     let mut result_count: usize = 0;
-    let mut filtered_results: HashSet<(String, String, SegmentOrdinal, DocId)> = HashSet::new();
+    let mut filtered_results: HashSet<(String, serde_json::Value, SegmentOrdinal, DocId)> =
+        HashSet::new();
 
     for chunk in initial_results.chunks(1000) {
         if result_count > result_limit {
@@ -81,7 +82,7 @@ pub fn structure_search(
                     None
                 })
             })
-            .collect::<HashSet<(String, String, SegmentOrdinal, DocId)>>();
+            .collect::<HashSet<_>>();
 
         result_count += results_subset.len();
         filtered_results.extend(results_subset);
@@ -90,6 +91,7 @@ pub fn structure_search(
     Ok(filtered_results)
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn structure_match(
     docaddr: DocAddress,
     smiles_field: Field,
@@ -100,7 +102,7 @@ pub fn structure_match(
     query_fingerprint: &BitSlice<u8>,
     method: &str,
     use_chirality: bool,
-) -> eyre::Result<Option<(String, String, SegmentOrdinal, DocId)>> {
+) -> eyre::Result<Option<(String, serde_json::Value, SegmentOrdinal, DocId)>> {
     let doc = searcher.doc::<tantivy::TantivyDocument>(docaddr)?;
 
     let smiles = doc
@@ -142,8 +144,8 @@ pub fn structure_match(
 
         if !mol_substruct_match.is_empty() && query_mol.as_smiles() != *smiles {
             let extra_data = match doc.get_first(extra_data_field) {
-                Some(extra_data) => serde_json::to_string(extra_data)?,
-                None => "".to_string(),
+                Some(extra_data) => serde_json::from_str(&serde_json::to_string(extra_data)?)?,
+                None => serde_json::Value::Object(Default::default()),
             };
 
             return Ok(Some((

@@ -21,12 +21,12 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
 
     log::info!("merge_segments index_dir={}", index_dir);
 
-    let index = tantivy::Index::open_in_dir(&index_dir)?;
+    let index = tantivy::Index::open_in_dir(index_dir)?;
 
     let segment_manager = SegmentManager {};
     segment_manager.merge(&index)?;
 
-    let index = tantivy::Index::open_in_dir(&index_dir)?;
+    let index = tantivy::Index::open_in_dir(index_dir)?;
     segment_manager.garbage_collect(&index)?;
 
     Ok(())

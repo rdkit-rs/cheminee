@@ -65,14 +65,14 @@ pub fn validate_structure(smiles: &str) -> eyre::Result<Vec<MolSanitizeException
 
 #[derive(Object, Debug)]
 pub struct QuerySearchHit {
-    pub extra_data: String,
+    pub extra_data: serde_json::Value,
     pub smiles: String,
     pub query: String,
 }
 
 #[derive(Object, Debug, Clone)]
 pub struct StructureSearchHit {
-    pub extra_data: String,
+    pub extra_data: serde_json::Value,
     pub smiles: String,
     pub score: f32,
     pub query: String,
@@ -123,7 +123,7 @@ fn get_smiles_and_extra_data(
     searcher: &Searcher,
     smiles_field: Field,
     extra_data_field: Field,
-) -> eyre::Result<(String, String)> {
+) -> eyre::Result<(String, serde_json::Value)> {
     let doc = searcher.doc::<tantivy::TantivyDocument>(docaddr)?;
     let smiles = doc
         .get_first(smiles_field)
@@ -134,19 +134,35 @@ fn get_smiles_and_extra_data(
         other => return Err(eyre::eyre!("expect string got {:?}", other)),
     };
 
+    // TODO: sure would be nice if it was easier to take a tantivy OwnedValue and turn it in to a serde_json Object!
     let extra_data = doc.get_first(extra_data_field);
-
     let extra_data = match extra_data {
-        Some(extra_data) => serde_json::to_string(extra_data)?,
-        None => "".to_string(),
+        Some(tantivy::schema::OwnedValue::Object(obj_map)) => {
+            serde_json::from_str(&serde_json::to_string(&obj_map)?)?
+        }
+        Some(_) | None => serde_json::Value::Object(Default::default()),
     };
 
-    Ok((smiles.to_string(), extra_data.to_string()))
+    Ok((smiles.to_string(), extra_data))
+}
+
+pub fn sort_docs(results: &mut [DocAddress]) {
+    results.sort_by(|a, b| {
+        let cmp = a.segment_ord.cmp(&b.segment_ord);
+
+        if cmp == std::cmp::Ordering::Equal {
+            a.doc_id
+                .partial_cmp(&b.doc_id)
+                .unwrap_or(std::cmp::Ordering::Equal)
+        } else {
+            cmp
+        }
+    });
 }
 
 pub fn sort_results(
-    results: &mut [(String, String, SegmentOrdinal, DocId)],
-) -> Vec<(String, String)> {
+    results: &mut [(String, serde_json::Value, SegmentOrdinal, DocId)],
+) -> Vec<(String, serde_json::Value)> {
     results.sort_by(|a, b| {
         let cmp = a.2.cmp(&b.2);
 
