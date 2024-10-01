@@ -100,7 +100,7 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
     Ok(())
 }
 
-fn create_tantivy_doc(
+pub fn create_tantivy_doc(
     record: serde_json::Value,
     smiles_field: Field,
     fingerprint_field: Field,
