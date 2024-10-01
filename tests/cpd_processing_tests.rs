@@ -100,6 +100,17 @@ fn test_standardize_bad_smiles() {
 }
 
 #[test]
+fn test_bad_standardization() {
+    // The smiles below is technically a perfectly valid smiles
+    // but at the moment our standardization procedure can mess up isotopic hydrogens.
+    // This is a rare occurrence so it's maybe not worth fixing these cases specifically just yet.
+    // That said, we should at least force an error in these cases.
+    let smiles = "O=C(O[2H])C(F)(F)F";
+    let result = standardize_smiles(smiles, false);
+    assert!(result.is_err());
+}
+
+#[test]
 fn test_get_tautomers() {
     let smiles = "Oc1c(cccc3)c3nc2ccncc12";
     let romol = ROMol::from_smiles(smiles).unwrap();

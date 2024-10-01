@@ -152,6 +152,10 @@ pub fn standardize_mol(romol: &ROMol) -> eyre::Result<ROMol> {
     let te = TautomerEnumerator::new();
     let canon_taut = te.canonicalize(&parent_rwmol.to_ro_mol())?;
     let neutralized_canon = neutralize_atoms(&canon_taut)?;
+
+    // Validate
+    let _ = ROMol::from_smiles(&neutralized_canon.as_smiles())
+        .map_err(|_| eyre::eyre!("Canonicalization failed validation"))?;
     Ok(neutralized_canon)
 }
 
