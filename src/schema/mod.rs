@@ -23,6 +23,7 @@ fn descriptor_v1_schema() -> Schema {
         }
     }
     builder.add_bytes_field("pattern_fingerprint", STORED);
+    builder.add_bytes_field("morgan_fingerprint", STORED);
 
     let json_options: JsonObjectOptions =
         JsonObjectOptions::from(TEXT | STORED).set_expand_dots_enabled();

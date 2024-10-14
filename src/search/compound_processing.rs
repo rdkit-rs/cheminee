@@ -194,9 +194,9 @@ pub fn process_cpd(
     attempt_fix: bool,
 ) -> eyre::Result<(ROMol, Fingerprint, HashMap<String, f64>)> {
     let canon_taut = standardize_smiles(smi, attempt_fix)?;
-    let (rdkit_fp, computed) = get_cpd_properties(&canon_taut)?;
+    let (pattern_fp, computed) = get_cpd_properties(&canon_taut)?;
 
-    Ok((canon_taut, rdkit_fp, computed))
+    Ok((canon_taut, pattern_fp, computed))
 }
 
 lazy_static::lazy_static! {

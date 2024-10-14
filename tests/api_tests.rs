@@ -103,6 +103,7 @@ fn fill_test_index(tantivy_index: Index) -> eyre::Result<()> {
     let smiles_field = schema.get_field("smiles")?;
     let extra_data_field = schema.get_field("extra_data")?;
     let pattern_fingerprint_field = schema.get_field("pattern_fingerprint")?;
+    let morgan_fingerprint_field = schema.get_field("morgan_fingerprint")?;
     let descriptor_fields = KNOWN_DESCRIPTORS
         .iter()
         .map(|kd| (*kd, schema.get_field(kd).unwrap()))
@@ -122,7 +123,8 @@ fn fill_test_index(tantivy_index: Index) -> eyre::Result<()> {
 
         let mut doc = doc!(
             smiles_field => canon_taut.as_smiles(),
-            pattern_fingerprint_field => pattern_fingerprint.0.as_raw_slice()
+            pattern_fingerprint_field => pattern_fingerprint.0.as_raw_slice(),
+            morgan_fingerprint_field => canon_taut.morgan_fingerprint().0.as_raw_slice(),
         );
 
         let scaffold_matches =
