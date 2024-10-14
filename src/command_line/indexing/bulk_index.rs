@@ -43,7 +43,7 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
     let schema = index.schema();
 
     let smiles_field = schema.get_field("smiles")?;
-    let fingerprint_field = schema.get_field("fingerprint")?;
+    let pattern_fingerprint_field = schema.get_field("pattern_fingerprint")?;
     let extra_data_field = schema.get_field("extra_data")?;
     let descriptor_fields = KNOWN_DESCRIPTORS
         .iter()
@@ -68,7 +68,7 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
                     let doc = create_tantivy_doc(
                         r,
                         smiles_field,
-                        fingerprint_field,
+                        pattern_fingerprint_field,
                         &descriptor_fields,
                         extra_data_field,
                     );
@@ -103,7 +103,7 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
 fn create_tantivy_doc(
     record: serde_json::Value,
     smiles_field: Field,
-    fingerprint_field: Field,
+    pattern_fingerprint_field: Field,
     descriptor_fields: &HashMap<&str, Field>,
     extra_data_field: Field,
 ) -> eyre::Result<impl tantivy::Document> {
@@ -115,14 +115,14 @@ fn create_tantivy_doc(
     let extra_data = record.get("extra_data").cloned();
 
     // By default, do not attempt to fix problematic molecules
-    let (canon_taut, fingerprint, descriptors) = process_cpd(smiles, false)?;
+    let (canon_taut, pattern_fingerprint, descriptors) = process_cpd(smiles, false)?;
 
     let mut doc = doc!(
         smiles_field => canon_taut.as_smiles(),
-        fingerprint_field => fingerprint.0.as_raw_slice()
+        pattern_fingerprint_field => pattern_fingerprint.0.as_raw_slice()
     );
 
-    let scaffold_matches = scaffold_search(&fingerprint.0, &canon_taut, &PARSED_SCAFFOLDS)?;
+    let scaffold_matches = scaffold_search(&pattern_fingerprint.0, &canon_taut, &PARSED_SCAFFOLDS)?;
 
     let scaffold_json = match scaffold_matches.is_empty() {
         true => serde_json::json!({"scaffolds": vec![-1]}),

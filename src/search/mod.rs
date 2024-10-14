@@ -51,8 +51,8 @@ pub fn prepare_query_structure(
         return Err(eyre::eyre!("Failed structure validation"));
     };
 
-    let (query_canon_taut, fingerprint, descriptors) = process_cpd(smiles, false)?;
-    Ok((query_canon_taut, fingerprint, descriptors))
+    let (query_canon_taut, pattern_fingerprint, descriptors) = process_cpd(smiles, false)?;
+    Ok((query_canon_taut, pattern_fingerprint, descriptors))
 }
 
 pub fn validate_structure(smiles: &str) -> eyre::Result<Vec<MolSanitizeException>> {

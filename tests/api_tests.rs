@@ -102,7 +102,7 @@ fn fill_test_index(tantivy_index: Index) -> eyre::Result<()> {
 
     let smiles_field = schema.get_field("smiles")?;
     let extra_data_field = schema.get_field("extra_data")?;
-    let fingerprint_field = schema.get_field("fingerprint")?;
+    let pattern_fingerprint_field = schema.get_field("pattern_fingerprint")?;
     let descriptor_fields = KNOWN_DESCRIPTORS
         .iter()
         .map(|kd| (*kd, schema.get_field(kd).unwrap()))
@@ -118,14 +118,15 @@ fn fill_test_index(tantivy_index: Index) -> eyre::Result<()> {
     ];
 
     for (smiles, extra_data) in smiles_and_extra_data {
-        let (canon_taut, fingerprint, descriptors) = process_cpd(smiles, false)?;
+        let (canon_taut, pattern_fingerprint, descriptors) = process_cpd(smiles, false)?;
 
         let mut doc = doc!(
             smiles_field => canon_taut.as_smiles(),
-            fingerprint_field => fingerprint.0.as_raw_slice()
+            pattern_fingerprint_field => pattern_fingerprint.0.as_raw_slice()
         );
 
-        let scaffold_matches = scaffold_search(&fingerprint.0, &canon_taut, &PARSED_SCAFFOLDS)?;
+        let scaffold_matches =
+            scaffold_search(&pattern_fingerprint.0, &canon_taut, &PARSED_SCAFFOLDS)?;
 
         let scaffold_json = match scaffold_matches.is_empty() {
             true => serde_json::json!({"scaffolds": vec![-1]}),

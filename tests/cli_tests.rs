@@ -31,16 +31,16 @@ fn index_manager() -> eyre::Result<()> {
 #[test]
 fn test_create_delete_query() {
     let test_smiles = "C1=CC=CC=C1C(C)C";
-    let (canon_taut, fingerprint, descriptors) = process_cpd(test_smiles, false).unwrap();
+    let (canon_taut, pattern_fingerprint, descriptors) = process_cpd(test_smiles, false).unwrap();
 
     let mut builder = SchemaBuilder::new();
 
     let smiles_field = builder.add_text_field("smiles", STRING | STORED);
-    let fingerprint_field = builder.add_bytes_field("fingerprint", FAST | STORED);
+    let pattern_fingerprint_field = builder.add_bytes_field("pattern_fingerprint", FAST | STORED);
 
     let mut doc = doc!(
         smiles_field => canon_taut.as_smiles(),
-        fingerprint_field => fingerprint.0.as_raw_slice()
+        pattern_fingerprint_field => pattern_fingerprint.0.as_raw_slice()
     );
 
     for (descriptor, val) in &descriptors {

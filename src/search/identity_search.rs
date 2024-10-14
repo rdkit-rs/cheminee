@@ -13,7 +13,7 @@ pub fn identity_search(
     searcher: &Searcher,
     query_mol: &ROMol,
     scaffold_matches: &Option<Vec<u64>>,
-    query_fingerprint: &BitSlice<u8, Lsb0>,
+    query_pattern_fingerprint: &BitSlice<u8, Lsb0>,
     query_descriptors: &HashMap<String, f64>,
     use_chirality: bool,
     extra_query: &str,
@@ -26,7 +26,7 @@ pub fn identity_search(
     let initial_results = basic_search(searcher, &query, tantivy_limit)?;
 
     let smiles_field = schema.get_field("smiles")?;
-    let fingerprint_field = schema.get_field("fingerprint")?;
+    let pattern_fingerprint_field = schema.get_field("pattern_fingerprint")?;
     let extra_data_field = schema.get_field("extra_data")?;
 
     let query_mol_mutex = Arc::new(Mutex::new(query_mol.clone()));
@@ -37,11 +37,11 @@ pub fn identity_search(
             let confirmed_match = identity_match(
                 result,
                 smiles_field,
-                fingerprint_field,
+                pattern_fingerprint_field,
                 extra_data_field,
                 searcher,
                 &query_mol_mutex.lock().unwrap(),
-                query_fingerprint,
+                query_pattern_fingerprint,
                 use_chirality,
             );
 
@@ -59,11 +59,11 @@ pub fn identity_search(
 pub fn identity_match(
     docaddr: DocAddress,
     smiles_field: Field,
-    fingerprint_field: Field,
+    pattern_fingerprint_field: Field,
     extra_data_field: Field,
     searcher: &Searcher,
     query_mol: &ROMol,
-    query_fingerprint: &BitSlice<u8>,
+    query_pattern_fingerprint: &BitSlice<u8>,
     use_chirality: bool,
 ) -> eyre::Result<Option<(String, serde_json::Value, SegmentOrdinal, DocId)>> {
     let doc = searcher.doc::<tantivy::TantivyDocument>(docaddr)?;
@@ -77,17 +77,22 @@ pub fn identity_match(
         other => return Err(eyre::eyre!("could not fetch smile, got {:?}", other)),
     };
 
-    let fingerprint = doc
-        .get_first(fingerprint_field)
-        .ok_or(eyre::eyre!("Tantivy fingerprint retrieval failed"))?;
+    let pattern_fingerprint = doc
+        .get_first(pattern_fingerprint_field)
+        .ok_or(eyre::eyre!("Tantivy pattern_fingerprint retrieval failed"))?;
 
-    let fingerprint = match fingerprint {
+    let pattern_fingerprint = match pattern_fingerprint {
         OwnedValue::Bytes(f) => f,
-        other => return Err(eyre::eyre!("could not fetch fingerprint, got {:?}", other)),
+        other => {
+            return Err(eyre::eyre!(
+                "could not fetch pattern_fingerprint, got {:?}",
+                other
+            ))
+        }
     };
 
-    let fingerprint_bits = BitSlice::<u8, Lsb0>::from_slice(fingerprint);
-    let fp_match = query_fingerprint == fingerprint_bits;
+    let pattern_fingerprint_bits = BitSlice::<u8, Lsb0>::from_slice(pattern_fingerprint);
+    let fp_match = query_pattern_fingerprint == pattern_fingerprint_bits;
 
     if fp_match {
         let mol_exact_match = exact_match(&ROMol::from_smiles(smiles)?, query_mol, use_chirality);

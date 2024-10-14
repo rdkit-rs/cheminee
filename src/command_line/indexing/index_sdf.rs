@@ -91,7 +91,7 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
 
     // Get all relevant descriptor fields
     let smiles_field = schema.get_field("smiles")?;
-    let fingerprint_field = schema.get_field("fingerprint")?;
+    let pattern_fingerprint_field = schema.get_field("pattern_fingerprint")?;
     let extra_data_field = schema.get_field("extra_data")?;
     let descriptor_fields = KNOWN_DESCRIPTORS
         .iter()
@@ -120,7 +120,7 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
                     let doc = create_tantivy_doc(
                         m,
                         smiles_field,
-                        fingerprint_field,
+                        pattern_fingerprint_field,
                         &descriptor_fields,
                         extra_data_field,
                     );
@@ -168,7 +168,7 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
                 let doc = create_tantivy_doc(
                     m,
                     smiles_field,
-                    fingerprint_field,
+                    pattern_fingerprint_field,
                     &descriptor_fields,
                     extra_data_field,
                 );
@@ -212,7 +212,7 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
 fn create_tantivy_doc(
     mol: ROMol,
     smiles_field: Field,
-    fingerprint_field: Field,
+    pattern_fingerprint_field: Field,
     descriptor_fields: &HashMap<&str, Field>,
     extra_data_field: Field,
 ) -> eyre::Result<impl tantivy::Document> {
@@ -221,7 +221,7 @@ fn create_tantivy_doc(
 
     let mut doc = doc!(
         smiles_field => canon_taut.as_smiles(),
-        fingerprint_field => fp.0.as_raw_slice()
+        pattern_fingerprint_field => fp.0.as_raw_slice()
     );
 
     for field in KNOWN_DESCRIPTORS {

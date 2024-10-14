@@ -37,7 +37,7 @@ pub async fn v1_post_index_bulk(
     let schema = index.schema();
 
     let smiles_field = schema.get_field("smiles").unwrap();
-    let fingerprint_field = schema.get_field("fingerprint").unwrap();
+    let pattern_fingerprint_field = schema.get_field("pattern_fingerprint").unwrap();
     let extra_data_field = schema.get_field("extra_data").unwrap();
 
     let descriptors_fields = KNOWN_DESCRIPTORS
@@ -53,7 +53,7 @@ pub async fn v1_post_index_bulk(
                 bulk_request_doc_to_tantivy_doc(
                     doc,
                     smiles_field,
-                    fingerprint_field,
+                    pattern_fingerprint_field,
                     &descriptors_fields,
                     extra_data_field,
                 )
@@ -117,12 +117,13 @@ pub async fn v1_post_index_bulk(
 fn bulk_request_doc_to_tantivy_doc(
     bulk_request_doc: BulkRequestDoc,
     smiles_field: Field,
-    fingerprint_field: Field,
+    pattern_fingerprint_field: Field,
     descriptors_fields: &HashMap<&str, Field>,
     extra_data_field: Field,
 ) -> eyre::Result<impl tantivy::Document> {
     // By default, do not attempt to fix problematic molecules
-    let (tautomer, fingerprint, descriptors) = process_cpd(&bulk_request_doc.smiles, false)?;
+    let (tautomer, pattern_fingerprint, descriptors) =
+        process_cpd(&bulk_request_doc.smiles, false)?;
 
     let json: Value = serde_json::to_value(descriptors)?;
     let jsonified_compound_descriptors: Map<String, Value> = if let Value::Object(map) = json {
@@ -133,11 +134,11 @@ fn bulk_request_doc_to_tantivy_doc(
 
     let mut doc = tantivy::doc!(
         smiles_field => tautomer.as_smiles(),
-        fingerprint_field => fingerprint.0.as_raw_slice()
+        pattern_fingerprint_field => pattern_fingerprint.0.as_raw_slice()
     );
 
     let scaffolds = &PARSED_SCAFFOLDS;
-    let scaffold_matches = scaffold_search(&fingerprint.0, &tautomer, scaffolds)?;
+    let scaffold_matches = scaffold_search(&pattern_fingerprint.0, &tautomer, scaffolds)?;
 
     let scaffold_json = match scaffold_matches.is_empty() {
         true => serde_json::json!({"scaffolds": vec![-1]}),

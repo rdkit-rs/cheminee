@@ -24,13 +24,13 @@ pub fn structure_search(
 ) -> eyre::Result<HashSet<(String, serde_json::Value, SegmentOrdinal, DocId)>> {
     let schema = searcher.schema();
 
-    let (query_fingerprint, query_descriptors) = get_cpd_properties(query_mol)?;
+    let (query_pattern_fingerprint, query_descriptors) = get_cpd_properties(query_mol)?;
 
-    let query_fingerprint = query_fingerprint.0.as_bitslice();
+    let query_pattern_fingerprint = query_pattern_fingerprint.0.as_bitslice();
 
     let scaffold_matches = if use_scaffolds {
         Some(scaffold_search(
-            query_fingerprint,
+            query_pattern_fingerprint,
             query_mol,
             &PARSED_SCAFFOLDS,
         )?)
@@ -48,7 +48,7 @@ pub fn structure_search(
     let initial_results = basic_search(searcher, &query, tantivy_limit)?;
 
     let smiles_field = schema.get_field("smiles")?;
-    let fingerprint_field = schema.get_field("fingerprint")?;
+    let pattern_fingerprint_field = schema.get_field("pattern_fingerprint")?;
     let extra_data_field = schema.get_field("extra_data")?;
 
     let query_mol_mutex = Arc::new(Mutex::new(query_mol.clone()));
@@ -68,11 +68,11 @@ pub fn structure_search(
                 let struct_match = structure_match(
                     *result,
                     smiles_field,
-                    fingerprint_field,
+                    pattern_fingerprint_field,
                     extra_data_field,
                     searcher,
                     &query_mol_mutex.lock().unwrap(),
-                    query_fingerprint,
+                    query_pattern_fingerprint,
                     method,
                     use_chirality,
                 );
@@ -95,11 +95,11 @@ pub fn structure_search(
 pub fn structure_match(
     docaddr: DocAddress,
     smiles_field: Field,
-    fingerprint_field: Field,
+    pattern_fingerprint_field: Field,
     extra_data_field: Field,
     searcher: &Searcher,
     query_mol: &ROMol,
-    query_fingerprint: &BitSlice<u8>,
+    query_pattern_fingerprint: &BitSlice<u8>,
     method: &str,
     use_chirality: bool,
 ) -> eyre::Result<Option<(String, serde_json::Value, SegmentOrdinal, DocId)>> {
@@ -115,21 +115,21 @@ pub fn structure_match(
     };
 
     // TO-DO: find a zero-copy bitvec container
-    let fingerprint = doc
-        .get_first(fingerprint_field)
-        .ok_or(eyre::eyre!("Tantivy fingerprint retrieval failed"))?;
+    let pattern_fingerprint = doc
+        .get_first(pattern_fingerprint_field)
+        .ok_or(eyre::eyre!("Tantivy pattern_fingerprint retrieval failed"))?;
 
-    let fingerprint = match fingerprint {
+    let pattern_fingerprint = match pattern_fingerprint {
         tantivy::schema::OwnedValue::Bytes(b) => b,
         other => return Err(eyre::eyre!("expected bytes, got {:?}", other)),
     };
 
-    let fingerprint_bits = BitSlice::<u8, Lsb0>::from_slice(fingerprint);
+    let pattern_fingerprint_bits = BitSlice::<u8, Lsb0>::from_slice(pattern_fingerprint);
 
     let fp_match = if method == "substructure" {
-        substructure_match_fp(query_fingerprint, fingerprint_bits)
+        substructure_match_fp(query_pattern_fingerprint, pattern_fingerprint_bits)
     } else {
-        substructure_match_fp(fingerprint_bits, query_fingerprint)
+        substructure_match_fp(pattern_fingerprint_bits, query_pattern_fingerprint)
     };
 
     if fp_match {

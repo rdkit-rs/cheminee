@@ -25,7 +25,7 @@ lazy_static::lazy_static! {
         let romol = ROMol::from_smiles(smiles).expect("failed to create ROMol from static smiles");
 
         Scaffold {
-            fp: romol.fingerprint().0,
+            fp: romol.pattern_fingerprint().0,
             mol: Arc::new(Mutex::new(romol)),
             idx: v.get("scaffold_id")
                 .expect("failed to get scaffold_id from static data")
@@ -37,7 +37,7 @@ lazy_static::lazy_static! {
 }
 
 pub fn scaffold_search(
-    query_fingerprint: &BitSlice<u8>,
+    query_pattern_fingerprint: &BitSlice<u8>,
     query_mol: &ROMol,
     scaffolds: &Vec<Scaffold>,
 ) -> eyre::Result<Vec<u64>> {
@@ -46,7 +46,7 @@ pub fn scaffold_search(
 
     for scaffold in scaffolds {
         let fp_substruct_match =
-            substructure_match_fp(scaffold.fp.as_bitslice(), query_fingerprint);
+            substructure_match_fp(scaffold.fp.as_bitslice(), query_pattern_fingerprint);
 
         if fp_substruct_match {
             let mol_substruct_match =

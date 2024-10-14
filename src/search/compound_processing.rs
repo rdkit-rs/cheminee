@@ -184,7 +184,7 @@ pub fn get_tautomers(romol: &ROMol) -> Vec<ROMol> {
 pub fn get_cpd_properties(romol: &ROMol) -> eyre::Result<(Fingerprint, HashMap<String, f64>)> {
     let properties = Properties::new();
     let computed = properties.compute_properties(romol);
-    let rdkit_fp = romol.fingerprint();
+    let rdkit_fp = romol.pattern_fingerprint();
 
     Ok((rdkit_fp, computed))
 }
