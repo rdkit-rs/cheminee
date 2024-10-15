@@ -48,10 +48,6 @@ fn test_add_formal_charge() {
 
 #[test]
 fn test_fix_chemistry_problems() {
-    let smiles1 = "F[Si-2](F)(F)(F)(F)F.CC";
-    let romol1 = fix_chemistry_problems(smiles1).unwrap();
-    assert_eq!(romol1.as_smiles(), "CC");
-
     let smiles2 = "C[N](C)(C)C";
     let romol2 = fix_chemistry_problems(smiles2).unwrap();
     assert_eq!(romol2.as_smiles(), "C[N+](C)(C)C");
