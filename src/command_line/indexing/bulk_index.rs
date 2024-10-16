@@ -43,8 +43,10 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
     let schema = index.schema();
 
     let smiles_field = schema.get_field("smiles")?;
-    let fingerprint_field = schema.get_field("fingerprint")?;
+    let pattern_fingerprint_field = schema.get_field("pattern_fingerprint")?;
+    let morgan_fingerprint_field = schema.get_field("morgan_fingerprint")?;
     let extra_data_field = schema.get_field("extra_data")?;
+    let other_descriptors_field = schema.get_field("other_descriptors")?;
     let descriptor_fields = KNOWN_DESCRIPTORS
         .iter()
         .map(|kd| (*kd, schema.get_field(kd).unwrap()))
@@ -68,9 +70,11 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
                     let doc = create_tantivy_doc(
                         r,
                         smiles_field,
-                        fingerprint_field,
+                        pattern_fingerprint_field,
+                        morgan_fingerprint_field,
                         &descriptor_fields,
                         extra_data_field,
+                        other_descriptors_field,
                     );
 
                     match doc {
@@ -103,9 +107,11 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
 fn create_tantivy_doc(
     record: serde_json::Value,
     smiles_field: Field,
-    fingerprint_field: Field,
+    pattern_fingerprint_field: Field,
+    morgan_fingerprint_field: Field,
     descriptor_fields: &HashMap<&str, Field>,
     extra_data_field: Field,
+    other_descriptors_field: Field,
 ) -> eyre::Result<impl tantivy::Document> {
     let smiles = record
         .get("smiles")
@@ -115,23 +121,25 @@ fn create_tantivy_doc(
     let extra_data = record.get("extra_data").cloned();
 
     // By default, do not attempt to fix problematic molecules
-    let (canon_taut, fingerprint, descriptors) = process_cpd(smiles, false)?;
+    let (canon_taut, pattern_fingerprint, descriptors) = process_cpd(smiles, false)?;
 
     let mut doc = doc!(
         smiles_field => canon_taut.as_smiles(),
-        fingerprint_field => fingerprint.0.as_raw_slice()
+        pattern_fingerprint_field => pattern_fingerprint.0.as_raw_slice(),
+        morgan_fingerprint_field => canon_taut.morgan_fingerprint().0.as_raw_slice(),
     );
 
-    let scaffold_matches = scaffold_search(&fingerprint.0, &canon_taut, &PARSED_SCAFFOLDS)?;
+    let scaffold_matches = scaffold_search(&pattern_fingerprint.0, &canon_taut, &PARSED_SCAFFOLDS)?;
 
     let scaffold_json = match scaffold_matches.is_empty() {
         true => serde_json::json!({"scaffolds": vec![-1]}),
         false => serde_json::json!({"scaffolds": scaffold_matches}),
     };
 
-    let extra_data_json = combine_json_objects(Some(scaffold_json), extra_data);
-    if let Some(extra_data_json) = extra_data_json {
-        doc.add_field_value(extra_data_field, extra_data_json);
+    doc.add_field_value(other_descriptors_field, scaffold_json);
+
+    if let Some(extra_data) = extra_data {
+        doc.add_field_value(extra_data_field, extra_data);
     }
 
     for field in KNOWN_DESCRIPTORS {

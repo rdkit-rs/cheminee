@@ -35,7 +35,7 @@ fn test_build_superstructure_query() {
     let query = build_superstructure_query(&descriptors, "", &Some(vec![0, 1]));
     assert_eq!(
         query,
-        "NumAtoms:[0 TO 10] AND (extra_data.scaffolds:0 OR extra_data.scaffolds:1 OR extra_data.scaffolds:-1)"
+        "NumAtoms:[0 TO 10] AND (other_descriptors.scaffolds:0 OR other_descriptors.scaffolds:1 OR other_descriptors.scaffolds:-1)"
     );
 }
 
@@ -94,13 +94,13 @@ fn test_sort_results() {
 #[test]
 fn test_identity_search() {
     let test_smiles = "CC";
-    let (query_mol, query_fingerprint, query_descriptors) =
+    let (query_mol, query_pattern_fingerprint, query_descriptors) =
         process_cpd(test_smiles, false).unwrap();
 
     let mut builder = SchemaBuilder::new();
 
     let smiles_field = builder.add_text_field("smiles", STRING | STORED);
-    let fingerprint_field = builder.add_bytes_field("fingerprint", FAST | STORED);
+    let pattern_fingerprint_field = builder.add_bytes_field("pattern_fingerprint", FAST | STORED);
 
     let json_options: JsonObjectOptions =
         JsonObjectOptions::from(TEXT | STORED).set_expand_dots_enabled();
@@ -108,7 +108,7 @@ fn test_identity_search() {
 
     let mut doc = doc!(
         smiles_field => query_mol.as_smiles(),
-        fingerprint_field => query_fingerprint.0.as_raw_slice(),
+        pattern_fingerprint_field => query_pattern_fingerprint.0.as_raw_slice(),
     );
 
     for (descriptor, val) in &query_descriptors {
@@ -142,7 +142,7 @@ fn test_identity_search() {
         &searcher,
         &query_mol,
         &None,
-        query_fingerprint.0.as_bitslice(),
+        query_pattern_fingerprint.0.as_bitslice(),
         &query_descriptors,
         true,
         &extra_query,
@@ -154,26 +154,31 @@ fn test_identity_search() {
 #[test]
 fn test_substructure_search() {
     let index_smiles = "C1=CC=CC=C1CC2=CC=CC=C2";
-    let (index_mol, index_fingerprint, index_descriptors) =
+    let (index_mol, index_pattern_fingerprint, index_descriptors) =
         process_cpd(index_smiles, false).unwrap();
     let index_scaffolds =
-        scaffold_search(&index_fingerprint.0, &index_mol, &PARSED_SCAFFOLDS).unwrap();
+        scaffold_search(&index_pattern_fingerprint.0, &index_mol, &PARSED_SCAFFOLDS).unwrap();
 
     let query_smiles = "C1=CC=CC=C1";
     let query_mol = standardize_smiles(query_smiles, false).unwrap();
 
     let mut builder = SchemaBuilder::new();
     let smiles_field = builder.add_text_field("smiles", STRING | STORED);
-    let fingerprint_field = builder.add_bytes_field("fingerprint", FAST | STORED);
+    let pattern_fingerprint_field = builder.add_bytes_field("pattern_fingerprint", FAST | STORED);
 
-    let json_options: JsonObjectOptions =
+    let extra_data_options: JsonObjectOptions =
         JsonObjectOptions::from(TEXT | STORED).set_expand_dots_enabled();
-    let extra_data_field = builder.add_json_field("extra_data", json_options);
+    let _extra_data_field = builder.add_json_field("extra_data", extra_data_options);
+
+    let other_descriptors_options: JsonObjectOptions =
+        JsonObjectOptions::from(TEXT).set_expand_dots_enabled();
+    let other_descriptors_field =
+        builder.add_json_field("other_descriptors", other_descriptors_options);
 
     let mut doc = doc!(
         smiles_field => index_mol.as_smiles(),
-        fingerprint_field => index_fingerprint.0.as_raw_slice(),
-        extra_data_field => json![{ "scaffolds": index_scaffolds }],
+        pattern_fingerprint_field => index_pattern_fingerprint.0.as_raw_slice(),
+        other_descriptors_field => json![{ "scaffolds": index_scaffolds }],
     );
 
     for (descriptor, val) in &index_descriptors {
@@ -220,26 +225,31 @@ fn test_substructure_search() {
 #[test]
 fn test_superstructure_search() {
     let index_smiles = "C1=CC=CC=C1";
-    let (index_mol, index_fingerprint, index_descriptors) =
+    let (index_mol, index_pattern_fingerprint, index_descriptors) =
         process_cpd(index_smiles, false).unwrap();
     let index_scaffolds =
-        scaffold_search(&index_fingerprint.0, &index_mol, &PARSED_SCAFFOLDS).unwrap();
+        scaffold_search(&index_pattern_fingerprint.0, &index_mol, &PARSED_SCAFFOLDS).unwrap();
 
     let query_smiles = "C1=CC=CC=C1CC2=CC=CC=C2";
     let query_mol = standardize_smiles(query_smiles, false).unwrap();
 
     let mut builder = SchemaBuilder::new();
     let smiles_field = builder.add_text_field("smiles", STRING | STORED);
-    let fingerprint_field = builder.add_bytes_field("fingerprint", FAST | STORED);
+    let pattern_fingerprint_field = builder.add_bytes_field("pattern_fingerprint", FAST | STORED);
 
-    let json_options: JsonObjectOptions =
+    let extra_data_options: JsonObjectOptions =
         JsonObjectOptions::from(TEXT | STORED).set_expand_dots_enabled();
-    let extra_data_field = builder.add_json_field("extra_data", json_options);
+    let _extra_data_field = builder.add_json_field("extra_data", extra_data_options);
+
+    let other_descriptors_options: JsonObjectOptions =
+        JsonObjectOptions::from(TEXT).set_expand_dots_enabled();
+    let other_descriptors_field =
+        builder.add_json_field("other_descriptors", other_descriptors_options);
 
     let mut doc = doc!(
         smiles_field => index_mol.as_smiles(),
-        fingerprint_field => index_fingerprint.0.as_raw_slice(),
-        extra_data_field => json![{ "scaffolds": index_scaffolds }],
+        pattern_fingerprint_field => index_pattern_fingerprint.0.as_raw_slice(),
+        other_descriptors_field => json![{ "scaffolds": index_scaffolds }],
     );
 
     for (descriptor, val) in &index_descriptors {

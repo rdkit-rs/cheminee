@@ -31,16 +31,16 @@ fn index_manager() -> eyre::Result<()> {
 #[test]
 fn test_create_delete_query() {
     let test_smiles = "C1=CC=CC=C1C(C)C";
-    let (canon_taut, fingerprint, descriptors) = process_cpd(test_smiles, false).unwrap();
+    let (canon_taut, pattern_fingerprint, descriptors) = process_cpd(test_smiles, false).unwrap();
 
     let mut builder = SchemaBuilder::new();
 
     let smiles_field = builder.add_text_field("smiles", STRING | STORED);
-    let fingerprint_field = builder.add_bytes_field("fingerprint", FAST | STORED);
+    let pattern_fingerprint_field = builder.add_bytes_field("pattern_fingerprint", FAST | STORED);
 
     let mut doc = doc!(
         smiles_field => canon_taut.as_smiles(),
-        fingerprint_field => fingerprint.0.as_raw_slice()
+        pattern_fingerprint_field => pattern_fingerprint.0.as_raw_slice()
     );
 
     for (descriptor, val) in &descriptors {
@@ -55,12 +55,16 @@ fn test_create_delete_query() {
         }
     }
 
-    let json_options: JsonObjectOptions =
+    let extra_data_options: JsonObjectOptions =
         JsonObjectOptions::from(TEXT | STORED).set_expand_dots_enabled();
-
-    let extra_data_field = builder.add_json_field("extra_data", json_options);
-
+    let extra_data_field = builder.add_json_field("extra_data", extra_data_options);
     doc.add_field_value(extra_data_field, json!({"extra_data": ""}));
+
+    let other_descriptors_options: JsonObjectOptions =
+        JsonObjectOptions::from(TEXT).set_expand_dots_enabled();
+    let other_descriptors_field =
+        builder.add_json_field("other_descriptors", other_descriptors_options);
+    doc.add_field_value(other_descriptors_field, json!({"other_descriptors": ""}));
 
     let schema = builder.build();
     let builder = IndexBuilder::new().schema(schema);

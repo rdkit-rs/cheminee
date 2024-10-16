@@ -46,10 +46,10 @@ pub fn v1_index_search_identity(
         }
     };
 
-    let (query_canon_taut, fingerprint, descriptors) = query_attributes;
+    let (query_canon_taut, pattern_fingerprint, descriptors) = query_attributes;
 
     let matching_scaffolds = if use_scaffolds {
-        scaffold_search(&fingerprint.0, &query_canon_taut, &PARSED_SCAFFOLDS).ok()
+        scaffold_search(&pattern_fingerprint.0, &query_canon_taut, &PARSED_SCAFFOLDS).ok()
     } else {
         None
     };
@@ -58,7 +58,7 @@ pub fn v1_index_search_identity(
         &searcher,
         &query_canon_taut,
         &matching_scaffolds,
-        fingerprint.0.as_bitslice(),
+        pattern_fingerprint.0.as_bitslice(),
         &descriptors,
         use_chirality,
         extra_query,

@@ -22,11 +22,16 @@ fn descriptor_v1_schema() -> Schema {
             builder.add_f64_field(field, INDEXED);
         }
     }
-    builder.add_bytes_field("fingerprint", STORED);
+    builder.add_bytes_field("pattern_fingerprint", STORED);
+    builder.add_bytes_field("morgan_fingerprint", STORED);
 
-    let json_options: JsonObjectOptions =
+    let extra_data_options: JsonObjectOptions =
         JsonObjectOptions::from(TEXT | STORED).set_expand_dots_enabled();
-    builder.add_json_field("extra_data", json_options);
+    builder.add_json_field("extra_data", extra_data_options);
+
+    let other_descriptors_options: JsonObjectOptions =
+        JsonObjectOptions::from(TEXT).set_expand_dots_enabled();
+    builder.add_json_field("other_descriptors", other_descriptors_options.clone());
 
     builder.build()
 }

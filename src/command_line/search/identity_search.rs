@@ -83,11 +83,12 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
     let reader = index.reader()?;
     let searcher = reader.searcher();
 
-    let (query_canon_taut, fingerprint, descriptors) = prepare_query_structure(query_smiles)?;
+    let (query_canon_taut, pattern_fingerprint, descriptors) =
+        prepare_query_structure(query_smiles)?;
 
     let matching_scaffolds = if use_scaffolds {
         Some(scaffold_search(
-            &fingerprint.0,
+            &pattern_fingerprint.0,
             &query_canon_taut,
             &PARSED_SCAFFOLDS,
         )?)
@@ -99,7 +100,7 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
         &searcher,
         &query_canon_taut,
         &matching_scaffolds,
-        fingerprint.0.as_bitslice(),
+        pattern_fingerprint.0.as_bitslice(),
         &descriptors,
         use_chirality,
         &extra_query,

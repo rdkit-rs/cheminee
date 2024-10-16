@@ -46,12 +46,12 @@ mod tests {
             // create a scope where the writer can be dropped
             let mut writer = index.writer::<TantivyDocument>(16 * 1024 * 1024).unwrap();
             let smiles = schema.get_field("smiles").unwrap();
-            let fingerprint = schema.get_field("fingerprint").unwrap();
+            let pattern_fingerprint = schema.get_field("pattern_fingerprint").unwrap();
 
             writer
                 .add_document(tantivy::doc!(
                     smiles => "C",
-                    fingerprint => vec![10]
+                    pattern_fingerprint => vec![10]
                 ))
                 .unwrap();
             writer.commit().unwrap();
@@ -59,7 +59,7 @@ mod tests {
             writer
                 .add_document(tantivy::doc!(
                     smiles => "C",
-                    fingerprint => vec![10]
+                    pattern_fingerprint => vec![10]
                 ))
                 .unwrap();
             writer.commit().unwrap();

@@ -2,7 +2,7 @@ use cheminee::indexing::index_manager::IndexManager;
 use cheminee::rest_api::openapi_server::{api_service, API_PREFIX};
 use std::collections::HashMap;
 
-use cheminee::indexing::{combine_json_objects, KNOWN_DESCRIPTORS};
+use cheminee::indexing::KNOWN_DESCRIPTORS;
 use cheminee::search::compound_processing::process_cpd;
 use cheminee::search::scaffold_search::{scaffold_search, PARSED_SCAFFOLDS};
 use poem::test::TestResponse;
@@ -102,7 +102,9 @@ fn fill_test_index(tantivy_index: Index) -> eyre::Result<()> {
 
     let smiles_field = schema.get_field("smiles")?;
     let extra_data_field = schema.get_field("extra_data")?;
-    let fingerprint_field = schema.get_field("fingerprint")?;
+    let other_descriptors_field = schema.get_field("other_descriptors")?;
+    let pattern_fingerprint_field = schema.get_field("pattern_fingerprint")?;
+    let morgan_fingerprint_field = schema.get_field("morgan_fingerprint")?;
     let descriptor_fields = KNOWN_DESCRIPTORS
         .iter()
         .map(|kd| (*kd, schema.get_field(kd).unwrap()))
@@ -118,24 +120,24 @@ fn fill_test_index(tantivy_index: Index) -> eyre::Result<()> {
     ];
 
     for (smiles, extra_data) in smiles_and_extra_data {
-        let (canon_taut, fingerprint, descriptors) = process_cpd(smiles, false)?;
+        let (canon_taut, pattern_fingerprint, descriptors) = process_cpd(smiles, false)?;
 
         let mut doc = doc!(
             smiles_field => canon_taut.as_smiles(),
-            fingerprint_field => fingerprint.0.as_raw_slice()
+            pattern_fingerprint_field => pattern_fingerprint.0.as_raw_slice(),
+            morgan_fingerprint_field => canon_taut.morgan_fingerprint().0.as_raw_slice(),
         );
 
-        let scaffold_matches = scaffold_search(&fingerprint.0, &canon_taut, &PARSED_SCAFFOLDS)?;
+        let scaffold_matches =
+            scaffold_search(&pattern_fingerprint.0, &canon_taut, &PARSED_SCAFFOLDS)?;
 
         let scaffold_json = match scaffold_matches.is_empty() {
             true => serde_json::json!({"scaffolds": vec![-1]}),
             false => serde_json::json!({"scaffolds": scaffold_matches}),
         };
 
-        let extra_data_json = combine_json_objects(Some(scaffold_json), Some(extra_data));
-        if let Some(extra_data_json) = extra_data_json {
-            doc.add_field_value(extra_data_field, extra_data_json);
-        }
+        doc.add_field_value(other_descriptors_field, scaffold_json);
+        doc.add_field_value(extra_data_field, extra_data);
 
         for field in KNOWN_DESCRIPTORS {
             if let Some(val) = descriptors.get(field) {
@@ -276,7 +278,7 @@ async fn test_basic_search() -> eyre::Result<()> {
     response.assert_status_is_ok();
     response
         .assert_json(&serde_json::json!([{
-            "extra_data": {"extra": "data", "scaffolds": [0, 126]},
+            "extra_data": {"extra": "data"},
             "query": "NumAtoms:[13 TO 100]",
             "smiles": "c1ccc(CCc2ccccc2)cc1"
         }]))
@@ -307,7 +309,7 @@ async fn test_identity_search() -> eyre::Result<()> {
     response.assert_status_is_ok();
     response
         .assert_json(&serde_json::json!([{
-            "extra_data": {"extra": "data", "scaffolds": [0, 126]},
+            "extra_data": {"extra": "data"},
             "query": "C1=CC=CC=C1CCC2=CC=CC=C2",
             "score": 1.0,
             "smiles": "c1ccc(CCc2ccccc2)cc1",
@@ -340,7 +342,7 @@ async fn test_substructure_search() -> eyre::Result<()> {
     response.assert_status_is_ok();
     response
         .assert_json(&serde_json::json!([{
-            "extra_data": {"extra": "data", "scaffolds": [0, 126]},
+            "extra_data": {"extra": "data"},
             "query": "C1=CC=CC=C1",
             "score": 1.0,
             "smiles": "c1ccc(CCc2ccccc2)cc1",
@@ -375,14 +377,14 @@ async fn test_superstructure_search() -> eyre::Result<()> {
     response
         .assert_json(&serde_json::json!([
             {
-                "extra_data": {"extra": "data", "scaffolds": [-1]},
+                "extra_data": {"extra": "data"},
                 "query": "C1=CC=CC=C1CCC2=CC=CC=C2",
                 "score": 1.0,
                 "smiles": "CC",
                 "used_tautomers": false
             },
             {
-                "extra_data": {"extra": "data", "scaffolds": [0]},
+                "extra_data": {"extra": "data"},
                 "query": "C1=CC=CC=C1CCC2=CC=CC=C2",
                 "score": 1.0,
                 "smiles": "c1ccccc1",
