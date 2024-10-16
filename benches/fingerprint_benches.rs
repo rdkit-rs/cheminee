@@ -30,4 +30,4 @@ fn bench_pattern_fingerprint_generation(b: &mut Bencher) {
 }
 
 // running 1 test
-// test bench_pattern_fingerprint_generation ... bench:   1,161,160 ns/iter (+/- 274,184)
+// test bench_pattern_fingerprint_generation ... bench:   255,808.35 ns/iter (+/- 17,763.54)
