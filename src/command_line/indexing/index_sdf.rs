@@ -93,7 +93,7 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
     let smiles_field = schema.get_field("smiles")?;
     let pattern_fingerprint_field = schema.get_field("pattern_fingerprint")?;
     let morgan_fingerprint_field = schema.get_field("morgan_fingerprint")?;
-    let extra_data_field = schema.get_field("extra_data")?;
+    let other_descriptors_field = schema.get_field("other_descriptors")?;
     let descriptor_fields = KNOWN_DESCRIPTORS
         .iter()
         .map(|kd| (*kd, schema.get_field(kd).unwrap()))
@@ -124,7 +124,7 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
                         pattern_fingerprint_field,
                         morgan_fingerprint_field,
                         &descriptor_fields,
-                        extra_data_field,
+                        other_descriptors_field,
                     );
 
                     match doc {
@@ -173,7 +173,7 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
                     pattern_fingerprint_field,
                     morgan_fingerprint_field,
                     &descriptor_fields,
-                    extra_data_field,
+                    other_descriptors_field,
                 );
 
                 match doc {
@@ -218,7 +218,7 @@ fn create_tantivy_doc(
     pattern_fingerprint_field: Field,
     morgan_fingerprint_field: Field,
     descriptor_fields: &HashMap<&str, Field>,
-    extra_data_field: Field,
+    other_descriptors_field: Field,
 ) -> eyre::Result<impl tantivy::Document> {
     // By default, do not attempt to fix problematic molecules
     let (canon_taut, fp, descriptors) = process_cpd(mol.as_smiles().as_str(), false)?;
@@ -244,13 +244,12 @@ fn create_tantivy_doc(
     }
 
     let scaffold_matches = scaffold_search(&fp.0, &canon_taut, &PARSED_SCAFFOLDS)?;
-
     let scaffold_json = match scaffold_matches.is_empty() {
         true => serde_json::json!({"scaffolds": vec![-1]}),
         false => serde_json::json!({"scaffolds": scaffold_matches}),
     };
 
-    doc.add_field_value(extra_data_field, scaffold_json);
+    doc.add_field_value(other_descriptors_field, scaffold_json);
 
     Ok(doc)
 }

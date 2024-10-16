@@ -55,12 +55,16 @@ fn test_create_delete_query() {
         }
     }
 
-    let json_options: JsonObjectOptions =
+    let extra_data_options: JsonObjectOptions =
         JsonObjectOptions::from(TEXT | STORED).set_expand_dots_enabled();
-
-    let extra_data_field = builder.add_json_field("extra_data", json_options);
-
+    let extra_data_field = builder.add_json_field("extra_data", extra_data_options);
     doc.add_field_value(extra_data_field, json!({"extra_data": ""}));
+
+    let other_descriptors_options: JsonObjectOptions =
+        JsonObjectOptions::from(TEXT).set_expand_dots_enabled();
+    let other_descriptors_field =
+        builder.add_json_field("other_descriptors", other_descriptors_options);
+    doc.add_field_value(other_descriptors_field, json!({"other_descriptors": ""}));
 
     let schema = builder.build();
     let builder = IndexBuilder::new().schema(schema);

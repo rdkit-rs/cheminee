@@ -1,4 +1,4 @@
-use crate::indexing::{combine_json_objects, index_manager::IndexManager, KNOWN_DESCRIPTORS};
+use crate::indexing::{index_manager::IndexManager, KNOWN_DESCRIPTORS};
 use crate::rest_api::api::{
     BulkRequest, BulkRequestDoc, PostIndexBulkResponseError, PostIndexBulkResponseOk,
     PostIndexBulkResponseOkStatus, PostIndexesBulkIndexResponse,
@@ -41,6 +41,7 @@ pub async fn v1_post_index_bulk(
     let pattern_fingerprint_field = schema.get_field("pattern_fingerprint").unwrap();
     let morgan_fingerprint_field = schema.get_field("morgan_fingerprint").unwrap();
     let extra_data_field = schema.get_field("extra_data").unwrap();
+    let other_descriptors_field = schema.get_field("other_descriptors").unwrap();
 
     let descriptors_fields = KNOWN_DESCRIPTORS
         .iter()
@@ -59,6 +60,7 @@ pub async fn v1_post_index_bulk(
                     morgan_fingerprint_field,
                     &descriptors_fields,
                     extra_data_field,
+                    other_descriptors_field,
                 )
             })
             .collect::<Vec<_>>()
@@ -124,6 +126,7 @@ fn bulk_request_doc_to_tantivy_doc(
     morgan_fingerprint_field: Field,
     descriptors_fields: &HashMap<&str, Field>,
     extra_data_field: Field,
+    other_descriptors_field: Field,
 ) -> eyre::Result<impl tantivy::Document> {
     // By default, do not attempt to fix problematic molecules
     let (canon_taut, pattern_fingerprint, descriptors) =
@@ -150,9 +153,10 @@ fn bulk_request_doc_to_tantivy_doc(
         false => serde_json::json!({"scaffolds": scaffold_matches}),
     };
 
-    let extra_data_json = combine_json_objects(Some(scaffold_json), bulk_request_doc.extra_data);
-    if let Some(extra_data_json) = extra_data_json {
-        doc.add_field_value(extra_data_field, extra_data_json);
+    doc.add_field_value(other_descriptors_field, scaffold_json);
+
+    if let Some(extra_data) = bulk_request_doc.extra_data {
+        doc.add_field_value(extra_data_field, extra_data);
     }
 
     for field in KNOWN_DESCRIPTORS {

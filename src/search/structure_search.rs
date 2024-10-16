@@ -185,7 +185,7 @@ pub fn build_substructure_query(
     if let Some(scaffolds) = matching_scaffolds {
         if !scaffolds.is_empty() {
             for s in scaffolds {
-                query_parts.push(format!("extra_data.scaffolds:{s}"))
+                query_parts.push(format!("other_descriptors.scaffolds:{s}"))
             }
         }
     }
@@ -219,14 +219,14 @@ pub fn build_superstructure_query(
 
     if let Some(scaffolds) = matching_scaffolds {
         if scaffolds.is_empty() {
-            query = format!("{query} AND extra_data.scaffolds:-1");
+            query = format!("{query} AND other_descriptors.scaffolds:-1");
         } else {
             let mut scaffold_parts = scaffolds
                 .iter()
-                .map(|s| format!("extra_data.scaffolds:{s}"))
+                .map(|s| format!("other_descriptors.scaffolds:{s}"))
                 .collect::<Vec<String>>();
 
-            scaffold_parts.push("extra_data.scaffolds:-1".to_string());
+            scaffold_parts.push("other_descriptors.scaffolds:-1".to_string());
 
             let scaffolds_query = scaffold_parts.join(" OR ");
 

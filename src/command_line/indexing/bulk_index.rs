@@ -46,6 +46,7 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
     let pattern_fingerprint_field = schema.get_field("pattern_fingerprint")?;
     let morgan_fingerprint_field = schema.get_field("morgan_fingerprint")?;
     let extra_data_field = schema.get_field("extra_data")?;
+    let other_descriptors_field = schema.get_field("other_descriptors")?;
     let descriptor_fields = KNOWN_DESCRIPTORS
         .iter()
         .map(|kd| (*kd, schema.get_field(kd).unwrap()))
@@ -73,6 +74,7 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
                         morgan_fingerprint_field,
                         &descriptor_fields,
                         extra_data_field,
+                        other_descriptors_field,
                     );
 
                     match doc {
@@ -109,6 +111,7 @@ fn create_tantivy_doc(
     morgan_fingerprint_field: Field,
     descriptor_fields: &HashMap<&str, Field>,
     extra_data_field: Field,
+    other_descriptors_field: Field,
 ) -> eyre::Result<impl tantivy::Document> {
     let smiles = record
         .get("smiles")
@@ -133,9 +136,10 @@ fn create_tantivy_doc(
         false => serde_json::json!({"scaffolds": scaffold_matches}),
     };
 
-    let extra_data_json = combine_json_objects(Some(scaffold_json), extra_data);
-    if let Some(extra_data_json) = extra_data_json {
-        doc.add_field_value(extra_data_field, extra_data_json);
+    doc.add_field_value(other_descriptors_field, scaffold_json);
+
+    if let Some(extra_data) = extra_data {
+        doc.add_field_value(extra_data_field, extra_data);
     }
 
     for field in KNOWN_DESCRIPTORS {

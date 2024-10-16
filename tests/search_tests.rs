@@ -35,7 +35,7 @@ fn test_build_superstructure_query() {
     let query = build_superstructure_query(&descriptors, "", &Some(vec![0, 1]));
     assert_eq!(
         query,
-        "NumAtoms:[0 TO 10] AND (extra_data.scaffolds:0 OR extra_data.scaffolds:1 OR extra_data.scaffolds:-1)"
+        "NumAtoms:[0 TO 10] AND (other_descriptors.scaffolds:0 OR other_descriptors.scaffolds:1 OR other_descriptors.scaffolds:-1)"
     );
 }
 
@@ -166,14 +166,19 @@ fn test_substructure_search() {
     let smiles_field = builder.add_text_field("smiles", STRING | STORED);
     let pattern_fingerprint_field = builder.add_bytes_field("pattern_fingerprint", FAST | STORED);
 
-    let json_options: JsonObjectOptions =
+    let extra_data_options: JsonObjectOptions =
         JsonObjectOptions::from(TEXT | STORED).set_expand_dots_enabled();
-    let extra_data_field = builder.add_json_field("extra_data", json_options);
+    let _extra_data_field = builder.add_json_field("extra_data", extra_data_options);
+
+    let other_descriptors_options: JsonObjectOptions =
+        JsonObjectOptions::from(TEXT).set_expand_dots_enabled();
+    let other_descriptors_field =
+        builder.add_json_field("other_descriptors", other_descriptors_options);
 
     let mut doc = doc!(
         smiles_field => index_mol.as_smiles(),
         pattern_fingerprint_field => index_pattern_fingerprint.0.as_raw_slice(),
-        extra_data_field => json![{ "scaffolds": index_scaffolds }],
+        other_descriptors_field => json![{ "scaffolds": index_scaffolds }],
     );
 
     for (descriptor, val) in &index_descriptors {
@@ -232,14 +237,19 @@ fn test_superstructure_search() {
     let smiles_field = builder.add_text_field("smiles", STRING | STORED);
     let pattern_fingerprint_field = builder.add_bytes_field("pattern_fingerprint", FAST | STORED);
 
-    let json_options: JsonObjectOptions =
+    let extra_data_options: JsonObjectOptions =
         JsonObjectOptions::from(TEXT | STORED).set_expand_dots_enabled();
-    let extra_data_field = builder.add_json_field("extra_data", json_options);
+    let _extra_data_field = builder.add_json_field("extra_data", extra_data_options);
+
+    let other_descriptors_options: JsonObjectOptions =
+        JsonObjectOptions::from(TEXT).set_expand_dots_enabled();
+    let other_descriptors_field =
+        builder.add_json_field("other_descriptors", other_descriptors_options);
 
     let mut doc = doc!(
         smiles_field => index_mol.as_smiles(),
         pattern_fingerprint_field => index_pattern_fingerprint.0.as_raw_slice(),
-        extra_data_field => json![{ "scaffolds": index_scaffolds }],
+        other_descriptors_field => json![{ "scaffolds": index_scaffolds }],
     );
 
     for (descriptor, val) in &index_descriptors {

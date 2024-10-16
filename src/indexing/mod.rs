@@ -77,26 +77,27 @@ pub fn open_index(p: impl AsRef<Path>) -> eyre::Result<Index> {
     Ok(index)
 }
 
-pub fn combine_json_objects(
-    obj1: Option<serde_json::Value>,
-    obj2: Option<serde_json::Value>,
-) -> Option<serde_json::Value> {
-    match (obj1, obj2) {
-        (Some(obj1), Some(obj2)) => {
-            if let (serde_json::Value::Object(mut obj1_map), serde_json::Value::Object(obj2_map)) =
-                (obj1.clone(), obj2.clone())
-            {
-                for (key, value) in obj2_map {
-                    obj1_map.insert(key, value);
-                }
-                return Some(serde_json::Value::Object(obj1_map));
-            } else if let serde_json::Value::Object(obj1_map) = obj1 {
-                return Some(serde_json::Value::Object(obj1_map));
-            }
-            Some(obj2)
-        }
-        (Some(obj1), None) => Some(obj1),
-        (None, Some(obj2)) => Some(obj2),
-        (None, None) => None,
-    }
-}
+// // Don't need right now, but will be useful if we add more to the new "other_descriptors" field
+// pub fn combine_json_objects(
+//     obj1: Option<serde_json::Value>,
+//     obj2: Option<serde_json::Value>,
+// ) -> Option<serde_json::Value> {
+//     match (obj1, obj2) {
+//         (Some(obj1), Some(obj2)) => {
+//             if let (serde_json::Value::Object(mut obj1_map), serde_json::Value::Object(obj2_map)) =
+//                 (obj1.clone(), obj2.clone())
+//             {
+//                 for (key, value) in obj2_map {
+//                     obj1_map.insert(key, value);
+//                 }
+//                 return Some(serde_json::Value::Object(obj1_map));
+//             } else if let serde_json::Value::Object(obj1_map) = obj1 {
+//                 return Some(serde_json::Value::Object(obj1_map));
+//             }
+//             Some(obj2)
+//         }
+//         (Some(obj1), None) => Some(obj1),
+//         (None, Some(obj2)) => Some(obj2),
+//         (None, None) => None,
+//     }
+// }
