@@ -523,7 +523,7 @@ async fn test_delete_index() -> eyre::Result<()> {
 }
 
 #[tokio::test]
-async fn test_mol_block_to_smiles_with_sanitiz() -> eyre::Result<()> {
+async fn test_mol_block_to_smiles_with_sanitize() -> eyre::Result<()> {
     let (test_client, _) = build_test_client()?;
 
     let response = test_client

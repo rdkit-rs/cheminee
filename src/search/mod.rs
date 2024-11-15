@@ -13,6 +13,7 @@ pub mod basic_search;
 pub mod compound_processing;
 pub mod identity_search;
 pub mod scaffold_search;
+pub mod similarity_search;
 pub mod structure_matching;
 pub mod structure_search;
 
