@@ -104,6 +104,7 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
     let failed_counter: Arc<Mutex<usize>> = Arc::new(Mutex::new(0));
 
     let mut mol_vec = Vec::with_capacity(chunksize);
+
     for mol in mol_iter {
         if mol.is_err() {
             let mut num = failed_counter.lock().unwrap();
