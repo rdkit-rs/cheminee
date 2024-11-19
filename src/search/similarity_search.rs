@@ -7,7 +7,7 @@ use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use std::cmp::min;
 use std::collections::HashSet;
 use tantivy::schema::{Field, OwnedValue, Value};
-use tantivy::{DocAddress, DocId, Searcher, SegmentOrdinal};
+use tantivy::{DocAddress, Searcher};
 
 lazy_static::lazy_static! {
     pub static ref ENCODER_MODEL: EncoderModel = build_encoder_model().unwrap();
@@ -126,56 +126,6 @@ pub fn get_best_similarity(
     Ok((smiles.to_string(), extra_data, score))
 }
 
-pub fn score_similarity(
-    docaddr: DocAddress,
-    smiles_field: Field,
-    morgan_fingerprint_field: Field,
-    extra_data_field: Field,
-    searcher: &Searcher,
-    query_morgan_fingerprint: &BitSlice<u8>,
-) -> eyre::Result<(String, serde_json::Value, f32, SegmentOrdinal, DocId)> {
-    let doc = searcher.doc::<tantivy::TantivyDocument>(docaddr)?;
-
-    let smiles = doc
-        .get_first(smiles_field)
-        .ok_or(eyre::eyre!("Tantivy smiles retrieval failed"))?;
-
-    let smiles = match smiles {
-        OwnedValue::Str(s) => s,
-        other => return Err(eyre::eyre!("could not fetch smile, got {:?}", other)),
-    };
-
-    let morgan_fingerprint = doc
-        .get_first(morgan_fingerprint_field)
-        .ok_or(eyre::eyre!("Tantivy Morgan fingerprint retrieval failed"))?;
-
-    let morgan_fingerprint = match morgan_fingerprint {
-        OwnedValue::Bytes(f) => f,
-        other => {
-            return Err(eyre::eyre!(
-                "could not fetch pattern_fingerprint, got {:?}",
-                other
-            ))
-        }
-    };
-
-    let morgan_fingerprint = BitSlice::from_slice(morgan_fingerprint);
-    let tanimoto_score = get_tanimoto_similarity(query_morgan_fingerprint, morgan_fingerprint);
-
-    let extra_data = match doc.get_first(extra_data_field) {
-        Some(extra_data) => serde_json::from_str(&serde_json::to_string(extra_data)?)?,
-        None => serde_json::Value::Object(Default::default()),
-    };
-
-    Ok((
-        smiles.to_string(),
-        extra_data,
-        tanimoto_score,
-        docaddr.segment_ord,
-        docaddr.doc_id,
-    ))
-}
-
 pub fn get_tanimoto_similarity(fp1: &BitSlice<u8>, fp2: &BitSlice<u8>) -> f32 {
     let and = fp1.to_bitvec() & fp2;
     let or = fp1.to_bitvec() | fp2;
@@ -187,7 +137,7 @@ pub fn get_tanimoto_similarity(fp1: &BitSlice<u8>, fp2: &BitSlice<u8>) -> f32 {
 }
 
 pub fn encode_fingerprint(fingerprint: &[u8], only_best_cluster: bool) -> eyre::Result<Vec<i32>> {
-    let bit_vec = BitVec::<u8>::from_slice(fingerprint);
+    let bit_vec = BitVec::<u8, Lsb0>::from_slice(fingerprint);
     let fp_vec = bit_vec
         .iter()
         .map(|b| if *b { 1 } else { 0 })
