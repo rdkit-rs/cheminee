@@ -1,8 +1,6 @@
 use crate::command_line::prelude::*;
-use crate::search::similarity_search::{get_best_similarity, similarity_search};
-use crate::search::{compound_processing::*, validate_structure, StructureSearchHit};
-use rayon::iter::ParallelIterator;
-use rayon::prelude::IntoParallelIterator;
+use crate::search::similarity_search::{neighbor_search, similarity_search};
+use crate::search::{compound_processing::*, validate_structure};
 use std::cmp::min;
 use std::collections::HashSet;
 use tantivy::DocAddress;
@@ -130,8 +128,6 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
 
     let tautomer_limit = min(tautomers.len(), tautomer_limit + 1);
 
-    let used_tautomers = tautomer_limit > 1;
-
     let taut_morgan_fingerprints = tautomers[..tautomer_limit]
         .iter()
         .map(|m| m.morgan_fingerprint().0)
@@ -139,8 +135,7 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
 
     let mut results: HashSet<DocAddress> = HashSet::new();
     for taut_fp in &taut_morgan_fingerprints {
-        let taut_results =
-            similarity_search(&searcher, taut_fp, &extra_query, search_percent_limit);
+        let taut_results = neighbor_search(&searcher, taut_fp, &extra_query, search_percent_limit);
         if let Ok(taut_results) = taut_results {
             results.extend(taut_results);
         } else {
@@ -148,50 +143,13 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
         }
     }
 
-    let schema = searcher.schema();
-    let smiles_field = schema.get_field("smiles")?;
-    let morgan_fingerprint_field = schema.get_field("morgan_fingerprint")?;
-    let extra_data_field = schema.get_field("extra_data")?;
-
-    let mut final_results = results
-        .into_par_iter()
-        .filter_map(|docaddr| {
-            let result = get_best_similarity(
-                &searcher,
-                &docaddr,
-                smiles_field,
-                morgan_fingerprint_field,
-                extra_data_field,
-                &taut_morgan_fingerprints,
-            );
-
-            match result {
-                Ok(result) => {
-                    if result.2 < tanimoto_minimum {
-                        None
-                    } else {
-                        Some(StructureSearchHit {
-                            smiles: result.0,
-                            extra_data: result.1,
-                            score: result.2,
-                            query: query_smiles.into(),
-                            used_tautomers,
-                        })
-                    }
-                }
-                Err(e) => {
-                    log::warn!("Encountered exception in Tanimoto calculation: {e}");
-                    None
-                }
-            }
-        })
-        .collect::<Vec<_>>();
-
-    final_results.sort_by(|a, b| {
-        b.score
-            .partial_cmp(&a.score)
-            .unwrap_or(std::cmp::Ordering::Equal)
-    });
+    let final_results = similarity_search(
+        &searcher,
+        results,
+        &taut_morgan_fingerprints,
+        tanimoto_minimum,
+        query_smiles,
+    )?;
 
     if final_results.len() > result_limit {
         log::info!("{:#?}", &final_results[..result_limit]);

@@ -1,7 +1,9 @@
 use crate::search::basic_search::basic_search;
+use crate::search::StructureSearchHit;
 use bitvec::order::Lsb0;
 use bitvec::prelude::{BitSlice, BitVec};
 use cheminee_similarity_model::encoder::{build_encoder_model, EncoderModel};
+use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use std::cmp::min;
 use std::collections::HashSet;
 use tantivy::schema::{Field, OwnedValue, Value};
@@ -12,6 +14,63 @@ lazy_static::lazy_static! {
 }
 
 pub fn similarity_search(
+    searcher: &Searcher,
+    results: HashSet<DocAddress>,
+    taut_morgan_fingerprints: &[BitVec<u8>],
+    tanimoto_minimum: f32,
+    query_smiles: &str,
+) -> eyre::Result<Vec<StructureSearchHit>> {
+    let schema = searcher.schema();
+    let smiles_field = schema.get_field("smiles")?;
+    let morgan_fingerprint_field = schema.get_field("morgan_fingerprint")?;
+    let extra_data_field = schema.get_field("extra_data")?;
+
+    let used_tautomers = taut_morgan_fingerprints.len() > 1;
+
+    let mut final_results = results
+        .into_par_iter()
+        .filter_map(|docaddr| {
+            let result = get_best_similarity(
+                searcher,
+                &docaddr,
+                smiles_field,
+                morgan_fingerprint_field,
+                extra_data_field,
+                taut_morgan_fingerprints,
+            );
+
+            match result {
+                Ok(result) => {
+                    if result.2 < tanimoto_minimum {
+                        None
+                    } else {
+                        Some(StructureSearchHit {
+                            smiles: result.0,
+                            extra_data: result.1,
+                            score: result.2,
+                            query: query_smiles.into(),
+                            used_tautomers,
+                        })
+                    }
+                }
+                Err(e) => {
+                    log::warn!("Encountered exception in Tanimoto calculation: {e}");
+                    None
+                }
+            }
+        })
+        .collect::<Vec<_>>();
+
+    final_results.sort_by(|a, b| {
+        b.score
+            .partial_cmp(&a.score)
+            .unwrap_or(std::cmp::Ordering::Equal)
+    });
+
+    Ok(final_results)
+}
+
+pub fn neighbor_search(
     searcher: &Searcher,
     query_morgan_fingerprint: &BitVec<u8>,
     extra_query: &str,

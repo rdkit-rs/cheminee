@@ -2,12 +2,12 @@ use crate::indexing::index_manager::IndexManager;
 use crate::rest_api::api::{
     v1_convert_mol_block_to_smiles, v1_convert_smiles_to_mol_block, v1_delete_index,
     v1_delete_index_bulk, v1_get_index, v1_index_search_basic, v1_index_search_identity,
-    v1_index_search_structure, v1_list_indexes, v1_list_schemas, v1_merge_segments, v1_post_index,
-    v1_post_index_bulk, v1_standardize, BulkRequest, ConvertedMolBlockResponse,
-    ConvertedSmilesResponse, DeleteIndexResponse, DeleteIndexesBulkDeleteResponse,
-    GetIndexResponse, GetQuerySearchResponse, GetStructureSearchResponse, ListIndexesResponse,
-    ListSchemasResponse, MergeSegmentsResponse, PostIndexResponse, PostIndexesBulkIndexResponse,
-    StandardizeResponse,
+    v1_index_search_similarity, v1_index_search_structure, v1_list_indexes, v1_list_schemas,
+    v1_merge_segments, v1_post_index, v1_post_index_bulk, v1_standardize, BulkRequest,
+    ConvertedMolBlockResponse, ConvertedSmilesResponse, DeleteIndexResponse,
+    DeleteIndexesBulkDeleteResponse, GetIndexResponse, GetQuerySearchResponse,
+    GetStructureSearchResponse, ListIndexesResponse, ListSchemasResponse, MergeSegmentsResponse,
+    PostIndexResponse, PostIndexesBulkIndexResponse, StandardizeResponse,
 };
 use crate::rest_api::models::{MolBlock, Smiles};
 
@@ -140,8 +140,9 @@ impl ApiV1 {
         index_manager: Data<&IndexManager>,
     ) -> GetQuerySearchResponse {
         let limit = limit.0.unwrap_or(1000);
+        let index = index_manager.0.open(&index);
 
-        v1_index_search_basic(index_manager.0, index.to_string(), query.0, limit)
+        v1_index_search_basic(index, query.0, limit)
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -163,7 +164,6 @@ impl ApiV1 {
         let tautomer_limit = tautomer_limit.0.unwrap_or(0);
         let extra_query = extra_query.0.unwrap_or_default();
         let use_scaffolds = use_scaffolds.0.unwrap_or(true);
-
         let index = index_manager.0.open(&index);
 
         v1_index_search_structure(
@@ -185,45 +185,18 @@ impl ApiV1 {
         &self,
         index: Path<String>,
         smiles: Query<String>,
-        use_chirality: Query<Option<String>>,
+        use_chirality: Query<Option<bool>>,
         result_limit: Query<Option<usize>>,
         tautomer_limit: Query<Option<usize>>,
         extra_query: Query<Option<String>>,
-        use_scaffolds: Query<Option<String>>,
+        use_scaffolds: Query<Option<bool>>,
         index_manager: Data<&IndexManager>,
     ) -> GetStructureSearchResponse {
-        // by default, we will ignore chirality
-        let use_chirality = if let Some(use_chirality) = use_chirality.0 {
-            !matches!(use_chirality.as_str(), "false")
-        } else {
-            false
-        };
-
-        let result_limit = if let Some(result_limit) = result_limit.0 {
-            result_limit
-        } else {
-            usize::try_from(1000).unwrap()
-        };
-
-        let tautomer_limit = if let Some(tautomer_limit) = tautomer_limit.0 {
-            tautomer_limit
-        } else {
-            usize::try_from(0).unwrap()
-        };
-
-        let extra_query = if let Some(extra_query) = extra_query.0 {
-            extra_query
-        } else {
-            "".to_string()
-        };
-
-        // by default, we will use scaffold-based indexing
-        let use_scaffolds = if let Some(use_scaffolds) = use_scaffolds.0 {
-            matches!(use_scaffolds.as_str(), "true")
-        } else {
-            true
-        };
-
+        let use_chirality = use_chirality.0.unwrap_or(false);
+        let result_limit = result_limit.0.unwrap_or(1000);
+        let tautomer_limit = tautomer_limit.0.unwrap_or(0);
+        let extra_query = extra_query.0.unwrap_or_default();
+        let use_scaffolds = use_scaffolds.0.unwrap_or(true);
         let index = index_manager.0.open(&index);
 
         v1_index_search_structure(
@@ -238,44 +211,54 @@ impl ApiV1 {
         )
     }
 
+    #[allow(clippy::too_many_arguments)]
+    #[oai(path = "/v1/indexes/:index/search/similarity", method = "get")]
+    /// Perform similarity search against index
+    pub async fn v1_index_search_similarity(
+        &self,
+        index: Path<String>,
+        smiles: Query<String>,
+        result_limit: Query<Option<usize>>,
+        tautomer_limit: Query<Option<usize>>,
+        search_percent_limit: Query<Option<f32>>,
+        tanimoto_minimum: Query<Option<f32>>,
+        extra_query: Query<Option<String>>,
+        index_manager: Data<&IndexManager>,
+    ) -> GetStructureSearchResponse {
+        let result_limit = result_limit.0.unwrap_or(1000);
+        let tautomer_limit = tautomer_limit.0.unwrap_or(0);
+        let search_percent_limit = search_percent_limit.0.unwrap_or(0.1);
+        let tanimoto_minimum = tanimoto_minimum.0.unwrap_or(0.4);
+        let extra_query = extra_query.0.unwrap_or_default();
+        let index = index_manager.0.open(&index);
+
+        v1_index_search_similarity(
+            index,
+            smiles.0,
+            result_limit,
+            tautomer_limit,
+            search_percent_limit,
+            tanimoto_minimum,
+            &extra_query,
+        )
+    }
+
     #[oai(path = "/v1/indexes/:index/search/identity", method = "get")]
     /// Perform identity search (i.e. exact match) against index
     pub async fn v1_index_search_identity(
         &self,
         index: Path<String>,
         smiles: Query<String>,
-        use_chirality: Query<Option<String>>,
+        use_chirality: Query<Option<bool>>,
         extra_query: Query<Option<String>>,
-        use_scaffolds: Query<Option<String>>,
+        use_scaffolds: Query<Option<bool>>,
         index_manager: Data<&IndexManager>,
     ) -> GetStructureSearchResponse {
-        // by default, we will ignore chirality
-        let use_chirality = if let Some(use_chirality) = use_chirality.0 {
-            !matches!(use_chirality.as_str(), "false")
-        } else {
-            false
-        };
+        let use_chirality = use_chirality.0.unwrap_or(false);
+        let extra_query = extra_query.0.unwrap_or_default();
+        let use_scaffolds = use_scaffolds.0.unwrap_or(true);
+        let index = index_manager.0.open(&index);
 
-        let extra_query = if let Some(extra_query) = extra_query.0 {
-            extra_query
-        } else {
-            "".to_string()
-        };
-
-        // by default, we will use scaffold-based indexing
-        let use_scaffolds = if let Some(use_scaffolds) = use_scaffolds.0 {
-            matches!(use_scaffolds.as_str(), "true")
-        } else {
-            true
-        };
-
-        v1_index_search_identity(
-            index_manager.0,
-            index.to_string(),
-            smiles.0,
-            use_chirality,
-            &extra_query,
-            use_scaffolds,
-        )
+        v1_index_search_identity(index, smiles.0, use_chirality, &extra_query, use_scaffolds)
     }
 }
