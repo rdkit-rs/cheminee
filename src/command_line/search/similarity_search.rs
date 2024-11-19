@@ -49,6 +49,14 @@ pub fn command() -> Command {
                 .num_args(1),
         )
         .arg(
+            Arg::new("tanimoto-minimum")
+                .required(false)
+                .long("tanimoto-minimum")
+                .short('m')
+                .help("Set to 0.4 by default; Cheminee will ignore compounds with Tanimoto scores below this")
+                .num_args(1),
+        )
+        .arg(
             Arg::new("extra-query")
                 .required(false)
                 .long("extra-query")
@@ -68,6 +76,7 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
     let result_limit = matches.get_one::<String>("result-limit");
     let tautomer_limit = matches.get_one::<String>("tautomer-limit");
     let search_percent_limit = matches.get_one::<String>("search-percent-limit");
+    let tanimoto_minimum = matches.get_one::<String>("tanimoto-minimum");
     let extra_query = matches.get_one::<String>("extra-query");
 
     let result_limit = if let Some(result_limit) = result_limit {
@@ -86,6 +95,12 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
         search_percent_limit.parse::<f32>()?
     } else {
         0.1
+    };
+
+    let tanimoto_minimum = if let Some(tanimoto_minimum) = tanimoto_minimum {
+        tanimoto_minimum.parse::<f32>()?
+    } else {
+        0.4
     };
 
     let extra_query = if let Some(extra_query) = extra_query {
@@ -151,13 +166,19 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
             );
 
             match result {
-                Ok(result) => Some(StructureSearchHit {
-                    smiles: result.0,
-                    extra_data: result.1,
-                    score: result.2,
-                    query: query_smiles.into(),
-                    used_tautomers,
-                }),
+                Ok(result) => {
+                    if result.2 < tanimoto_minimum {
+                        None
+                    } else {
+                        Some(StructureSearchHit {
+                            smiles: result.0,
+                            extra_data: result.1,
+                            score: result.2,
+                            query: query_smiles.into(),
+                            used_tautomers,
+                        })
+                    }
+                }
                 Err(e) => {
                     log::warn!("Encountered exception in Tanimoto calculation: {e}");
                     None
