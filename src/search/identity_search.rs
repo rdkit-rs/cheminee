@@ -79,7 +79,7 @@ pub fn identity_match(
 
     let pattern_fingerprint = doc
         .get_first(pattern_fingerprint_field)
-        .ok_or(eyre::eyre!("Tantivy pattern_fingerprint retrieval failed"))?;
+        .ok_or(eyre::eyre!("Tantivy pattern fingerprint retrieval failed"))?;
 
     let pattern_fingerprint = match pattern_fingerprint {
         OwnedValue::Bytes(f) => f,

@@ -117,7 +117,7 @@ pub fn structure_match(
     // TO-DO: find a zero-copy bitvec container
     let pattern_fingerprint = doc
         .get_first(pattern_fingerprint_field)
-        .ok_or(eyre::eyre!("Tantivy pattern_fingerprint retrieval failed"))?;
+        .ok_or(eyre::eyre!("Tantivy pattern fingerprint retrieval failed"))?;
 
     let pattern_fingerprint = match pattern_fingerprint {
         tantivy::schema::OwnedValue::Bytes(b) => b,
