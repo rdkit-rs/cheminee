@@ -1,10 +1,11 @@
-use crate::indexing::{index_manager::IndexManager, KNOWN_DESCRIPTORS};
+use crate::indexing::{combine_json_objects, index_manager::IndexManager, KNOWN_DESCRIPTORS};
 use crate::rest_api::api::{
     BulkRequest, BulkRequestDoc, PostIndexBulkResponseError, PostIndexBulkResponseOk,
     PostIndexBulkResponseOkStatus, PostIndexesBulkIndexResponse,
 };
 use crate::search::compound_processing::process_cpd;
 use crate::search::scaffold_search::{scaffold_search, PARSED_SCAFFOLDS};
+use crate::search::similarity_search::encode_fingerprint;
 use poem_openapi::payload::Json;
 use rayon::prelude::*;
 use serde_json::{Map, Value};
@@ -129,8 +130,9 @@ fn bulk_request_doc_to_tantivy_doc(
     other_descriptors_field: Field,
 ) -> eyre::Result<impl tantivy::Document> {
     // By default, do not attempt to fix problematic molecules
-    let (canon_taut, pattern_fingerprint, descriptors) =
-        process_cpd(&bulk_request_doc.smiles, false)?;
+    let (canon_taut, pattern_fp, descriptors) = process_cpd(&bulk_request_doc.smiles, false)?;
+
+    let morgan_fp = canon_taut.morgan_fingerprint();
 
     let json: Value = serde_json::to_value(descriptors)?;
     let jsonified_compound_descriptors: Map<String, Value> = if let Value::Object(map) = json {
@@ -141,19 +143,24 @@ fn bulk_request_doc_to_tantivy_doc(
 
     let mut doc = tantivy::doc!(
         smiles_field => canon_taut.as_smiles(),
-        pattern_fingerprint_field => pattern_fingerprint.0.as_raw_slice(),
-        morgan_fingerprint_field => canon_taut.morgan_fingerprint().0.as_raw_slice(),
+        pattern_fingerprint_field => pattern_fp.0.as_raw_slice(),
+        morgan_fingerprint_field => morgan_fp.0.as_raw_slice(),
     );
 
-    let scaffolds = &PARSED_SCAFFOLDS;
-    let scaffold_matches = scaffold_search(&pattern_fingerprint.0, &canon_taut, scaffolds)?;
-
+    let scaffold_matches = scaffold_search(&pattern_fp.0, &canon_taut, &PARSED_SCAFFOLDS)?;
     let scaffold_json = match scaffold_matches.is_empty() {
         true => serde_json::json!({"scaffolds": vec![-1]}),
         false => serde_json::json!({"scaffolds": scaffold_matches}),
     };
 
-    doc.add_field_value(other_descriptors_field, scaffold_json);
+    let similarity_cluster = encode_fingerprint(&morgan_fp.0, true)?[0];
+    let cluster_json = serde_json::json!({"similarity_cluster": similarity_cluster});
+
+    let other_descriptors_json = combine_json_objects(Some(scaffold_json), Some(cluster_json));
+
+    if let Some(other_descriptors_json) = other_descriptors_json {
+        doc.add_field_value(other_descriptors_field, other_descriptors_json);
+    }
 
     if let Some(extra_data) = bulk_request_doc.extra_data {
         doc.add_field_value(extra_data_field, extra_data);

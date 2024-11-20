@@ -2,9 +2,10 @@ use cheminee::indexing::index_manager::IndexManager;
 use cheminee::rest_api::openapi_server::{api_service, API_PREFIX};
 use std::collections::HashMap;
 
-use cheminee::indexing::KNOWN_DESCRIPTORS;
+use cheminee::indexing::{combine_json_objects, KNOWN_DESCRIPTORS};
 use cheminee::search::compound_processing::process_cpd;
 use cheminee::search::scaffold_search::{scaffold_search, PARSED_SCAFFOLDS};
+use cheminee::search::similarity_search::encode_fingerprint;
 use poem::test::TestResponse;
 use poem::EndpointExt;
 use poem::{Endpoint, Route};
@@ -122,10 +123,12 @@ fn fill_test_index(tantivy_index: Index) -> eyre::Result<()> {
     for (smiles, extra_data) in smiles_and_extra_data {
         let (canon_taut, pattern_fingerprint, descriptors) = process_cpd(smiles, false)?;
 
+        let morgan_fingerprint = canon_taut.morgan_fingerprint();
+
         let mut doc = doc!(
             smiles_field => canon_taut.as_smiles(),
             pattern_fingerprint_field => pattern_fingerprint.0.as_raw_slice(),
-            morgan_fingerprint_field => canon_taut.morgan_fingerprint().0.as_raw_slice(),
+            morgan_fingerprint_field => morgan_fingerprint.0.as_raw_slice(),
         );
 
         let scaffold_matches =
@@ -136,7 +139,15 @@ fn fill_test_index(tantivy_index: Index) -> eyre::Result<()> {
             false => serde_json::json!({"scaffolds": scaffold_matches}),
         };
 
-        doc.add_field_value(other_descriptors_field, scaffold_json);
+        let similarity_cluster = encode_fingerprint(&morgan_fingerprint.0, true)?[0];
+        let cluster_json = serde_json::json!({"similarity_cluster": similarity_cluster});
+
+        let other_descriptors_json = combine_json_objects(Some(scaffold_json), Some(cluster_json));
+
+        if let Some(other_descriptors_json) = other_descriptors_json {
+            doc.add_field_value(other_descriptors_field, other_descriptors_json);
+        }
+
         doc.add_field_value(extra_data_field, extra_data);
 
         for field in KNOWN_DESCRIPTORS {
@@ -397,6 +408,38 @@ async fn test_superstructure_search() -> eyre::Result<()> {
 }
 
 #[tokio::test]
+async fn test_similarity_search() -> eyre::Result<()> {
+    let index_name = "test-api-index";
+    let schema_name = "descriptor_v1";
+    let (test_client, index_manager) = build_test_client()?;
+
+    let tantivy_index = index_manager.create(
+        index_name,
+        cheminee::schema::LIBRARY.get(schema_name).unwrap(),
+        false,
+    )?;
+
+    fill_test_index(tantivy_index)?;
+
+    let response = test_client
+        .get(format!("/api/v1/indexes/{index_name}/search/similarity"))
+        .query("smiles", &"C1=CC=CC=C1CCC2=CC=CC=C2")
+        .send()
+        .await;
+    response.assert_status_is_ok();
+    response
+        .assert_json(&serde_json::json!([{
+            "extra_data": {"extra": "data"},
+            "query": "C1=CC=CC=C1CCC2=CC=CC=C2",
+            "score": 1.0,
+            "smiles": "c1ccc(CCc2ccccc2)cc1",
+            "used_tautomers": false
+        }]))
+        .await;
+    Ok(())
+}
+
+#[tokio::test]
 async fn test_list_indices() -> eyre::Result<()> {
     let index_name = "test-api-index";
     let schema_name = "descriptor_v1";
@@ -523,7 +566,7 @@ async fn test_delete_index() -> eyre::Result<()> {
 }
 
 #[tokio::test]
-async fn test_mol_block_to_smiles_with_sanitiz() -> eyre::Result<()> {
+async fn test_mol_block_to_smiles_with_sanitize() -> eyre::Result<()> {
     let (test_client, _) = build_test_client()?;
 
     let response = test_client

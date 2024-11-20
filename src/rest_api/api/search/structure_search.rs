@@ -5,8 +5,7 @@ use crate::search::{
     compound_processing::get_tautomers, sort_results, validate_structure, StructureSearchHit,
 };
 use poem_openapi::payload::Json;
-use rayon::iter::IntoParallelIterator;
-use rayon::iter::ParallelIterator;
+use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use std::cmp::min;
 use tantivy::Index;
 

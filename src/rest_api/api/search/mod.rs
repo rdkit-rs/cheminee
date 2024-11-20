@@ -6,3 +6,6 @@ pub use identity_search::*;
 
 mod structure_search;
 pub use structure_search::*;
+
+mod similarity_search;
+pub use similarity_search::*;

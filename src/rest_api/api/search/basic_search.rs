@@ -1,15 +1,14 @@
-use crate::indexing::index_manager::IndexManager;
 use crate::rest_api::api::{GetQuerySearchResponse, QueryResponseError};
 use crate::search::{aggregate_query_hits, basic_search::basic_search};
 use poem_openapi::payload::Json;
+use tantivy::Index;
 
 pub fn v1_index_search_basic(
-    index_manager: &IndexManager,
-    index: String,
+    index: eyre::Result<Index>,
     query: String,
     limit: usize,
 ) -> GetQuerySearchResponse {
-    let index = match index_manager.open(&index) {
+    let index = match index {
         Ok(index) => index,
         Err(e) => {
             return GetQuerySearchResponse::Err(Json(QueryResponseError {

@@ -2,6 +2,7 @@ use bitvec::store::BitStore;
 use cheminee::search::compound_processing::{process_cpd, standardize_smiles};
 use cheminee::search::identity_search::{build_identity_query, identity_search};
 use cheminee::search::scaffold_search::{scaffold_search, PARSED_SCAFFOLDS};
+use cheminee::search::similarity_search::build_similarity_query;
 use cheminee::search::structure_search::{
     build_substructure_query, build_superstructure_query, structure_search,
 };
@@ -37,6 +38,14 @@ fn test_build_superstructure_query() {
         query,
         "NumAtoms:[0 TO 10] AND (other_descriptors.scaffolds:0 OR other_descriptors.scaffolds:1 OR other_descriptors.scaffolds:-1)"
     );
+}
+
+#[test]
+fn test_build_similarity_query() {
+    let ranked_clusters = vec![0, 2];
+    let extra_query = "NumAtoms:[1 TO 100] AND NumAmideBonds: [1 TO 5]";
+    let query = build_similarity_query(&ranked_clusters, extra_query, 0.1);
+    assert_eq!(query, "(other_descriptors.similarity_cluster:0 OR other_descriptors.similarity_cluster:2) AND NumAtoms:[1 TO 100] AND NumAmideBonds: [1 TO 5]");
 }
 
 #[test]
