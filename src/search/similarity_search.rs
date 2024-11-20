@@ -6,7 +6,7 @@ use cheminee_similarity_model::encoder::{build_encoder_model, EncoderModel};
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use std::cmp::min;
 use std::collections::HashSet;
-use tantivy::schema::{Field, OwnedValue, Value};
+use tantivy::schema::{Field, OwnedValue};
 use tantivy::{DocAddress, Searcher};
 
 lazy_static::lazy_static! {
@@ -76,8 +76,7 @@ pub fn neighbor_search(
     extra_query: &str,
     search_perc: f32,
 ) -> eyre::Result<HashSet<DocAddress>> {
-    let query_fp_slice = query_morgan_fingerprint.as_raw_slice();
-    let ranked_clusters = encode_fingerprint(query_fp_slice, false)?;
+    let ranked_clusters = encode_fingerprint(query_morgan_fingerprint, false)?;
     let query = build_similarity_query(&ranked_clusters, extra_query, search_perc);
 
     let docs = basic_search(searcher, &query, 1_000_000)?;
@@ -98,9 +97,17 @@ pub fn get_best_similarity(
 
     let fingerprint = doc
         .get_first(morgan_fingerprint_field)
-        .ok_or(eyre::eyre!("Tantivy fingerprint retrieval failed"))?
-        .as_bytes()
-        .ok_or(eyre::eyre!("Failed to read fingerprint as bytes"))?;
+        .ok_or(eyre::eyre!("Tantivy pattern fingerprint retrieval failed"))?;
+
+    let fingerprint = match fingerprint {
+        OwnedValue::Bytes(f) => f,
+        other => {
+            return Err(eyre::eyre!(
+                "could not fetch pattern_fingerprint, got {:?}",
+                other
+            ))
+        }
+    };
 
     let fingerprint = BitSlice::<u8, Lsb0>::from_slice(fingerprint);
 
@@ -136,8 +143,7 @@ pub fn get_tanimoto_similarity(fp1: &BitSlice<u8>, fp2: &BitSlice<u8>) -> f32 {
     and_ones as f32 / or_ones as f32
 }
 
-pub fn encode_fingerprint(fingerprint: &[u8], only_best_cluster: bool) -> eyre::Result<Vec<i32>> {
-    let bit_vec = BitVec::<u8, Lsb0>::from_slice(fingerprint);
+pub fn encode_fingerprint(bit_vec: &BitVec<u8>, only_best_cluster: bool) -> eyre::Result<Vec<i32>> {
     let fp_vec = bit_vec
         .iter()
         .map(|b| if *b { 1 } else { 0 })
@@ -163,7 +169,12 @@ pub fn build_similarity_query(
     );
 
     let cluster_parts = (0..num_search_clusters)
-        .map(|idx| format!("other_descriptors.scaffolds:{}", ranked_clusters[idx]))
+        .map(|idx| {
+            format!(
+                "other_descriptors.similarity_cluster:{}",
+                ranked_clusters[idx]
+            )
+        })
         .collect::<Vec<String>>();
 
     let cluster_query = cluster_parts.join(" OR ");

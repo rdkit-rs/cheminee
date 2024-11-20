@@ -153,7 +153,7 @@ fn bulk_request_doc_to_tantivy_doc(
         false => serde_json::json!({"scaffolds": scaffold_matches}),
     };
 
-    let similarity_cluster = encode_fingerprint(morgan_fp.0.as_raw_slice(), true)?[0];
+    let similarity_cluster = encode_fingerprint(&morgan_fp.0, true)?[0];
     let cluster_json = serde_json::json!({"similarity_cluster": similarity_cluster});
 
     let other_descriptors_json = combine_json_objects(Some(scaffold_json), Some(cluster_json));
