@@ -9,7 +9,7 @@ callers don't need RDKit.
 
 See [rdkit-sys](https://github.com/tureus/rdkit-sys) for more on how the bindings work.
 
-Tested on Rust Stabe 1.76 (`rustup default 1.76`)
+Tested on Rust Stable 1.76 (`rustup default 1.76`)
 
 Intended Functionality
 ---
@@ -45,7 +45,7 @@ The CLI
 
 Assuming compounds are already present in an index path, you can search by:
 
-Basic Search
+**Basic Search**
 
 For example:
 
@@ -54,7 +54,7 @@ For example:
 Here, "i" refers to the index path, "q" refers to a composite query of chemical descriptor values and/or other indexed
 data types, and "l" refers to the number of desired results (defaulted to 1000).
 
-Substructure Search
+**Substructure Search**
 
 For example:
 
@@ -66,7 +66,7 @@ applicable (defaulted to 0), "u" dictates whether to use indexed scaffolds to sp
 and "e" refers to the "extra query" which is a composite query for chemical descriptors or other index data types as in
 the basic search implementation.
 
-Superstructure Search
+**Superstructure Search**
 
 For example:
 
@@ -74,7 +74,7 @@ For example:
 
 The input arguments here are the same as used for substructure search.
 
-Identity Search
+**Identity Search**
 
 For example:
 
@@ -87,6 +87,28 @@ molecule, but some differing metadata), you can use the extra query to get more 
 searching for the query once it finds an exact structure match (even if there are other duplicate structures present in
 the
 database).
+
+**Similarity Search**
+
+For example:
+
+    cargo run -- similarity-search -i /tmp/cheminee/index0 -s c1ccccc1CC -r 10 -t 10 -p 0.1 -m 0.4 -e "exactmw: [20 TO 200]"
+
+There are some additional terms for this (Tanimoto-based) similarity search. "p" denotes the database percentage to
+search whereas "m" denotes the minimum Tanimoto similarity score to consider for "similar" compounds. Note that in the
+case of a non-zero number of tautomers specified with term "t", Cheminée will attempt to use that number of tautomers
+for the search to maximize the chance of finding similar molecules.
+
+Another thing to note: this similarity search endpoint does not rely on brute-force searching. In other words, for a
+given query compound, we do NOT compute Tanimoto similarities against every compound in the database. Instead we make
+use of a neural network encoder model to embed the query compound Morgan fingerprint onto a Gaussian distributed latent
+space. We also have precomputed 10,000 cluster centroids from 3 million fingerprint embeddings in that latent space. For
+the query compound latent factor embedding, we rank clusters according to Euclidean distance from the query compound's
+embedding and search the top "p" percent of those ranked clusters for similar compounds. These candidate compounds are
+then subjected to Tanimoto scoring with the query compound prior to output. The fingerprint-to-latent factor embedding
+and cluster assignment is incorporated via
+our [cheminee-similarity-model](https://github.com/rdkit-rs/cheminee-similarity-model)
+crate dependency.
 
 Testing in Docker
 ---
