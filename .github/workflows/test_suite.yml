@@ -29,7 +29,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y build-essential libssl-dev libboost-iostreams-dev libboost-serialization-dev pkg-config curl tar
+          sudo apt-get install -y build-essential libssl-dev libboost-iostreams-dev libboost-serialization-dev pkg-config curl tar unzip
 
       - name: Install RDKit
         run: |
@@ -43,6 +43,26 @@ jobs:
           fi
           sudo mv /tmp/rdkit-Release_2024_09_1/Code /usr/local/include/rdkit
           sudo mv /tmp/rdkit-Release_2024_09_1/build/lib/* /usr/lib/
+          sudo rm -rf /tmp/*
+
+      - name: Install Tensorflow
+        run: |
+          cd /tmp
+          if [ $(dpkg --print-architecture) = "amd64" ]; then
+            curl -O https://files.pythonhosted.org/packages/5b/00/af89cb211fc96ffdebb52a687dad7f83b0b1d82bc057f65309fa03a89911/tensorflow_cpu-2.15.1-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
+            sudo unzip tensorflow_cpu-2.15.1-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
+          else
+            curl -O https://files.pythonhosted.org/packages/06/d5/05cd02db299821fd68ef5f8857506c21aeeddd024daf519d8643f0260952/tensorflow_cpu_aws-2.15.1-cp311-cp311-manylinux_2_17_aarch64.manylinux2014_aarch64.whl
+            sudo unzip tensorflow_cpu_aws-2.15.1-cp311-cp311-manylinux_2_17_aarch64.manylinux2014_aarch64.whl
+            sudo mv /tmp/tensorflow_cpu_aws.libs/libomp-54bf90fd.so.5 /usr/lib/
+          fi
+          sudo mv /tmp/tensorflow/libtensorflow_cc.so.2 /usr/lib/
+          sudo mv /tmp/tensorflow/libtensorflow_framework.so.2 /usr/lib/
+          sudo ln -s /usr/lib/libtensorflow_cc.so.2 /usr/lib/libtensorflow_cc.so
+          sudo ln -s /usr/lib/libtensorflow_framework.so.2 /usr/lib/libtensorflow_framework.so
+          sudo ldconfig
+          printf "prefix=/usr\nexec_prefix=\${prefix}\nlibdir=\${exec_prefix}/lib\nincludedir=\${prefix}/include/tensorflow\n\nName: TensorFlow\nVersion: 2.15.1\nDescription: Library for computation using data flow graphs for scalable machine learning\nRequires:\nLibs: -L\${libdir} -ltensorflow_cc -ltensorflow_framework\nCflags: -I\${includedir}" | sudo tee /usr/lib/pkgconfig/tensorflow.pc > /dev/null
+          sudo rm -rf /tmp/*
 
       - name: Install latest stable
         uses: actions-rs/toolchain@v1
