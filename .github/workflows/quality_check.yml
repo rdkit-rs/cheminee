@@ -61,7 +61,7 @@ jobs:
           sudo ln -s /usr/lib/libtensorflow_cc.so.2 /usr/lib/libtensorflow_cc.so
           sudo ln -s /usr/lib/libtensorflow_framework.so.2 /usr/lib/libtensorflow_framework.so
           sudo ldconfig
-          sudo printf "prefix=/usr\nexec_prefix=\${prefix}\nlibdir=\${exec_prefix}/lib\nincludedir=\${prefix}/include/tensorflow\n\nName: TensorFlow\nVersion: 2.15.1\nDescription: Library for computation using data flow graphs for scalable machine learning\nRequires:\nLibs: -L\${libdir} -ltensorflow_cc -ltensorflow_framework\nCflags: -I\${includedir}" | sudo tee /usr/lib/pkgconfig/tensorflow.pc > /dev/null
+          printf "prefix=/usr\nexec_prefix=\${prefix}\nlibdir=\${exec_prefix}/lib\nincludedir=\${prefix}/include/tensorflow\n\nName: TensorFlow\nVersion: 2.15.1\nDescription: Library for computation using data flow graphs for scalable machine learning\nRequires:\nLibs: -L\${libdir} -ltensorflow_cc -ltensorflow_framework\nCflags: -I\${includedir}" | sudo tee /usr/lib/pkgconfig/tensorflow.pc > /dev/null
           sudo rm -rf /tmp/*
 
       - name: Install latest stable
