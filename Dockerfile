@@ -1,9 +1,9 @@
 FROM ubuntu:22.04
 
 RUN apt-get update && apt-get install -y ca-certificates \
-                                         libssl-dev \
-                                         libboost-iostreams-dev \
-                                         libboost-serialization-dev \
+                                         libssl3 \
+                                         libboost-iostreams1.74.0 \
+                                         libboost-serialization1.74.0 \
                                          curl \
                                          tar \
                                          unzip
