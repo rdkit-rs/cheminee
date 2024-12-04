@@ -11,7 +11,7 @@ RUN apt-get update && apt-get install -y ca-certificates \
 RUN cd /tmp && \
     if [ $(dpkg --print-architecture) = "amd64" ]; then \
       curl -O https://rdkit-rs-debian.s3.eu-central-1.amazonaws.com/rdkit_2024_09_1_ubuntu_22_04_amd64.tar.gz; \
-      tar xf rdkit_2024_9_1_ubuntu_22_04_amd64.tar.gz; \
+      tar xf rdkit_2024_09_1_ubuntu_22_04_amd64.tar.gz; \
     else \
       curl -O https://rdkit-rs-debian.s3.eu-central-1.amazonaws.com/rdkit_2024_09_1_ubuntu_22_04_arm64.tar.gz; \
       tar xf rdkit_2024_09_1_ubuntu_22_04_arm64.tar.gz; \
