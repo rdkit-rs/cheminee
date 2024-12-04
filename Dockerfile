@@ -39,4 +39,6 @@ RUN cd /tmp && \
 
 RUN printf "prefix=/usr\nexec_prefix=\${prefix}\nlibdir=\${exec_prefix}/lib\nincludedir=\${prefix}/include/tensorflow\n\nName: TensorFlow\nVersion: 2.15.1\nDescription: Library for computation using data flow graphs for scalable machine learning\nRequires:\nLibs: -L\${libdir} -ltensorflow_cc -ltensorflow_framework\nCflags: -I\${includedir}" > /usr/lib/pkgconfig/tensorflow.pc
 
-RUN curl https://sh.rustup.rs -sSf | sh -s -- -y && . $HOME/.cargo/env
+COPY target/release/cheminee /usr/local/bin/cheminee
+
+CMD ["cheminee", "rest-api-server", "--bind=0.0.0.0:4001"]
