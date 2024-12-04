@@ -1,10 +1,9 @@
 FROM ubuntu:22.04
 
-RUN apt-get update && apt-get install -y build-essential \
+RUN apt-get update && apt-get install -y ca-certificates \
                                          libssl-dev \
                                          libboost-iostreams-dev \
                                          libboost-serialization-dev \
-                                         pkg-config \
                                          curl \
                                          tar \
                                          unzip
@@ -36,8 +35,6 @@ RUN cd /tmp && \
     ln -s /usr/lib/libtensorflow_framework.so.2 /usr/lib/libtensorflow_framework.so; \
     ldconfig; \
     rm -rf /tmp/*
-
-RUN printf "prefix=/usr\nexec_prefix=\${prefix}\nlibdir=\${exec_prefix}/lib\nincludedir=\${prefix}/include/tensorflow\n\nName: TensorFlow\nVersion: 2.15.1\nDescription: Library for computation using data flow graphs for scalable machine learning\nRequires:\nLibs: -L\${libdir} -ltensorflow_cc -ltensorflow_framework\nCflags: -I\${includedir}" > /usr/lib/pkgconfig/tensorflow.pc
 
 COPY target/release/cheminee /usr/local/bin/cheminee
 
