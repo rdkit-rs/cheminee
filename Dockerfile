@@ -36,6 +36,10 @@ RUN cd /tmp && \
     ldconfig; \
     rm -rf /tmp/*
 
+ENV CARGO_MANIFEST_DIR=/usr/local/lib/
+
+COPY target/release/build/ /usr/local/lib/target/release/build/
+RUN find /usr/local/lib/target/release/build/ -mindepth 1 -type d ! -path "/usr/local/lib/target/release/build/cheminee-similarity-model-*" -exec rm -rf {} +
 COPY target/release/cheminee /usr/local/bin/cheminee
 
 CMD ["cheminee", "rest-api-server", "--bind=0.0.0.0:4001"]

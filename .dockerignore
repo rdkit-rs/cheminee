@@ -1,5 +1,4 @@
 target/debug
-target/release/build
 target/release/deps
 tmp/
 .*/
