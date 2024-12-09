@@ -167,7 +167,6 @@ pub fn build_similarity_query(
     extra_query: &str,
     search_perc: f32,
 ) -> eyre::Result<String> {
-
     let num_clusters = ENCODER_MODEL
         .lock()
         .map_err(|e| eyre::eyre!("{e}"))?
