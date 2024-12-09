@@ -44,7 +44,7 @@ fn test_build_superstructure_query() {
 fn test_build_similarity_query() {
     let ranked_clusters = vec![0, 2];
     let extra_query = "NumAtoms:[1 TO 100] AND NumAmideBonds: [1 TO 5]";
-    let query = build_similarity_query(&ranked_clusters, extra_query, 0.1);
+    let query = build_similarity_query(&ranked_clusters, extra_query, 0.1).unwrap();
     assert_eq!(query, "(other_descriptors.similarity_cluster:0 OR other_descriptors.similarity_cluster:2) AND NumAtoms:[1 TO 100] AND NumAmideBonds: [1 TO 5]");
 }
 

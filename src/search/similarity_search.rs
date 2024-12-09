@@ -6,11 +6,12 @@ use cheminee_similarity_model::encoder::{build_encoder_model, EncoderModel};
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use std::cmp::min;
 use std::collections::HashSet;
+use std::sync::{Arc, Mutex};
 use tantivy::schema::{Field, OwnedValue};
 use tantivy::{DocAddress, Searcher};
 
 lazy_static::lazy_static! {
-    pub static ref ENCODER_MODEL: EncoderModel = build_encoder_model().unwrap();
+    pub static ref ENCODER_MODEL: Arc<Mutex<EncoderModel>> = Arc::new(Mutex::new(build_encoder_model().unwrap()));
 }
 
 pub fn similarity_search(
@@ -77,7 +78,7 @@ pub fn neighbor_search(
     search_perc: f32,
 ) -> eyre::Result<HashSet<DocAddress>> {
     let ranked_clusters = encode_fingerprint(query_morgan_fingerprint, false)?;
-    let query = build_similarity_query(&ranked_clusters, extra_query, search_perc);
+    let query = build_similarity_query(&ranked_clusters, extra_query, search_perc)?;
 
     let docs = basic_search(searcher, &query, 1_000_000)?;
     let results: HashSet<DocAddress> = docs.into_iter().collect();
@@ -149,7 +150,10 @@ pub fn encode_fingerprint(bit_vec: &BitVec<u8>, only_best_cluster: bool) -> eyre
         .map(|b| if *b { 1 } else { 0 })
         .collect::<Vec<u8>>();
 
-    let ranked_clusters = ENCODER_MODEL.transform(&fp_vec)?;
+    let ranked_clusters = ENCODER_MODEL
+        .lock()
+        .map_err(|e| eyre::eyre!("{e}"))?
+        .transform(&fp_vec)?;
 
     if only_best_cluster {
         Ok(vec![ranked_clusters[0]])
@@ -162,9 +166,14 @@ pub fn build_similarity_query(
     ranked_clusters: &[i32],
     extra_query: &str,
     search_perc: f32,
-) -> String {
+) -> eyre::Result<String> {
+    let num_clusters = ENCODER_MODEL
+        .lock()
+        .map_err(|e| eyre::eyre!("{e}"))?
+        .num_centroids as f32;
+
     let num_search_clusters = min(
-        (ENCODER_MODEL.num_centroids as f32 * search_perc / 100f32).ceil() as usize,
+        (num_clusters * search_perc / 100f32).ceil() as usize,
         ranked_clusters.len(),
     );
 
@@ -187,5 +196,5 @@ pub fn build_similarity_query(
         }
     }
 
-    query_parts.join(" AND ")
+    Ok(query_parts.join(" AND "))
 }
