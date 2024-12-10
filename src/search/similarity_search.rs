@@ -145,8 +145,7 @@ pub fn encode_fingerprint(bit_vec: &BitVec<u8>, only_best_cluster: bool) -> eyre
         .map(|b| if *b { 1 } else { 0 })
         .collect::<Vec<u8>>();
 
-    let ranked_clusters = build_encoder_model()?
-        .transform(&fp_vec)?;
+    let ranked_clusters = build_encoder_model()?.transform(&fp_vec)?;
 
     if only_best_cluster {
         Ok(vec![ranked_clusters[0]])
