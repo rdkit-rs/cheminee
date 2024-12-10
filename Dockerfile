@@ -38,6 +38,8 @@ RUN cd /tmp && \
 
 ENV CARGO_MANIFEST_DIR=/usr/local/lib/
 
+ENV TF_CPP_MIN_LOG_LEVEL=3
+
 COPY target/release/build/ /usr/local/lib/target/release/build/
 RUN find /usr/local/lib/target/release/build/ -mindepth 1 -type d ! -path "/usr/local/lib/target/release/build/cheminee-similarity-model-*" -exec rm -rf {} +
 COPY target/release/cheminee /usr/local/bin/cheminee
