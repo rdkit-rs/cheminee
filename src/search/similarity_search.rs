@@ -2,17 +2,12 @@ use crate::search::basic_search::basic_search;
 use crate::search::StructureSearchHit;
 use bitvec::order::Lsb0;
 use bitvec::prelude::{BitSlice, BitVec};
-use cheminee_similarity_model::encoder::{build_encoder_model, EncoderModel};
+use cheminee_similarity_model::encoder::{build_encoder_model, NUM_CLUSTERS};
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use std::cmp::min;
 use std::collections::HashSet;
-use std::sync::{Arc, Mutex};
 use tantivy::schema::{Field, OwnedValue};
 use tantivy::{DocAddress, Searcher};
-
-lazy_static::lazy_static! {
-    pub static ref ENCODER_MODEL: Arc<Mutex<EncoderModel>> = Arc::new(Mutex::new(build_encoder_model().unwrap()));
-}
 
 pub fn similarity_search(
     searcher: &Searcher,
@@ -150,9 +145,7 @@ pub fn encode_fingerprint(bit_vec: &BitVec<u8>, only_best_cluster: bool) -> eyre
         .map(|b| if *b { 1 } else { 0 })
         .collect::<Vec<u8>>();
 
-    let ranked_clusters = ENCODER_MODEL
-        .lock()
-        .map_err(|e| eyre::eyre!("{e}"))?
+    let ranked_clusters = build_encoder_model()?
         .transform(&fp_vec)?;
 
     if only_best_cluster {
@@ -167,13 +160,8 @@ pub fn build_similarity_query(
     extra_query: &str,
     search_perc: f32,
 ) -> eyre::Result<String> {
-    let num_clusters = ENCODER_MODEL
-        .lock()
-        .map_err(|e| eyre::eyre!("{e}"))?
-        .num_centroids as f32;
-
     let num_search_clusters = min(
-        (num_clusters * search_perc / 100f32).ceil() as usize,
+        (*NUM_CLUSTERS * search_perc / 100f32).ceil() as usize,
         ranked_clusters.len(),
     );
 
