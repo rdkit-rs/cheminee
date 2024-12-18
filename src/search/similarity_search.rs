@@ -139,13 +139,17 @@ pub fn get_tanimoto_similarity(fp1: &BitSlice<u8>, fp2: &BitSlice<u8>) -> f32 {
     and_ones as f32 / or_ones as f32
 }
 
-pub fn encode_fingerprint(bit_vec: &BitVec<u8>, only_best_cluster: bool) -> eyre::Result<Vec<i32>> {
-    let fp_vec = bit_vec
+pub fn encode_fingerprints(bit_vecs: &[BitVec<u8>], only_best_cluster: bool) -> eyre::Result<Vec<i32>> {
+    let fp_vecs = bit_vecs
         .iter()
-        .map(|b| if *b { 1 } else { 0 })
-        .collect::<Vec<u8>>();
+        .map(|bv| {
+            bv
+                .iter()
+                .map(|b| if *b { 1 } else { 0 })
+                .collect::<Vec<i64>>()
+        }).collect::<Vec<Vec<i64>>>();
 
-    let ranked_clusters = build_encoder_model()?.transform(&fp_vec)?;
+    let ranked_clusters = build_encoder_model()?.transform(&fp_vecs)?;
 
     if only_best_cluster {
         Ok(vec![ranked_clusters[0]])
