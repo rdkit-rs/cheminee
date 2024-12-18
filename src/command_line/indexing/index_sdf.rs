@@ -129,7 +129,7 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
             );
 
             match doc_batch_result {
-                Err(e) => log::warn!("{e}"),
+                Err(e) => log::warn!("Failed batched doc creation: {e}"),
                 Ok(doc_batch) => {
                     let _ = doc_batch
                         .into_par_iter()

@@ -2,10 +2,14 @@ use crate::command_line::{indexing::split_path, prelude::*};
 use crate::indexing::index_manager::IndexManager;
 use crate::search::compound_processing::process_cpd;
 use crate::search::scaffold_search::{scaffold_search, PARSED_SCAFFOLDS};
-use crate::search::similarity_search::encode_fingerprint;
+use crate::search::similarity_search::encode_fingerprints;
 use bitvec::macros::internal::funty::Fundamental;
 use rayon::prelude::*;
 use std::{collections::HashMap, fs::File, io::BufRead, io::BufReader, ops::Deref};
+use bitvec::prelude::BitVec;
+use rdkit::{Fingerprint, ROMol};
+use serde_json::Value;
+use tantivy::Document;
 use tantivy::schema::Field;
 
 pub const NAME: &str = "bulk-index";
@@ -64,39 +68,59 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
 
         record_vec.push(record);
         if record_vec.len() == chunksize {
-            let _ = record_vec
-                .clone()
-                .into_par_iter()
-                .map(|r| {
-                    let doc = create_tantivy_doc(
-                        r,
-                        smiles_field,
-                        pattern_fingerprint_field,
-                        morgan_fingerprint_field,
-                        &descriptor_fields,
-                        extra_data_field,
-                        other_descriptors_field,
-                    );
+            let doc_batch_result = batch_doc_creation(
+                &mut record_vec,
+                smiles_field,
+                extra_data_field,
+                pattern_fingerprint_field,
+                morgan_fingerprint_field,
+                &descriptor_fields,
+                other_descriptors_field,
+            );
 
-                    match doc {
-                        Ok(doc) => {
-                            let write_operation = writer.add_document(doc);
-
-                            match write_operation {
+            match doc_batch_result {
+                Err(e) => log::warn!("Doc creation batch failed: {e}"),
+                Ok(doc_batch) => {
+                    let _ = doc_batch
+                        .into_par_iter()
+                        .map(|doc| {
+                            match writer.add_document(doc) {
                                 Ok(_) => (),
-                                Err(e) => {
-                                    log::info!("Failed doc creation: {:?}", e);
+                                Err(_) => {
+                                    log::warn!("Failed doc creation");
                                 }
                             }
-                        }
-                        Err(e) => {
-                            log::info!("Failed doc creation: {:?}", e);
-                        }
-                    }
-                })
-                .collect::<Vec<_>>();
+                        }).collect::<Vec<()>>();
+                }
+            }
+        }
+    }
 
-            record_vec.clear();
+    if !record_vec.is_empty() {
+        let doc_batch_result = batch_doc_creation(
+            &mut record_vec,
+            smiles_field,
+            extra_data_field,
+            pattern_fingerprint_field,
+            morgan_fingerprint_field,
+            &descriptor_fields,
+            other_descriptors_field,
+        );
+
+        match doc_batch_result {
+            Err(e) => log::warn!("Doc creation batch failed: {e}"),
+            Ok(doc_batch) => {
+                let _ = doc_batch
+                    .into_par_iter()
+                    .map(|doc| {
+                        match writer.add_document(doc) {
+                            Ok(_) => (),
+                            Err(_) => {
+                                log::warn!("Failed doc creation");
+                            }
+                        }
+                    }).collect::<Vec<()>>();
+            }
         }
     }
 
@@ -105,27 +129,96 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
     Ok(())
 }
 
+fn batch_doc_creation(
+    record_vec: &mut Vec<Value>,
+    smiles_field: Field,
+    extra_data_field: Field,
+    pattern_fingerprint_field: Field,
+    morgan_fingerprint_field: Field,
+    descriptor_fields: &HashMap<&str, Field>,
+    other_descriptors_field: Field,
+) -> eyre::Result<Vec<impl Document>> {
+    let mol_attributes = record_vec
+        .clone()
+        .into_par_iter()
+        .filter_map(|r| {
+            let extra_data = r.get("extra_data").cloned();
+            if let Some(smiles) = r.get("smiles") {
+                if let Some(smiles) = smiles.as_str() {
+                    match process_cpd(smiles, false) {
+                        Ok(attributes) => {
+                            Some((attributes.0, extra_data, attributes.1, attributes.2))
+                        },
+                        Err(e) => {
+                            log::warn!("Failed compound processing for smiles '{}': {}", smiles, e);
+                            None
+                        }
+                    }
+                } else {
+                    log::warn!("Failed to convert smiles to str");
+                    None
+                }
+            } else {
+                log::warn!("Failed to extract smiles");
+                None
+            }
+        }).collect::<Vec<(ROMol, Option<Value>, Fingerprint, HashMap<String, f64>)>>();
+
+    record_vec.clear();
+
+    let mut morgan_fingerprints: Vec<Fingerprint> = Vec::with_capacity(mol_attributes.len());
+    let mut morgan_bitvecs: Vec<BitVec<u8>> = Vec::with_capacity(mol_attributes.len());
+    for attributes in mol_attributes.clone() {
+        let morgan_fp = attributes.0.morgan_fingerprint();
+        morgan_fingerprints.push(morgan_fp.clone());
+        morgan_bitvecs.push(morgan_fp.0);
+    }
+
+    let similarity_clusters = encode_fingerprints(&morgan_bitvecs, true)
+        .map_err(|e| eyre::eyre!("Failed batched similarity cluster assignment: {e}"))?;
+
+    let docs = (0..mol_attributes.len())
+        .into_iter()
+        .filter_map(|i| {
+            match create_tantivy_doc(
+                mol_attributes[i].0.to_owned(),
+                mol_attributes[i].1.to_owned(),
+                mol_attributes[i].2.to_owned(),
+                morgan_fingerprints[i].to_owned(),
+                mol_attributes[i].3.to_owned(),
+                similarity_clusters[i],
+                smiles_field,
+                pattern_fingerprint_field,
+                morgan_fingerprint_field,
+                &descriptor_fields,
+                extra_data_field,
+                other_descriptors_field,
+            ) {
+                Ok(doc) => Some(doc),
+                Err(_) => {
+                    log::warn!("Failed doc creation");
+                    None
+                },
+            }
+        }).collect::<Vec<_>>();
+
+    Ok(docs)
+}
+
 fn create_tantivy_doc(
-    record: serde_json::Value,
+    canon_taut: ROMol,
+    extra_data: Option<Value>,
+    pattern_fp: Fingerprint,
+    morgan_fp: Fingerprint,
+    descriptors: HashMap<String, f64>,
+    similarity_cluster: i32,
     smiles_field: Field,
     pattern_fingerprint_field: Field,
     morgan_fingerprint_field: Field,
     descriptor_fields: &HashMap<&str, Field>,
     extra_data_field: Field,
     other_descriptors_field: Field,
-) -> eyre::Result<impl tantivy::Document> {
-    let smiles = record
-        .get("smiles")
-        .ok_or(eyre::eyre!("Failed to extract smiles"))?
-        .as_str()
-        .ok_or(eyre::eyre!("Failed to convert smiles to str"))?;
-    let extra_data = record.get("extra_data").cloned();
-
-    // By default, do not attempt to fix problematic molecules
-    let (canon_taut, pattern_fp, descriptors) = process_cpd(smiles, false)?;
-
-    let morgan_fp = canon_taut.morgan_fingerprint();
-
+) -> eyre::Result<impl Document> {
     let mut doc = doc!(
         smiles_field => canon_taut.as_smiles(),
         pattern_fingerprint_field => pattern_fp.0.as_raw_slice(),
@@ -138,7 +231,6 @@ fn create_tantivy_doc(
         false => serde_json::json!({"scaffolds": scaffold_matches}),
     };
 
-    let similarity_cluster = encode_fingerprint(&morgan_fp.0, true)?[0];
     let cluster_json = serde_json::json!({"similarity_cluster": similarity_cluster});
 
     let other_descriptors_json = combine_json_objects(Some(scaffold_json), Some(cluster_json));
