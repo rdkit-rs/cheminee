@@ -9,7 +9,7 @@ use bitvec::prelude::BitVec;
 use rdkit::{Fingerprint, ROMol};
 use serde_json::Value;
 use tantivy::Document;
-use tantivy::schema::Field;
+use tantivy::schema::{Field, Schema};
 
 pub const NAME: &str = "bulk-index";
 
@@ -46,16 +46,6 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
     let mut writer = index.writer(16 * 1024 * 1024)?;
     let schema = index.schema();
 
-    let smiles_field = schema.get_field("smiles")?;
-    let pattern_fingerprint_field = schema.get_field("pattern_fingerprint")?;
-    let morgan_fingerprint_field = schema.get_field("morgan_fingerprint")?;
-    let extra_data_field = schema.get_field("extra_data")?;
-    let other_descriptors_field = schema.get_field("other_descriptors")?;
-    let descriptor_fields = KNOWN_DESCRIPTORS
-        .iter()
-        .map(|kd| (*kd, schema.get_field(kd).unwrap()))
-        .collect::<HashMap<&str, Field>>();
-
     let file = File::open(json_path)?;
     let reader = BufReader::new(file);
     let chunksize = 1000;
@@ -67,17 +57,7 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
 
         record_vec.push(record);
         if record_vec.len() == chunksize {
-            let doc_batch_result = batch_doc_creation(
-                &mut record_vec,
-                smiles_field,
-                extra_data_field,
-                pattern_fingerprint_field,
-                morgan_fingerprint_field,
-                &descriptor_fields,
-                other_descriptors_field,
-            );
-
-            match doc_batch_result {
+            match batch_doc_creation(&mut record_vec, &schema) {
                 Err(e) => log::warn!("Doc creation batch failed: {e}"),
                 Ok(doc_batch) => {
                     let _ = doc_batch
@@ -96,17 +76,7 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
     }
 
     if !record_vec.is_empty() {
-        let doc_batch_result = batch_doc_creation(
-            &mut record_vec,
-            smiles_field,
-            extra_data_field,
-            pattern_fingerprint_field,
-            morgan_fingerprint_field,
-            &descriptor_fields,
-            other_descriptors_field,
-        );
-
-        match doc_batch_result {
+        match batch_doc_creation(&mut record_vec, &schema) {
             Err(e) => log::warn!("Doc creation batch failed: {e}"),
             Ok(doc_batch) => {
                 let _ = doc_batch
@@ -130,13 +100,18 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
 
 fn batch_doc_creation(
     record_vec: &mut Vec<Value>,
-    smiles_field: Field,
-    extra_data_field: Field,
-    pattern_fingerprint_field: Field,
-    morgan_fingerprint_field: Field,
-    descriptor_fields: &HashMap<&str, Field>,
-    other_descriptors_field: Field,
+    schema: &Schema,
 ) -> eyre::Result<Vec<impl Document>> {
+    let smiles_field = schema.get_field("smiles")?;
+    let pattern_fingerprint_field = schema.get_field("pattern_fingerprint")?;
+    let morgan_fingerprint_field = schema.get_field("morgan_fingerprint")?;
+    let extra_data_field = schema.get_field("extra_data")?;
+    let other_descriptors_field = schema.get_field("other_descriptors")?;
+    let descriptor_fields = KNOWN_DESCRIPTORS
+        .iter()
+        .map(|kd| (*kd, schema.get_field(kd).unwrap()))
+        .collect::<HashMap<&str, Field>>();
+
     let mol_attributes = record_vec
         .clone()
         .into_par_iter()

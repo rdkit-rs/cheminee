@@ -13,7 +13,7 @@ use std::collections::HashMap;
 use bitvec::prelude::BitVec;
 use rdkit::{Fingerprint, ROMol};
 use tantivy::{doc, Document};
-use tantivy::schema::Field;
+use tantivy::schema::{Field, Schema};
 
 pub async fn v1_post_index_bulk(
     index_manager: &IndexManager,
@@ -38,29 +38,8 @@ pub async fn v1_post_index_bulk(
         }
     };
 
-    let schema = index.schema();
-
-    let smiles_field = schema.get_field("smiles").unwrap();
-    let pattern_fingerprint_field = schema.get_field("pattern_fingerprint").unwrap();
-    let morgan_fingerprint_field = schema.get_field("morgan_fingerprint").unwrap();
-    let extra_data_field = schema.get_field("extra_data").unwrap();
-    let other_descriptors_field = schema.get_field("other_descriptors").unwrap();
-
-    let descriptor_fields = KNOWN_DESCRIPTORS
-        .iter()
-        .map(|kd| (*kd, schema.get_field(kd).unwrap()))
-        .collect::<HashMap<&str, Field>>();
-
     let tantivy_docs_conversion_operation = tokio::task::spawn_blocking(move || {
-        batch_doc_creation(
-            bulk_request,
-            smiles_field,
-            pattern_fingerprint_field,
-            morgan_fingerprint_field,
-            &descriptor_fields,
-            extra_data_field,
-            other_descriptors_field,
-        )
+        batch_doc_creation(bulk_request, &index.schema())
     })
     .await;
 
@@ -121,13 +100,19 @@ pub async fn v1_post_index_bulk(
 
 fn batch_doc_creation(
     bulk_request: BulkRequest,
-    smiles_field: Field,
-    pattern_fingerprint_field: Field,
-    morgan_fingerprint_field: Field,
-    descriptor_fields: &HashMap<&str, Field>,
-    extra_data_field: Field,
-    other_descriptors_field: Field,
+    schema: &Schema,
 ) -> eyre::Result<Vec<eyre::Result<impl Document>>> {
+    let smiles_field = schema.get_field("smiles").unwrap();
+    let pattern_fingerprint_field = schema.get_field("pattern_fingerprint").unwrap();
+    let morgan_fingerprint_field = schema.get_field("morgan_fingerprint").unwrap();
+    let extra_data_field = schema.get_field("extra_data").unwrap();
+    let other_descriptors_field = schema.get_field("other_descriptors").unwrap();
+
+    let descriptor_fields = KNOWN_DESCRIPTORS
+        .iter()
+        .map(|kd| (*kd, schema.get_field(kd).unwrap()))
+        .collect::<HashMap<&str, Field>>();
+
     let mol_attributes = bulk_request
         .docs
         .into_par_iter()

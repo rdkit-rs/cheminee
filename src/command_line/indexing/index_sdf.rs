@@ -5,7 +5,7 @@ use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use bitvec::prelude::BitVec;
 use tantivy::Document;
-use tantivy::schema::Field;
+use tantivy::schema::{Field, Schema};
 
 use crate::command_line::prelude::*;
 use crate::search::compound_processing::process_cpd;
@@ -92,16 +92,6 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
     let index = create_or_reset_index(index_dir, schema)?;
     let mut index_writer = index.writer_with_num_threads(1, 50 * 1024 * 1024)?;
 
-    // Get all relevant descriptor fields
-    let smiles_field = schema.get_field("smiles")?;
-    let pattern_fingerprint_field = schema.get_field("pattern_fingerprint")?;
-    let morgan_fingerprint_field = schema.get_field("morgan_fingerprint")?;
-    let other_descriptors_field = schema.get_field("other_descriptors")?;
-    let descriptor_fields = KNOWN_DESCRIPTORS
-        .iter()
-        .map(|kd| (*kd, schema.get_field(kd).unwrap()))
-        .collect::<HashMap<&str, Field>>();
-
     let mut counter = 0;
     let failed_counter: Arc<Mutex<usize>> = Arc::new(Mutex::new(0));
 
@@ -118,17 +108,7 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
         mol_vec.push(mol.to_ro_mol());
 
         if mol_vec.len() == chunksize {
-            let doc_batch_result = batch_doc_creation(
-                &mut mol_vec,
-                &failed_counter,
-                smiles_field,
-                pattern_fingerprint_field,
-                morgan_fingerprint_field,
-                &descriptor_fields,
-                other_descriptors_field,
-            );
-
-            match doc_batch_result {
+            match batch_doc_creation(&mut mol_vec, &failed_counter, &schema) {
                 Err(e) => log::warn!("Failed batched doc creation: {e}"),
                 Ok(doc_batch) => {
                     let _ = doc_batch
@@ -161,17 +141,7 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
     if !mol_vec.is_empty() {
         let last_chunksize = mol_vec.len();
 
-        let doc_batch_result = batch_doc_creation(
-            &mut mol_vec,
-            &failed_counter,
-            smiles_field,
-            pattern_fingerprint_field,
-            morgan_fingerprint_field,
-            &descriptor_fields,
-            other_descriptors_field,
-        );
-
-        match doc_batch_result {
+        match batch_doc_creation(&mut mol_vec, &failed_counter, &schema) {
             Err(e) => log::warn!("{e}"),
             Ok(doc_batch) => {
                 let _ = doc_batch
@@ -206,12 +176,17 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
 fn batch_doc_creation(
     mol_vec: &mut Vec<ROMol>,
     failed_counter: &Arc<Mutex<usize>>,
-    smiles_field: Field,
-    pattern_fingerprint_field: Field,
-    morgan_fingerprint_field: Field,
-    descriptor_fields: &HashMap<&str, Field>,
-    other_descriptors_field: Field,
+    schema: &Schema,
 ) -> eyre::Result<Vec<impl Document>> {
+    let smiles_field = schema.get_field("smiles")?;
+    let pattern_fingerprint_field = schema.get_field("pattern_fingerprint")?;
+    let morgan_fingerprint_field = schema.get_field("morgan_fingerprint")?;
+    let other_descriptors_field = schema.get_field("other_descriptors")?;
+    let descriptor_fields = KNOWN_DESCRIPTORS
+        .iter()
+        .map(|kd| (*kd, schema.get_field(kd).unwrap()))
+        .collect::<HashMap<&str, Field>>();
+
     let mol_attributes = mol_vec
         .clone()
         .into_par_iter()
@@ -251,10 +226,10 @@ fn batch_doc_creation(
         .into_iter()
         .filter_map(|i| {
             match create_tantivy_doc(
-                mol_attributes[i].0.to_owned(),
-                mol_attributes[i].1.to_owned(),
-                morgan_fingerprints[i].to_owned(),
-                mol_attributes[i].2.to_owned(),
+                &mol_attributes[i].0,
+                &mol_attributes[i].1,
+                &morgan_fingerprints[i],
+                &mol_attributes[i].2,
                 similarity_clusters[i],
                 smiles_field,
                 pattern_fingerprint_field,
@@ -276,10 +251,10 @@ fn batch_doc_creation(
 }
 
 fn create_tantivy_doc(
-    canon_taut: ROMol,
-    pattern_fp: Fingerprint,
-    morgan_fp: Fingerprint,
-    descriptors: HashMap<String, f64>,
+    canon_taut: &ROMol,
+    pattern_fp: &Fingerprint,
+    morgan_fp: &Fingerprint,
+    descriptors: &HashMap<String, f64>,
     similarity_cluster: i32,
     smiles_field: Field,
     pattern_fingerprint_field: Field,
