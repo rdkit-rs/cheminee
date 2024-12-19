@@ -137,7 +137,8 @@ fn batch_doc_creation(
         morgan_bitvecs.push(morgan_fp.0);
     }
 
-    let similarity_clusters = encode_fingerprints(&morgan_bitvecs, true)?;
+    let similarity_clusters = encode_fingerprints(&morgan_bitvecs, true)
+        .map_err(|e| eyre::eyre!("Failed batched similarity cluster assignment: {e}"))?;
 
     let docs = (0..mol_attributes.len())
         .into_iter()
