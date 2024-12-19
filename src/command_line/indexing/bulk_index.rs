@@ -3,7 +3,6 @@ use crate::indexing::index_manager::IndexManager;
 use crate::search::compound_processing::process_cpd;
 use crate::search::scaffold_search::{scaffold_search, PARSED_SCAFFOLDS};
 use crate::search::similarity_search::encode_fingerprints;
-use bitvec::macros::internal::funty::Fundamental;
 use rayon::prelude::*;
 use std::{collections::HashMap, fs::File, io::BufRead, io::BufReader, ops::Deref};
 use bitvec::prelude::BitVec;
@@ -246,10 +245,10 @@ fn create_tantivy_doc(
     for field in KNOWN_DESCRIPTORS {
         if let Some(val) = descriptors.get(field) {
             if field.starts_with("Num") || field.starts_with("lipinski") {
-                let int = val.as_f64() as i64;
+                let int = *val as i64;
                 doc.add_field_value(*descriptor_fields.get(field).unwrap(), int);
             } else {
-                doc.add_field_value(*descriptor_fields.get(field).unwrap(), val.as_f64());
+                doc.add_field_value(*descriptor_fields.get(field).unwrap(), *val);
             };
         }
     }

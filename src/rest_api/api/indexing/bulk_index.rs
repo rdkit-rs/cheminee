@@ -1,16 +1,18 @@
 use crate::indexing::{combine_json_objects, index_manager::IndexManager, KNOWN_DESCRIPTORS};
 use crate::rest_api::api::{
-    BulkRequest, BulkRequestDoc, PostIndexBulkResponseError, PostIndexBulkResponseOk,
+    BulkRequest, PostIndexBulkResponseError, PostIndexBulkResponseOk,
     PostIndexBulkResponseOkStatus, PostIndexesBulkIndexResponse,
 };
 use crate::search::compound_processing::process_cpd;
 use crate::search::scaffold_search::{scaffold_search, PARSED_SCAFFOLDS};
-use crate::search::similarity_search::encode_fingerprint;
+use crate::search::similarity_search::encode_fingerprints;
 use poem_openapi::payload::Json;
 use rayon::prelude::*;
-use serde_json::{Map, Value};
+use serde_json::Value;
 use std::collections::HashMap;
-use tantivy::doc;
+use bitvec::prelude::BitVec;
+use rdkit::{Fingerprint, ROMol};
+use tantivy::{doc, Document};
 use tantivy::schema::Field;
 
 pub async fn v1_post_index_bulk(
@@ -44,32 +46,29 @@ pub async fn v1_post_index_bulk(
     let extra_data_field = schema.get_field("extra_data").unwrap();
     let other_descriptors_field = schema.get_field("other_descriptors").unwrap();
 
-    let descriptors_fields = KNOWN_DESCRIPTORS
+    let descriptor_fields = KNOWN_DESCRIPTORS
         .iter()
         .map(|kd| (*kd, schema.get_field(kd).unwrap()))
         .collect::<HashMap<&str, Field>>();
 
     let tantivy_docs_conversion_operation = tokio::task::spawn_blocking(move || {
-        bulk_request
-            .docs
-            .into_par_iter()
-            .map(|doc| {
-                bulk_request_doc_to_tantivy_doc(
-                    doc,
-                    smiles_field,
-                    pattern_fingerprint_field,
-                    morgan_fingerprint_field,
-                    &descriptors_fields,
-                    extra_data_field,
-                    other_descriptors_field,
-                )
-            })
-            .collect::<Vec<_>>()
+        batch_doc_creation(
+            bulk_request,
+            smiles_field,
+            pattern_fingerprint_field,
+            morgan_fingerprint_field,
+            &descriptor_fields,
+            extra_data_field,
+            other_descriptors_field,
+        )
     })
     .await;
 
     let tantivy_docs = match tantivy_docs_conversion_operation {
-        Ok(docs) => docs,
+        Ok(Ok(docs)) => docs,
+        Ok(Err(e)) => return PostIndexesBulkIndexResponse::Err(Json(PostIndexBulkResponseError {
+            error: e.to_string(),
+        })),
         Err(e) => {
             return PostIndexesBulkIndexResponse::Err(Json(PostIndexBulkResponseError {
                 error: e.to_string(),
@@ -120,28 +119,84 @@ pub async fn v1_post_index_bulk(
     }))
 }
 
-fn bulk_request_doc_to_tantivy_doc(
-    bulk_request_doc: BulkRequestDoc,
+fn batch_doc_creation(
+    bulk_request: BulkRequest,
     smiles_field: Field,
     pattern_fingerprint_field: Field,
     morgan_fingerprint_field: Field,
-    descriptors_fields: &HashMap<&str, Field>,
+    descriptor_fields: &HashMap<&str, Field>,
     extra_data_field: Field,
     other_descriptors_field: Field,
-) -> eyre::Result<impl tantivy::Document> {
-    // By default, do not attempt to fix problematic molecules
-    let (canon_taut, pattern_fp, descriptors) = process_cpd(&bulk_request_doc.smiles, false)?;
+) -> eyre::Result<Vec<eyre::Result<impl Document>>> {
+    let mol_attributes = bulk_request
+        .docs
+        .into_par_iter()
+        .map(|doc| {
+            match process_cpd(&doc.smiles, false) {
+                Ok(attributes) => {
+                    (true, attributes.0, doc.extra_data, attributes.1, attributes.2)
+                },
+                Err(_) => {
+                    let placeholder = process_cpd("c1ccccc1", false).unwrap();
+                    (false, placeholder.0, None, placeholder.1, placeholder.2)
+                }
+            }
+        })
+        .collect::<Vec<_>>();
 
-    let morgan_fp = canon_taut.morgan_fingerprint();
+    let mut morgan_fingerprints: Vec<Fingerprint> = Vec::with_capacity(mol_attributes.len());
+    let mut morgan_bitvecs: Vec<BitVec<u8>> = Vec::with_capacity(mol_attributes.len());
+    for attributes in &mol_attributes {
+        let morgan_fp = attributes.1.morgan_fingerprint();
+        morgan_fingerprints.push(morgan_fp.clone());
+        morgan_bitvecs.push(morgan_fp.0);
+    }
 
-    let json: Value = serde_json::to_value(descriptors)?;
-    let jsonified_compound_descriptors: Map<String, Value> = if let Value::Object(map) = json {
-        map
-    } else {
-        return Err(eyre::eyre!("not an object"));
-    };
+    let similarity_clusters = encode_fingerprints(&morgan_bitvecs, true)?;
 
-    let mut doc = tantivy::doc!(
+    let docs = (0..mol_attributes.len())
+        .into_iter()
+        .map(|i| {
+            let attributes = &mol_attributes[i];
+            match attributes.0 {
+                true => {
+                    create_tantivy_doc(
+                        &attributes.1,
+                        &attributes.2,
+                        &attributes.3,
+                        &morgan_fingerprints[i],
+                        &attributes.4,
+                        similarity_clusters[i],
+                        smiles_field,
+                        pattern_fingerprint_field,
+                        morgan_fingerprint_field,
+                        &descriptor_fields,
+                        extra_data_field,
+                        other_descriptors_field,
+                    )
+                },
+                false => Err(eyre::eyre!("Compound processing failed")),
+            }
+        }).collect::<Vec<_>>();
+
+    Ok(docs)
+}
+
+fn create_tantivy_doc(
+    canon_taut: &ROMol,
+    extra_data: &Option<Value>,
+    pattern_fp: &Fingerprint,
+    morgan_fp: &Fingerprint,
+    descriptors: &HashMap<String, f64>,
+    similarity_cluster: i32,
+    smiles_field: Field,
+    pattern_fingerprint_field: Field,
+    morgan_fingerprint_field: Field,
+    descriptor_fields: &HashMap<&str, Field>,
+    extra_data_field: Field,
+    other_descriptors_field: Field,
+) -> eyre::Result<impl Document> {
+    let mut doc = doc!(
         smiles_field => canon_taut.as_smiles(),
         pattern_fingerprint_field => pattern_fp.0.as_raw_slice(),
         morgan_fingerprint_field => morgan_fp.0.as_raw_slice(),
@@ -153,7 +208,6 @@ fn bulk_request_doc_to_tantivy_doc(
         false => serde_json::json!({"scaffolds": scaffold_matches}),
     };
 
-    let similarity_cluster = encode_fingerprint(&morgan_fp.0, true)?[0];
     let cluster_json = serde_json::json!({"similarity_cluster": similarity_cluster});
 
     let other_descriptors_json = combine_json_objects(Some(scaffold_json), Some(cluster_json));
@@ -162,20 +216,17 @@ fn bulk_request_doc_to_tantivy_doc(
         doc.add_field_value(other_descriptors_field, other_descriptors_json);
     }
 
-    if let Some(extra_data) = bulk_request_doc.extra_data {
-        doc.add_field_value(extra_data_field, extra_data);
+    if let Some(extra_data) = extra_data {
+        doc.add_field_value(extra_data_field, extra_data.clone());
     }
 
     for field in KNOWN_DESCRIPTORS {
-        if let Some(Value::Number(val)) = jsonified_compound_descriptors.get(field) {
+        if let Some(val) = descriptors.get(field) {
             if field.starts_with("Num") || field.starts_with("lipinski") {
-                let int = val.as_f64().unwrap() as i64;
-                doc.add_field_value(*descriptors_fields.get(field).unwrap(), int);
+                let int = *val as i64;
+                doc.add_field_value(*descriptor_fields.get(field).unwrap(), int);
             } else {
-                doc.add_field_value(
-                    *descriptors_fields.get(field).unwrap(),
-                    val.as_f64().unwrap(),
-                );
+                doc.add_field_value(*descriptor_fields.get(field).unwrap(), *val);
             };
         }
     }
