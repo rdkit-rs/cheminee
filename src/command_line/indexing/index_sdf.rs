@@ -32,6 +32,7 @@ pub fn command() -> Command {
             Arg::new("chunk-size")
                 .required(false)
                 .long("chunk-size")
+                .short('c')
                 .num_args(1),
         )
         .arg(
@@ -50,8 +51,14 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
         .get_one::<String>("index")
         .ok_or(eyre::eyre!("Failed to extract index path"))?;
     let limit = matches.get_one::<String>("limit");
-    let chunksize: usize = *matches.get_one("chunk-size").unwrap_or(&1000); // TODO figure out how to parse usize from CLI flags
+    let chunksize = matches.get_one::<String>("chunk-size");
     let commit: bool = matches.get_flag("commit");
+
+    let chunksize = if let Some(chunksize) = chunksize {
+        chunksize.parse::<usize>()?
+    } else {
+        usize::try_from(1000)?
+    };
 
     log::info!(
         "indexing path={}, index_dir={}, limit={:?}",
