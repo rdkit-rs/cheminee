@@ -99,7 +99,7 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
         compound_vec.push((mol.to_ro_mol().as_smiles(), None));
 
         if compound_vec.len() == chunksize {
-            match batch_doc_creation(&compound_vec, &schema) {
+            match batch_doc_creation(&compound_vec, schema) {
                 Err(e) => log::warn!("Failed batched doc creation: {e}"),
                 Ok(doc_batch) => {
                     let _ = doc_batch
@@ -142,7 +142,7 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
 
     if !compound_vec.is_empty() {
         let last_chunksize = compound_vec.len();
-        match batch_doc_creation(&compound_vec, &schema) {
+        match batch_doc_creation(&compound_vec, schema) {
             Err(e) => log::warn!("Failed batched doc creation: {e}"),
             Ok(doc_batch) => {
                 let _ = doc_batch

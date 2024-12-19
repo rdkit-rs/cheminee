@@ -5,7 +5,7 @@ use std::collections::HashMap;
 use cheminee::indexing::{combine_json_objects, KNOWN_DESCRIPTORS};
 use cheminee::search::compound_processing::process_cpd;
 use cheminee::search::scaffold_search::{scaffold_search, PARSED_SCAFFOLDS};
-use cheminee::search::similarity_search::encode_fingerprint;
+use cheminee::search::similarity_search::encode_fingerprints;
 use poem::test::TestResponse;
 use poem::EndpointExt;
 use poem::{Endpoint, Route};
@@ -139,7 +139,7 @@ fn fill_test_index(tantivy_index: Index) -> eyre::Result<()> {
             false => serde_json::json!({"scaffolds": scaffold_matches}),
         };
 
-        let similarity_cluster = encode_fingerprint(&morgan_fingerprint.0, true)?[0];
+        let similarity_cluster = &encode_fingerprints(&vec![morgan_fingerprint.0], true)?[0];
         let cluster_json = serde_json::json!({"similarity_cluster": similarity_cluster});
 
         let other_descriptors_json = combine_json_objects(Some(scaffold_json), Some(cluster_json));

@@ -2,8 +2,6 @@ use crate::command_line::prelude::*;
 use crate::search::similarity_search::{neighbor_search, similarity_search};
 use crate::search::{compound_processing::*, validate_structure};
 use std::cmp::min;
-use std::collections::HashSet;
-use tantivy::DocAddress;
 
 pub const NAME: &str = "similarity-search";
 
@@ -133,15 +131,7 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
         .map(|m| m.morgan_fingerprint().0)
         .collect::<Vec<_>>();
 
-    let mut results: HashSet<DocAddress> = HashSet::new();
-    for taut_fp in &taut_morgan_fingerprints {
-        let taut_results = neighbor_search(&searcher, taut_fp, &extra_query, search_percent_limit);
-        if let Ok(taut_results) = taut_results {
-            results.extend(taut_results);
-        } else {
-            log::warn!("Encountered a failed search");
-        }
-    }
+    let results = neighbor_search(&searcher, &taut_morgan_fingerprints, &extra_query, search_percent_limit)?;
 
     let final_results = similarity_search(
         &searcher,

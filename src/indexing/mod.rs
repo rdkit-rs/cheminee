@@ -103,7 +103,7 @@ pub fn batch_doc_creation(
         .map(|(smiles, extra_data)| {
             match process_cpd(smiles, false) {
                 Ok(attributes) => {
-                    ("Succeeded".to_string(), attributes.0, extra_data, attributes.1, attributes.2)
+                    ("Passed".to_string(), attributes.0, extra_data, attributes.1, attributes.2)
                 },
                 Err(e) => {
                     let placeholder = process_cpd("c1ccccc1", false).unwrap();
@@ -125,17 +125,16 @@ pub fn batch_doc_creation(
         .map_err(|e| eyre::eyre!("Failed batched similarity cluster assignment: {e}"))?;
 
     let docs = (0..mol_attributes.len())
-        .into_iter()
         .map(|i| {
             let attributes = &mol_attributes[i];
-            if attributes.0 == "Success" {
+            if attributes.0 == "Passed" {
                 create_tantivy_doc(
                     &attributes.1,
                     attributes.2,
                     &attributes.3,
                     &morgan_fingerprints[i],
                     &attributes.4,
-                    similarity_clusters[i],
+                    similarity_clusters[i][0],
                     smiles_field,
                     pattern_fingerprint_field,
                     morgan_fingerprint_field,
@@ -151,6 +150,7 @@ pub fn batch_doc_creation(
     Ok(docs)
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn create_tantivy_doc(
     canon_taut: &ROMol,
     extra_data: &Option<serde_json::Value>,
@@ -171,7 +171,7 @@ pub fn create_tantivy_doc(
         morgan_fingerprint_field => morgan_fp.0.as_raw_slice(),
     );
 
-    let scaffold_matches = scaffold_search(&pattern_fp.0, &canon_taut, &PARSED_SCAFFOLDS)?;
+    let scaffold_matches = scaffold_search(&pattern_fp.0, canon_taut, &PARSED_SCAFFOLDS)?;
     let scaffold_json = match scaffold_matches.is_empty() {
         true => serde_json::json!({"scaffolds": vec![-1]}),
         false => serde_json::json!({"scaffolds": scaffold_matches}),
