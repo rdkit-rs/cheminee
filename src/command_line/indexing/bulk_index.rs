@@ -1,7 +1,6 @@
 use crate::command_line::{indexing::split_path, prelude::*};
 use crate::indexing::index_manager::IndexManager;
 use crate::search::compound_processing::process_cpd;
-use crate::search::scaffold_search::{scaffold_search, PARSED_SCAFFOLDS};
 use crate::search::similarity_search::encode_fingerprints;
 use rayon::prelude::*;
 use std::{collections::HashMap, fs::File, io::BufRead, io::BufReader, ops::Deref};
@@ -154,12 +153,13 @@ fn batch_doc_creation(
     let docs = (0..mol_attributes.len())
         .into_iter()
         .filter_map(|i| {
+            let attributes = &mol_attributes[i];
             match create_tantivy_doc(
-                mol_attributes[i].0.to_owned(),
-                mol_attributes[i].1.to_owned(),
-                mol_attributes[i].2.to_owned(),
-                morgan_fingerprints[i].to_owned(),
-                mol_attributes[i].3.to_owned(),
+                &attributes.0,
+                &attributes.1,
+                &attributes.2,
+                &morgan_fingerprints[i],
+                &attributes.3,
                 similarity_clusters[i],
                 smiles_field,
                 pattern_fingerprint_field,
@@ -177,56 +177,4 @@ fn batch_doc_creation(
         }).collect::<Vec<_>>();
 
     Ok(docs)
-}
-
-fn create_tantivy_doc(
-    canon_taut: ROMol,
-    extra_data: Option<Value>,
-    pattern_fp: Fingerprint,
-    morgan_fp: Fingerprint,
-    descriptors: HashMap<String, f64>,
-    similarity_cluster: i32,
-    smiles_field: Field,
-    pattern_fingerprint_field: Field,
-    morgan_fingerprint_field: Field,
-    descriptor_fields: &HashMap<&str, Field>,
-    extra_data_field: Field,
-    other_descriptors_field: Field,
-) -> eyre::Result<impl Document> {
-    let mut doc = doc!(
-        smiles_field => canon_taut.as_smiles(),
-        pattern_fingerprint_field => pattern_fp.0.as_raw_slice(),
-        morgan_fingerprint_field => morgan_fp.0.as_raw_slice(),
-    );
-
-    let scaffold_matches = scaffold_search(&pattern_fp.0, &canon_taut, &PARSED_SCAFFOLDS)?;
-    let scaffold_json = match scaffold_matches.is_empty() {
-        true => serde_json::json!({"scaffolds": vec![-1]}),
-        false => serde_json::json!({"scaffolds": scaffold_matches}),
-    };
-
-    let cluster_json = serde_json::json!({"similarity_cluster": similarity_cluster});
-
-    let other_descriptors_json = combine_json_objects(Some(scaffold_json), Some(cluster_json));
-
-    if let Some(other_descriptors_json) = other_descriptors_json {
-        doc.add_field_value(other_descriptors_field, other_descriptors_json);
-    }
-
-    if let Some(extra_data) = extra_data {
-        doc.add_field_value(extra_data_field, extra_data);
-    }
-
-    for field in KNOWN_DESCRIPTORS {
-        if let Some(val) = descriptors.get(field) {
-            if field.starts_with("Num") || field.starts_with("lipinski") {
-                let int = *val as i64;
-                doc.add_field_value(*descriptor_fields.get(field).unwrap(), int);
-            } else {
-                doc.add_field_value(*descriptor_fields.get(field).unwrap(), *val);
-            };
-        }
-    }
-
-    Ok(doc)
 }

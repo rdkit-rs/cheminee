@@ -1,4 +1,3 @@
-use bitvec::macros::internal::funty::Fundamental;
 use rayon::prelude::*;
 use rdkit::{Fingerprint, MolBlockIter, ROMol, RWMol};
 use std::collections::HashMap;
@@ -9,7 +8,6 @@ use tantivy::schema::{Field, Schema};
 
 use crate::command_line::prelude::*;
 use crate::search::compound_processing::process_cpd;
-use crate::search::scaffold_search::{scaffold_search, PARSED_SCAFFOLDS};
 use crate::search::similarity_search::encode_fingerprints;
 
 pub const NAME: &str = "index-sdf";
@@ -181,6 +179,7 @@ fn batch_doc_creation(
     let smiles_field = schema.get_field("smiles")?;
     let pattern_fingerprint_field = schema.get_field("pattern_fingerprint")?;
     let morgan_fingerprint_field = schema.get_field("morgan_fingerprint")?;
+    let extra_data_field = schema.get_field("extra_data")?;
     let other_descriptors_field = schema.get_field("other_descriptors")?;
     let descriptor_fields = KNOWN_DESCRIPTORS
         .iter()
@@ -225,16 +224,19 @@ fn batch_doc_creation(
     let docs = (0..mol_attributes.len())
         .into_iter()
         .filter_map(|i| {
+            let attributes = &mol_attributes[i];
             match create_tantivy_doc(
-                &mol_attributes[i].0,
-                &mol_attributes[i].1,
+                &attributes.0,
+                &None,
+                &attributes.1,
                 &morgan_fingerprints[i],
-                &mol_attributes[i].2,
+                &attributes.2,
                 similarity_clusters[i],
                 smiles_field,
                 pattern_fingerprint_field,
                 morgan_fingerprint_field,
                 &descriptor_fields,
+                extra_data_field,
                 other_descriptors_field,
             ) {
                 Ok(doc) => Some(doc),
@@ -248,53 +250,4 @@ fn batch_doc_creation(
         }).collect::<Vec<_>>();
 
     Ok(docs)
-}
-
-fn create_tantivy_doc(
-    canon_taut: &ROMol,
-    pattern_fp: &Fingerprint,
-    morgan_fp: &Fingerprint,
-    descriptors: &HashMap<String, f64>,
-    similarity_cluster: i32,
-    smiles_field: Field,
-    pattern_fingerprint_field: Field,
-    morgan_fingerprint_field: Field,
-    descriptor_fields: &HashMap<&str, Field>,
-    other_descriptors_field: Field,
-) -> eyre::Result<impl Document> {
-    let mut doc = doc!(
-        smiles_field => canon_taut.as_smiles(),
-        pattern_fingerprint_field => pattern_fp.0.as_raw_slice(),
-        morgan_fingerprint_field => morgan_fp.0.as_raw_slice()
-    );
-
-    for field in KNOWN_DESCRIPTORS {
-        if let Some(val) = descriptors.get(field) {
-            let current_field = *descriptor_fields
-                .get(field)
-                .ok_or(eyre::eyre!("Failed to extract field"))?;
-            if field.starts_with("Num") || field.starts_with("lipinski") {
-                let int = val.as_f64() as i64;
-                doc.add_field_value(current_field, int);
-            } else {
-                doc.add_field_value(current_field, val.as_f64());
-            };
-        }
-    }
-
-    let scaffold_matches = scaffold_search(&pattern_fp.0, &canon_taut, &PARSED_SCAFFOLDS)?;
-    let scaffold_json = match scaffold_matches.is_empty() {
-        true => serde_json::json!({"scaffolds": vec![-1]}),
-        false => serde_json::json!({"scaffolds": scaffold_matches}),
-    };
-
-    let cluster_json = serde_json::json!({"similarity_cluster": similarity_cluster});
-
-    let other_descriptors_json = combine_json_objects(Some(scaffold_json), Some(cluster_json));
-
-    if let Some(other_descriptors_json) = other_descriptors_json {
-        doc.add_field_value(other_descriptors_field, other_descriptors_json);
-    }
-
-    Ok(doc)
 }
