@@ -1,14 +1,7 @@
 use rayon::prelude::*;
-use rdkit::{Fingerprint, MolBlockIter, ROMol, RWMol};
-use std::collections::HashMap;
+use rdkit::{MolBlockIter, RWMol};
 use std::sync::{Arc, Mutex};
-use bitvec::prelude::BitVec;
-use tantivy::Document;
-use tantivy::schema::{Field, Schema};
-
 use crate::command_line::prelude::*;
-use crate::search::compound_processing::process_cpd;
-use crate::search::similarity_search::encode_fingerprints;
 
 pub const NAME: &str = "index-sdf";
 
@@ -93,7 +86,7 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
     let mut counter = 0;
     let failed_counter: Arc<Mutex<usize>> = Arc::new(Mutex::new(0));
 
-    let mut mol_vec = Vec::with_capacity(chunksize);
+    let mut compound_vec = Vec::with_capacity(chunksize);
 
     for mol in mol_iter {
         if mol.is_err() {
@@ -103,23 +96,33 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
         }
 
         let mol = mol.unwrap();
-        mol_vec.push(mol.to_ro_mol());
+        compound_vec.push((mol.to_ro_mol().as_smiles(), None));
 
-        if mol_vec.len() == chunksize {
-            match batch_doc_creation(&mut mol_vec, &failed_counter, &schema) {
+        if compound_vec.len() == chunksize {
+            match batch_doc_creation(&compound_vec, &schema) {
                 Err(e) => log::warn!("Failed batched doc creation: {e}"),
                 Ok(doc_batch) => {
                     let _ = doc_batch
                         .into_par_iter()
                         .map(|doc| {
-                            match index_writer.add_document(doc) {
-                                Ok(_) => (),
-                                Err(_) => {
-                                    log::warn!("Failed doc creation");
+                            match doc {
+                                Ok(doc) => {
+                                    match index_writer.add_document(doc) {
+                                        Ok(_) => (),
+                                        Err(_) => {
+                                            log::warn!("Failed doc creation: Could not add document");
+                                            let mut num = failed_counter.lock().unwrap();
+                                            *num += 1;
+                                        }
+                                    }
+                                },
+                                Err(e) => {
+                                    log::warn!("Failed doc creation: {e}");
                                     let mut num = failed_counter.lock().unwrap();
                                     *num += 1;
                                 }
                             }
+
                         }).collect::<Vec<()>>();
 
                     if commit {
@@ -128,6 +131,7 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
                 }
             }
 
+            compound_vec.clear();
             counter += chunksize;
 
             if counter > 0 && counter % 10_000 == 0 {
@@ -136,27 +140,37 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
         }
     }
 
-    if !mol_vec.is_empty() {
-        let last_chunksize = mol_vec.len();
-
-        match batch_doc_creation(&mut mol_vec, &failed_counter, &schema) {
-            Err(e) => log::warn!("{e}"),
+    if !compound_vec.is_empty() {
+        let last_chunksize = compound_vec.len();
+        match batch_doc_creation(&compound_vec, &schema) {
+            Err(e) => log::warn!("Failed batched doc creation: {e}"),
             Ok(doc_batch) => {
                 let _ = doc_batch
                     .into_par_iter()
                     .map(|doc| {
-                        match index_writer.add_document(doc) {
-                            Ok(_) => (),
-                            Err(_) => {
-                                log::warn!("Failed doc creation");
+                        match doc {
+                            Ok(doc) => {
+                                match index_writer.add_document(doc) {
+                                    Ok(_) => (),
+                                    Err(_) => {
+                                        log::warn!("Failed doc creation: Could not add document");
+                                        let mut num = failed_counter.lock().unwrap();
+                                        *num += 1;
+                                    }
+                                }
+                            },
+                            Err(e) => {
+                                log::warn!("Failed doc creation: {e}");
                                 let mut num = failed_counter.lock().unwrap();
                                 *num += 1;
                             }
                         }
+
                     }).collect::<Vec<()>>();
             }
         }
 
+        compound_vec.clear();
         counter += last_chunksize;
     }
 
@@ -169,85 +183,4 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
     );
 
     Ok(())
-}
-
-fn batch_doc_creation(
-    mol_vec: &mut Vec<ROMol>,
-    failed_counter: &Arc<Mutex<usize>>,
-    schema: &Schema,
-) -> eyre::Result<Vec<impl Document>> {
-    let smiles_field = schema.get_field("smiles")?;
-    let pattern_fingerprint_field = schema.get_field("pattern_fingerprint")?;
-    let morgan_fingerprint_field = schema.get_field("morgan_fingerprint")?;
-    let extra_data_field = schema.get_field("extra_data")?;
-    let other_descriptors_field = schema.get_field("other_descriptors")?;
-    let descriptor_fields = KNOWN_DESCRIPTORS
-        .iter()
-        .map(|kd| (*kd, schema.get_field(kd).unwrap()))
-        .collect::<HashMap<&str, Field>>();
-
-    let mol_attributes = mol_vec
-        .clone()
-        .into_par_iter()
-        .filter_map(|m| {
-            match process_cpd(m.as_smiles().as_str(), false) {
-                Ok(attributes) => Some(attributes),
-                Err(e) => {
-                    log::warn!("Failed compound processing: {}", e);
-                    let mut num = failed_counter.lock().unwrap();
-                    *num += 1;
-                    None
-                }
-            }
-        }).collect::<Vec<(ROMol, Fingerprint, HashMap<String, f64>)>>();
-
-    mol_vec.clear();
-
-    let mut morgan_fingerprints: Vec<Fingerprint> = Vec::with_capacity(mol_attributes.len());
-    let mut morgan_bitvecs: Vec<BitVec<u8>> = Vec::with_capacity(mol_attributes.len());
-    for attributes in mol_attributes.clone() {
-        let morgan_fp = attributes.0.morgan_fingerprint();
-        morgan_fingerprints.push(morgan_fp.clone());
-        morgan_bitvecs.push(morgan_fp.0);
-    }
-
-    let similarity_clusters = encode_fingerprints(&morgan_bitvecs, true);
-
-    if let Err(e) = similarity_clusters {
-        let mut num = failed_counter.lock().unwrap();
-        *num += morgan_bitvecs.len();
-        return Err(eyre::eyre!("Failed batched similarity cluster assignment: {e}"))
-    }
-
-    let similarity_clusters = similarity_clusters.unwrap();
-
-    let docs = (0..mol_attributes.len())
-        .into_iter()
-        .filter_map(|i| {
-            let attributes = &mol_attributes[i];
-            match create_tantivy_doc(
-                &attributes.0,
-                &None,
-                &attributes.1,
-                &morgan_fingerprints[i],
-                &attributes.2,
-                similarity_clusters[i],
-                smiles_field,
-                pattern_fingerprint_field,
-                morgan_fingerprint_field,
-                &descriptor_fields,
-                extra_data_field,
-                other_descriptors_field,
-            ) {
-                Ok(doc) => Some(doc),
-                Err(_) => {
-                    log::warn!("Failed doc creation");
-                    let mut num = failed_counter.lock().unwrap();
-                    *num += 1;
-                    None
-                },
-            }
-        }).collect::<Vec<_>>();
-
-    Ok(docs)
 }

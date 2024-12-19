@@ -1,17 +1,10 @@
-use crate::indexing::{create_tantivy_doc, index_manager::IndexManager, KNOWN_DESCRIPTORS};
+use crate::indexing::{batch_doc_creation, index_manager::IndexManager};
 use crate::rest_api::api::{
     BulkRequest, PostIndexBulkResponseError, PostIndexBulkResponseOk,
     PostIndexBulkResponseOkStatus, PostIndexesBulkIndexResponse,
 };
-use crate::search::compound_processing::process_cpd;
-use crate::search::similarity_search::encode_fingerprints;
 use poem_openapi::payload::Json;
 use rayon::prelude::*;
-use std::collections::HashMap;
-use bitvec::prelude::BitVec;
-use rdkit::Fingerprint;
-use tantivy::Document;
-use tantivy::schema::{Field, Schema};
 
 pub async fn v1_post_index_bulk(
     index_manager: &IndexManager,
@@ -37,7 +30,12 @@ pub async fn v1_post_index_bulk(
     };
 
     let tantivy_docs_conversion_operation = tokio::task::spawn_blocking(move || {
-        batch_doc_creation(bulk_request, &index.schema())
+        let compounds = bulk_request
+            .docs
+            .into_par_iter()
+            .map(|doc| (doc.smiles, doc.extra_data))
+            .collect::<Vec<_>>();
+        batch_doc_creation(&compounds, &index.schema())
     })
     .await;
 
@@ -94,74 +92,4 @@ pub async fn v1_post_index_bulk(
     PostIndexesBulkIndexResponse::Ok(Json(PostIndexBulkResponseOk {
         statuses: document_insert_statuses,
     }))
-}
-
-fn batch_doc_creation(
-    bulk_request: BulkRequest,
-    schema: &Schema,
-) -> eyre::Result<Vec<eyre::Result<impl Document>>> {
-    let smiles_field = schema.get_field("smiles").unwrap();
-    let pattern_fingerprint_field = schema.get_field("pattern_fingerprint").unwrap();
-    let morgan_fingerprint_field = schema.get_field("morgan_fingerprint").unwrap();
-    let extra_data_field = schema.get_field("extra_data").unwrap();
-    let other_descriptors_field = schema.get_field("other_descriptors").unwrap();
-
-    let descriptor_fields = KNOWN_DESCRIPTORS
-        .iter()
-        .map(|kd| (*kd, schema.get_field(kd).unwrap()))
-        .collect::<HashMap<&str, Field>>();
-
-    let mol_attributes = bulk_request
-        .docs
-        .into_par_iter()
-        .map(|doc| {
-            match process_cpd(&doc.smiles, false) {
-                Ok(attributes) => {
-                    (true, attributes.0, doc.extra_data, attributes.1, attributes.2)
-                },
-                Err(_) => {
-                    let placeholder = process_cpd("c1ccccc1", false).unwrap();
-                    (false, placeholder.0, None, placeholder.1, placeholder.2)
-                }
-            }
-        })
-        .collect::<Vec<_>>();
-
-    let mut morgan_fingerprints: Vec<Fingerprint> = Vec::with_capacity(mol_attributes.len());
-    let mut morgan_bitvecs: Vec<BitVec<u8>> = Vec::with_capacity(mol_attributes.len());
-    for attributes in &mol_attributes {
-        let morgan_fp = attributes.1.morgan_fingerprint();
-        morgan_fingerprints.push(morgan_fp.clone());
-        morgan_bitvecs.push(morgan_fp.0);
-    }
-
-    let similarity_clusters = encode_fingerprints(&morgan_bitvecs, true)
-        .map_err(|e| eyre::eyre!("Failed batched similarity cluster assignment: {e}"))?;
-
-    let docs = (0..mol_attributes.len())
-        .into_iter()
-        .map(|i| {
-            let attributes = &mol_attributes[i];
-            match attributes.0 {
-                true => {
-                    create_tantivy_doc(
-                        &attributes.1,
-                        &attributes.2,
-                        &attributes.3,
-                        &morgan_fingerprints[i],
-                        &attributes.4,
-                        similarity_clusters[i],
-                        smiles_field,
-                        pattern_fingerprint_field,
-                        morgan_fingerprint_field,
-                        &descriptor_fields,
-                        extra_data_field,
-                        other_descriptors_field,
-                    )
-                },
-                false => Err(eyre::eyre!("Compound processing failed")),
-            }
-        }).collect::<Vec<_>>();
-
-    Ok(docs)
 }

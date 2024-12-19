@@ -1,9 +1,13 @@
 use std::collections::HashMap;
 use std::path::Path;
+use bitvec::prelude::BitVec;
+use rayon::prelude::*;
 use rdkit::{Fingerprint, ROMol};
 pub use tantivy::doc;
 use tantivy::{directory::MmapDirectory, schema::*, Index, IndexBuilder, TantivyError};
+use crate::search::compound_processing::process_cpd;
 use crate::search::scaffold_search::{PARSED_SCAFFOLDS, scaffold_search};
+use crate::search::similarity_search::encode_fingerprints;
 
 pub mod index_manager;
 pub mod segment_manager;
@@ -77,6 +81,74 @@ pub fn open_index(p: impl AsRef<Path>) -> eyre::Result<Index> {
     let index = Index::open(directory)?;
 
     Ok(index)
+}
+
+pub fn batch_doc_creation(
+    compounds: &[(String, Option<serde_json::Value>)],
+    schema: &Schema,
+) -> eyre::Result<Vec<eyre::Result<impl Document>>> {
+    let smiles_field = schema.get_field("smiles")?;
+    let pattern_fingerprint_field = schema.get_field("pattern_fingerprint")?;
+    let morgan_fingerprint_field = schema.get_field("morgan_fingerprint")?;
+    let extra_data_field = schema.get_field("extra_data")?;
+    let other_descriptors_field = schema.get_field("other_descriptors")?;
+
+    let descriptor_fields = KNOWN_DESCRIPTORS
+        .iter()
+        .map(|kd| (*kd, schema.get_field(kd).unwrap()))
+        .collect::<HashMap<&str, Field>>();
+
+    let mol_attributes = compounds
+        .into_par_iter()
+        .map(|(smiles, extra_data)| {
+            match process_cpd(smiles, false) {
+                Ok(attributes) => {
+                    ("Succeeded".to_string(), attributes.0, extra_data, attributes.1, attributes.2)
+                },
+                Err(e) => {
+                    let placeholder = process_cpd("c1ccccc1", false).unwrap();
+                    (format!("{e}"), placeholder.0, &None, placeholder.1, placeholder.2)
+                }
+            }
+        })
+        .collect::<Vec<_>>();
+
+    let mut morgan_fingerprints: Vec<Fingerprint> = Vec::with_capacity(mol_attributes.len());
+    let mut morgan_bitvecs: Vec<BitVec<u8>> = Vec::with_capacity(mol_attributes.len());
+    for attributes in &mol_attributes {
+        let morgan_fp = attributes.1.morgan_fingerprint();
+        morgan_fingerprints.push(morgan_fp.clone());
+        morgan_bitvecs.push(morgan_fp.0);
+    }
+
+    let similarity_clusters = encode_fingerprints(&morgan_bitvecs, true)
+        .map_err(|e| eyre::eyre!("Failed batched similarity cluster assignment: {e}"))?;
+
+    let docs = (0..mol_attributes.len())
+        .into_iter()
+        .map(|i| {
+            let attributes = &mol_attributes[i];
+            if attributes.0 == "Success" {
+                create_tantivy_doc(
+                    &attributes.1,
+                    attributes.2,
+                    &attributes.3,
+                    &morgan_fingerprints[i],
+                    &attributes.4,
+                    similarity_clusters[i],
+                    smiles_field,
+                    pattern_fingerprint_field,
+                    morgan_fingerprint_field,
+                    &descriptor_fields,
+                    extra_data_field,
+                    other_descriptors_field,
+                )
+            } else {
+                Err(eyre::eyre!("Compound processing failed: {}", attributes.0))
+            }
+        }).collect::<Vec<_>>();
+
+    Ok(docs)
 }
 
 pub fn create_tantivy_doc(
