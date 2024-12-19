@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::path::Path;
+use std::sync::{Arc, Mutex};
 use bitvec::prelude::BitVec;
 use rayon::prelude::*;
 use rdkit::{Fingerprint, ROMol};
@@ -124,9 +125,13 @@ pub fn batch_doc_creation(
     let similarity_clusters = encode_fingerprints(&morgan_bitvecs, true)
         .map_err(|e| eyre::eyre!("Failed batched similarity cluster assignment: {e}"))?;
 
-    let docs = (0..mol_attributes.len())
+    let num_compounds = mol_attributes.len();
+    let mol_attributes = Arc::new(Mutex::new(mol_attributes));
+
+    let docs = (0..num_compounds)
+        .into_par_iter()
         .map(|i| {
-            let attributes = &mol_attributes[i];
+            let attributes = &(*mol_attributes.lock().unwrap())[i];
             if attributes.0 == "Passed" {
                 create_tantivy_doc(
                     &attributes.1,
