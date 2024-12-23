@@ -12,7 +12,7 @@ homepage = "https://rdkit-rs.github.io"
 
 [dependencies]
 bitvec = "1"
-cheminee-similarity-model = { path = "../cheminee-similarity-model" }
+cheminee-similarity-model = "0.1.5"
 clap = "4"
 eyre = "0"
 lazy_static = "1.4"

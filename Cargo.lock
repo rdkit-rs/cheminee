@@ -328,6 +328,8 @@ dependencies = [
 [[package]]
 name = "cheminee-similarity-model"
 version = "0.1.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6b2b130dde03c7fa9f59a740ff323f1b7bf107f91fedf3424e51d08bda9610f5"
 dependencies = [
  "eyre",
  "flate2",
