@@ -10,7 +10,7 @@ const SCAFFOLDS: &str = include_str!("../../assets/standardized_scaffolds_202404
 pub struct Scaffold {
     pub fp: BitVec<u8>,
     pub mol: Arc<Mutex<ROMol>>,
-    pub idx: u64,
+    pub idx: i64,
 }
 
 lazy_static::lazy_static! {
@@ -29,7 +29,7 @@ lazy_static::lazy_static! {
             mol: Arc::new(Mutex::new(romol)),
             idx: v.get("scaffold_id")
                 .expect("failed to get scaffold_id from static data")
-                .as_u64()
+                .as_i64()
                 .unwrap(),
         }
     })
@@ -40,8 +40,8 @@ pub fn scaffold_search(
     query_pattern_fingerprint: &BitSlice<u8>,
     query_mol: &ROMol,
     scaffolds: &Vec<Scaffold>,
-) -> eyre::Result<Vec<u64>> {
-    let mut matching_scaffolds: Vec<u64> = Vec::with_capacity(scaffolds.len());
+) -> eyre::Result<Vec<i64>> {
+    let mut matching_scaffolds: Vec<i64> = Vec::with_capacity(scaffolds.len());
     let params = SubstructMatchParameters::default();
 
     for scaffold in scaffolds {

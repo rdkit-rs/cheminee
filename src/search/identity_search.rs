@@ -12,7 +12,7 @@ use tantivy::{DocAddress, DocId, Searcher, SegmentOrdinal};
 pub fn identity_search(
     searcher: &Searcher,
     query_mol: &ROMol,
-    scaffold_matches: &Option<Vec<u64>>,
+    scaffold_matches: &Option<Vec<i64>>,
     query_pattern_fingerprint: &BitSlice<u8, Lsb0>,
     query_descriptors: &HashMap<String, f64>,
     use_chirality: bool,
@@ -116,7 +116,7 @@ pub fn identity_match(
 pub fn build_identity_query(
     descriptors: &HashMap<String, f64>,
     extra_query: &str,
-    matching_scaffolds: &Option<Vec<u64>>,
+    matching_scaffolds: &Option<Vec<i64>>,
 ) -> String {
     let mut query_parts = Vec::with_capacity(descriptors.len());
 

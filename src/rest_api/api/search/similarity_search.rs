@@ -5,7 +5,7 @@ use crate::search::{similarity_search::similarity_search, validate_structure};
 use poem_openapi::payload::Json;
 use std::cmp::min;
 use std::collections::HashSet;
-use tantivy::{DocAddress, Index};
+use tantivy::Index;
 
 pub fn v1_index_search_similarity(
     index: eyre::Result<Index>,
@@ -74,15 +74,16 @@ pub fn v1_index_search_similarity(
         .map(|m| m.morgan_fingerprint().0)
         .collect::<Vec<_>>();
 
-    let mut results: HashSet<DocAddress> = HashSet::new();
-    for taut_fp in &taut_morgan_fingerprints {
-        let taut_results = neighbor_search(&searcher, taut_fp, extra_query, search_percent_limit);
-        if let Ok(taut_results) = taut_results {
-            results.extend(taut_results);
-        } else {
-            log::warn!("Encountered a failed search");
-        }
-    }
+    let results = neighbor_search(
+        &searcher,
+        &taut_morgan_fingerprints,
+        extra_query,
+        search_percent_limit,
+    )
+    .unwrap_or_else(|e| {
+        log::warn!("Encountered a failed search: {e}");
+        HashSet::new()
+    });
 
     let final_results = match similarity_search(
         &searcher,
