@@ -163,7 +163,7 @@ pub fn structure_match(
 pub fn build_substructure_query(
     descriptors: &HashMap<String, f64>,
     extra_query: &str,
-    matching_scaffolds: &Option<Vec<u64>>,
+    matching_scaffolds: &Option<Vec<i64>>,
 ) -> String {
     let mut query_parts = Vec::with_capacity(descriptors.len());
 
@@ -196,7 +196,7 @@ pub fn build_substructure_query(
 pub fn build_superstructure_query(
     descriptors: &HashMap<String, f64>,
     extra_query: &str,
-    matching_scaffolds: &Option<Vec<u64>>,
+    matching_scaffolds: &Option<Vec<i64>>,
 ) -> String {
     let mut query_parts = Vec::with_capacity(descriptors.len());
 

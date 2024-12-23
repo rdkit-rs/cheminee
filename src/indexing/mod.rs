@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::path::Path;
 use bitvec::prelude::BitVec;
 use rayon::prelude::*;
-use rdkit::{Fingerprint, ROMol};
+use rdkit::Fingerprint;
 pub use tantivy::doc;
 use tantivy::{directory::MmapDirectory, schema::*, Index, IndexBuilder, TantivyError};
 use crate::search::compound_processing::process_cpd;
@@ -83,31 +83,56 @@ pub fn open_index(p: impl AsRef<Path>) -> eyre::Result<Index> {
     Ok(index)
 }
 
+#[derive(Clone)]
+pub struct CompoundDocAttributes {
+    pub smiles: String,
+    pub extra_data: Option<serde_json::Value>,
+    pub pattern_fingerprint: Fingerprint,
+    pub morgan_fingerprint: Fingerprint,
+    pub descriptors: HashMap<String, f64>,
+    pub scaffold_ids: Vec<i64>,
+    pub status: String,
+}
+
+pub struct CompoundDocFields {
+    pub smiles: Field,
+    pub pattern_fingerprint: Field,
+    pub morgan_fingerprint: Field,
+    pub descriptors: HashMap<String, Field>,
+    pub extra_data: Field,
+    pub other_descriptors: Field,
+}
+
 pub fn batch_doc_creation(
     compounds: &[(String, Option<serde_json::Value>)],
     schema: &Schema,
 ) -> eyre::Result<Vec<eyre::Result<impl Document>>> {
-    let smiles_field = schema.get_field("smiles")?;
-    let pattern_fingerprint_field = schema.get_field("pattern_fingerprint")?;
-    let morgan_fingerprint_field = schema.get_field("morgan_fingerprint")?;
-    let extra_data_field = schema.get_field("extra_data")?;
-    let other_descriptors_field = schema.get_field("other_descriptors")?;
-
     let descriptor_fields = KNOWN_DESCRIPTORS
         .iter()
-        .map(|kd| (*kd, schema.get_field(kd).unwrap()))
-        .collect::<HashMap<&str, Field>>();
+        .map(|kd| (kd.to_string(), schema.get_field(kd).unwrap()))
+        .collect::<HashMap<String, Field>>();
+
+    let compound_doc_fields = CompoundDocFields {
+        smiles: schema.get_field("smiles")?,
+        extra_data: schema.get_field("extra_data")?,
+        pattern_fingerprint: schema.get_field("pattern_fingerprint")?,
+        morgan_fingerprint: schema.get_field("morgan_fingerprint")?,
+        descriptors: descriptor_fields,
+        other_descriptors: schema.get_field("other_descriptors")?
+    };
+
+    let placeholder_attributes = get_compound_doc_attributes("c1ccccc1", &None)?;
 
     let mol_attributes = compounds
         .into_par_iter()
         .map(|(smiles, extra_data)| {
-            match process_cpd(smiles, false) {
-                Ok(attributes) => {
-                    ("Passed".to_string(), attributes.0, extra_data, attributes.1, attributes.2)
-                },
+            let attributes_result = get_compound_doc_attributes(smiles, extra_data);
+            match attributes_result {
+                Ok(attributes) => attributes,
                 Err(e) => {
-                    let placeholder = process_cpd("c1ccccc1", false).unwrap();
-                    (format!("{e}"), placeholder.0, &None, placeholder.1, placeholder.2)
+                    let mut attributes = placeholder_attributes.clone();
+                    attributes.status = format!("{e}");
+                    attributes
                 }
             }
         })
@@ -116,7 +141,7 @@ pub fn batch_doc_creation(
     let mut morgan_fingerprints: Vec<Fingerprint> = Vec::with_capacity(mol_attributes.len());
     let mut morgan_bitvecs: Vec<BitVec<u8>> = Vec::with_capacity(mol_attributes.len());
     for attributes in &mol_attributes {
-        let morgan_fp = attributes.1.morgan_fingerprint();
+        let morgan_fp = attributes.morgan_fingerprint.clone();
         morgan_fingerprints.push(morgan_fp.clone());
         morgan_bitvecs.push(morgan_fp.0);
     }
@@ -127,77 +152,78 @@ pub fn batch_doc_creation(
     let num_compounds = mol_attributes.len();
 
     let docs = (0..num_compounds)
+        .into_par_iter()
         .map(|i| {
-            let attributes = &mol_attributes[i];
-            if attributes.0 == "Passed" {
+            let attributes = mol_attributes[i].clone();
+            if attributes.status == "Passed" {
                 create_tantivy_doc(
-                    &attributes.1,
-                    attributes.2,
-                    &attributes.3,
-                    &morgan_fingerprints[i],
-                    &attributes.4,
+                    attributes,
                     similarity_clusters[i][0],
-                    smiles_field,
-                    pattern_fingerprint_field,
-                    morgan_fingerprint_field,
-                    &descriptor_fields,
-                    extra_data_field,
-                    other_descriptors_field,
+                    &compound_doc_fields,
                 )
             } else {
-                Err(eyre::eyre!("Compound processing failed: {}", attributes.0))
+                Err(eyre::eyre!("{}", attributes.status))
             }
         }).collect::<Vec<_>>();
 
     Ok(docs)
 }
 
+pub fn get_compound_doc_attributes(
+    raw_smiles: &str,
+    extra_data: &Option<serde_json::Value>
+) -> eyre::Result<CompoundDocAttributes> {
+    let initial_attributes = process_cpd(raw_smiles, false)?;
+    let mut scaffold_ids = scaffold_search(&initial_attributes.1.0, &initial_attributes.0, &PARSED_SCAFFOLDS)?;
+
+    if scaffold_ids.is_empty() {
+        scaffold_ids.push(-1);
+    }
+
+    Ok(
+        CompoundDocAttributes {
+            smiles: initial_attributes.0.as_smiles(),
+            pattern_fingerprint: initial_attributes.1,
+            morgan_fingerprint: initial_attributes.0.morgan_fingerprint(),
+            descriptors: initial_attributes.2,
+            extra_data: extra_data.clone(),
+            scaffold_ids,
+            status: "Passed".to_string(),
+        }
+    )
+}
+
 #[allow(clippy::too_many_arguments)]
 pub fn create_tantivy_doc(
-    canon_taut: &ROMol,
-    extra_data: &Option<serde_json::Value>,
-    pattern_fp: &Fingerprint,
-    morgan_fp: &Fingerprint,
-    descriptors: &HashMap<String, f64>,
+    compound_doc_attributes: CompoundDocAttributes,
     similarity_cluster: i32,
-    smiles_field: Field,
-    pattern_fingerprint_field: Field,
-    morgan_fingerprint_field: Field,
-    descriptor_fields: &HashMap<&str, Field>,
-    extra_data_field: Field,
-    other_descriptors_field: Field,
+    compound_doc_fields: &CompoundDocFields,
 ) -> eyre::Result<impl Document> {
     let mut doc = doc!(
-        smiles_field => canon_taut.as_smiles(),
-        pattern_fingerprint_field => pattern_fp.0.as_raw_slice(),
-        morgan_fingerprint_field => morgan_fp.0.as_raw_slice(),
+        compound_doc_fields.smiles => compound_doc_attributes.smiles,
+        compound_doc_fields.pattern_fingerprint => compound_doc_attributes.pattern_fingerprint.0.as_raw_slice(),
+        compound_doc_fields.morgan_fingerprint => compound_doc_attributes.morgan_fingerprint.0.as_raw_slice(),
     );
 
-    let scaffold_matches = scaffold_search(&pattern_fp.0, canon_taut, &PARSED_SCAFFOLDS)?;
-    let scaffold_json = match scaffold_matches.is_empty() {
-        true => serde_json::json!({"scaffolds": vec![-1]}),
-        false => serde_json::json!({"scaffolds": scaffold_matches}),
-    };
-
+    let scaffold_json = serde_json::json!({"scaffolds": compound_doc_attributes.scaffold_ids});
     let cluster_json = serde_json::json!({"similarity_cluster": similarity_cluster});
-
     let other_descriptors_json = combine_json_objects(Some(scaffold_json), Some(cluster_json));
 
     if let Some(other_descriptors_json) = other_descriptors_json {
-        doc.add_field_value(other_descriptors_field, other_descriptors_json);
+        doc.add_field_value(compound_doc_fields.other_descriptors, other_descriptors_json);
     }
 
-    if let Some(extra_data) = extra_data {
-        doc.add_field_value(extra_data_field, extra_data.clone());
+    if let Some(extra_data) = compound_doc_attributes.extra_data {
+        doc.add_field_value(compound_doc_fields.extra_data, extra_data);
     }
 
     for field in KNOWN_DESCRIPTORS {
-        if let Some(val) = descriptors.get(field) {
+        if let Some(val) = compound_doc_attributes.descriptors.get(field) {
             if field.starts_with("Num") || field.starts_with("lipinski") {
                 let int = *val as i64;
-                doc.add_field_value(*descriptor_fields.get(field).unwrap(), int);
+                doc.add_field_value(*compound_doc_fields.descriptors.get(field).unwrap(), int);
             } else {
-                doc.add_field_value(*descriptor_fields.get(field).unwrap(), *val);
+                doc.add_field_value(*compound_doc_fields.descriptors.get(field).unwrap(), *val);
             };
         }
     }
