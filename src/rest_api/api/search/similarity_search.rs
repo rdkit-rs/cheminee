@@ -74,7 +74,13 @@ pub fn v1_index_search_similarity(
         .map(|m| m.morgan_fingerprint().0)
         .collect::<Vec<_>>();
 
-    let results = neighbor_search(&searcher, &taut_morgan_fingerprints, extra_query, search_percent_limit).unwrap_or_else(|e| {
+    let results = neighbor_search(
+        &searcher,
+        &taut_morgan_fingerprints,
+        extra_query,
+        search_percent_limit,
+    )
+    .unwrap_or_else(|e| {
         log::warn!("Encountered a failed search: {e}");
         HashSet::new()
     });

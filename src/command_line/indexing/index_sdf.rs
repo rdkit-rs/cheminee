@@ -1,7 +1,7 @@
+use crate::command_line::prelude::*;
 use rayon::prelude::*;
 use rdkit::{MolBlockIter, RWMol};
 use std::sync::{Arc, Mutex};
-use crate::command_line::prelude::*;
 
 pub const NAME: &str = "index-sdf";
 
@@ -111,26 +111,22 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
                 Ok(doc_batch) => {
                     let _ = doc_batch
                         .into_par_iter()
-                        .map(|doc| {
-                            match doc {
-                                Ok(doc) => {
-                                    match index_writer.add_document(doc) {
-                                        Ok(_) => (),
-                                        Err(_) => {
-                                            log::warn!("Failed doc creation: Could not add document");
-                                            let mut num = failed_counter.lock().unwrap();
-                                            *num += 1;
-                                        }
-                                    }
-                                },
-                                Err(e) => {
-                                    log::warn!("Failed doc creation: {e}");
+                        .map(|doc| match doc {
+                            Ok(doc) => match index_writer.add_document(doc) {
+                                Ok(_) => (),
+                                Err(_) => {
+                                    log::warn!("Failed doc creation: Could not add document");
                                     let mut num = failed_counter.lock().unwrap();
                                     *num += 1;
                                 }
+                            },
+                            Err(e) => {
+                                log::warn!("Failed doc creation: {e}");
+                                let mut num = failed_counter.lock().unwrap();
+                                *num += 1;
                             }
-
-                        }).collect::<Vec<()>>();
+                        })
+                        .collect::<Vec<()>>();
 
                     if commit {
                         index_writer.commit()?;
@@ -154,26 +150,22 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
             Ok(doc_batch) => {
                 let _ = doc_batch
                     .into_par_iter()
-                    .map(|doc| {
-                        match doc {
-                            Ok(doc) => {
-                                match index_writer.add_document(doc) {
-                                    Ok(_) => (),
-                                    Err(_) => {
-                                        log::warn!("Failed doc creation: Could not add document");
-                                        let mut num = failed_counter.lock().unwrap();
-                                        *num += 1;
-                                    }
-                                }
-                            },
-                            Err(e) => {
-                                log::warn!("Failed doc creation: {e}");
+                    .map(|doc| match doc {
+                        Ok(doc) => match index_writer.add_document(doc) {
+                            Ok(_) => (),
+                            Err(_) => {
+                                log::warn!("Failed doc creation: Could not add document");
                                 let mut num = failed_counter.lock().unwrap();
                                 *num += 1;
                             }
+                        },
+                        Err(e) => {
+                            log::warn!("Failed doc creation: {e}");
+                            let mut num = failed_counter.lock().unwrap();
+                            *num += 1;
                         }
-
-                    }).collect::<Vec<()>>();
+                    })
+                    .collect::<Vec<()>>();
             }
         }
 

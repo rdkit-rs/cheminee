@@ -1,8 +1,8 @@
 use crate::command_line::{indexing::split_path, prelude::*};
 use crate::indexing::index_manager::IndexManager;
 use rayon::prelude::*;
-use std::{fs::File, io::BufRead, io::BufReader, ops::Deref};
 use serde_json::Value;
+use std::{fs::File, io::BufRead, io::BufReader, ops::Deref};
 
 pub const NAME: &str = "bulk-index";
 
@@ -56,21 +56,18 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
                 Ok(doc_batch) => {
                     let _ = doc_batch
                         .into_par_iter()
-                        .map(|doc| {
-                            match doc {
-                                Ok(doc) => {
-                                    match writer.add_document(doc) {
-                                        Ok(_) => (),
-                                        Err(_) => {
-                                            log::warn!("Failed doc creation: Could not add document");
-                                        }
-                                    }
-                                },
-                                Err(e) => {
-                                    log::warn!("Failed doc creation: {e}");
+                        .map(|doc| match doc {
+                            Ok(doc) => match writer.add_document(doc) {
+                                Ok(_) => (),
+                                Err(_) => {
+                                    log::warn!("Failed doc creation: Could not add document");
                                 }
+                            },
+                            Err(e) => {
+                                log::warn!("Failed doc creation: {e}");
                             }
-                        }).collect::<Vec<()>>();
+                        })
+                        .collect::<Vec<()>>();
                 }
             }
 
@@ -84,21 +81,18 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
             Ok(doc_batch) => {
                 let _ = doc_batch
                     .into_par_iter()
-                    .map(|doc| {
-                        match doc {
-                            Ok(doc) => {
-                                match writer.add_document(doc) {
-                                    Ok(_) => (),
-                                    Err(_) => {
-                                        log::warn!("Failed doc creation: Could not add document");
-                                    }
-                                }
-                            },
-                            Err(e) => {
-                                log::warn!("Failed doc creation: {e}");
+                    .map(|doc| match doc {
+                        Ok(doc) => match writer.add_document(doc) {
+                            Ok(_) => (),
+                            Err(_) => {
+                                log::warn!("Failed doc creation: Could not add document");
                             }
+                        },
+                        Err(e) => {
+                            log::warn!("Failed doc creation: {e}");
                         }
-                    }).collect::<Vec<()>>();
+                    })
+                    .collect::<Vec<()>>();
             }
         }
 
@@ -110,7 +104,7 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
     Ok(())
 }
 
-fn get_smiles_and_extra_data(record: &Value) -> eyre::Result<(String, Option<Value>)>{
+fn get_smiles_and_extra_data(record: &Value) -> eyre::Result<(String, Option<Value>)> {
     let smiles = record
         .get("smiles")
         .ok_or(eyre::eyre!("Failed to extract smiles"))?

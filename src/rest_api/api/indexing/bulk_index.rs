@@ -41,9 +41,11 @@ pub async fn v1_post_index_bulk(
 
     let tantivy_docs = match tantivy_docs_conversion_operation {
         Ok(Ok(docs)) => docs,
-        Ok(Err(e)) => return PostIndexesBulkIndexResponse::Err(Json(PostIndexBulkResponseError {
-            error: e.to_string(),
-        })),
+        Ok(Err(e)) => {
+            return PostIndexesBulkIndexResponse::Err(Json(PostIndexBulkResponseError {
+                error: e.to_string(),
+            }))
+        }
         Err(e) => {
             return PostIndexesBulkIndexResponse::Err(Json(PostIndexBulkResponseError {
                 error: e.to_string(),

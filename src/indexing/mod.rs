@@ -1,13 +1,13 @@
-use std::collections::HashMap;
-use std::path::Path;
+use crate::search::compound_processing::process_cpd;
+use crate::search::scaffold_search::{scaffold_search, PARSED_SCAFFOLDS};
+use crate::search::similarity_search::encode_fingerprints;
 use bitvec::prelude::BitVec;
 use rayon::prelude::*;
 use rdkit::Fingerprint;
+use std::collections::HashMap;
+use std::path::Path;
 pub use tantivy::doc;
 use tantivy::{directory::MmapDirectory, schema::*, Index, IndexBuilder, TantivyError};
-use crate::search::compound_processing::process_cpd;
-use crate::search::scaffold_search::{PARSED_SCAFFOLDS, scaffold_search};
-use crate::search::similarity_search::encode_fingerprints;
 
 pub mod index_manager;
 pub mod segment_manager;
@@ -118,7 +118,7 @@ pub fn batch_doc_creation(
         pattern_fingerprint: schema.get_field("pattern_fingerprint")?,
         morgan_fingerprint: schema.get_field("morgan_fingerprint")?,
         descriptors: descriptor_fields,
-        other_descriptors: schema.get_field("other_descriptors")?
+        other_descriptors: schema.get_field("other_descriptors")?,
     };
 
     let placeholder_attributes = get_compound_doc_attributes("c1ccccc1", &None)?;
@@ -156,41 +156,40 @@ pub fn batch_doc_creation(
         .map(|i| {
             let attributes = mol_attributes[i].clone();
             if attributes.status == "Passed" {
-                create_tantivy_doc(
-                    attributes,
-                    similarity_clusters[i][0],
-                    &compound_doc_fields,
-                )
+                create_tantivy_doc(attributes, similarity_clusters[i][0], &compound_doc_fields)
             } else {
                 Err(eyre::eyre!("{}", attributes.status))
             }
-        }).collect::<Vec<_>>();
+        })
+        .collect::<Vec<_>>();
 
     Ok(docs)
 }
 
 pub fn get_compound_doc_attributes(
     raw_smiles: &str,
-    extra_data: &Option<serde_json::Value>
+    extra_data: &Option<serde_json::Value>,
 ) -> eyre::Result<CompoundDocAttributes> {
     let initial_attributes = process_cpd(raw_smiles, false)?;
-    let mut scaffold_ids = scaffold_search(&initial_attributes.1.0, &initial_attributes.0, &PARSED_SCAFFOLDS)?;
+    let mut scaffold_ids = scaffold_search(
+        &initial_attributes.1 .0,
+        &initial_attributes.0,
+        &PARSED_SCAFFOLDS,
+    )?;
 
     if scaffold_ids.is_empty() {
         scaffold_ids.push(-1);
     }
 
-    Ok(
-        CompoundDocAttributes {
-            smiles: initial_attributes.0.as_smiles(),
-            pattern_fingerprint: initial_attributes.1,
-            morgan_fingerprint: initial_attributes.0.morgan_fingerprint(),
-            descriptors: initial_attributes.2,
-            extra_data: extra_data.clone(),
-            scaffold_ids,
-            status: "Passed".to_string(),
-        }
-    )
+    Ok(CompoundDocAttributes {
+        smiles: initial_attributes.0.as_smiles(),
+        pattern_fingerprint: initial_attributes.1,
+        morgan_fingerprint: initial_attributes.0.morgan_fingerprint(),
+        descriptors: initial_attributes.2,
+        extra_data: extra_data.clone(),
+        scaffold_ids,
+        status: "Passed".to_string(),
+    })
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -210,7 +209,10 @@ pub fn create_tantivy_doc(
     let other_descriptors_json = combine_json_objects(Some(scaffold_json), Some(cluster_json));
 
     if let Some(other_descriptors_json) = other_descriptors_json {
-        doc.add_field_value(compound_doc_fields.other_descriptors, other_descriptors_json);
+        doc.add_field_value(
+            compound_doc_fields.other_descriptors,
+            other_descriptors_json,
+        );
     }
 
     if let Some(extra_data) = compound_doc_attributes.extra_data {
