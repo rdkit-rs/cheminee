@@ -1,14 +1,7 @@
-use bitvec::macros::internal::funty::Fundamental;
-use rayon::prelude::*;
-use rdkit::{MolBlockIter, ROMol, RWMol};
-use std::collections::HashMap;
-use std::sync::{Arc, Mutex};
-use tantivy::schema::Field;
-
 use crate::command_line::prelude::*;
-use crate::search::compound_processing::process_cpd;
-use crate::search::scaffold_search::{scaffold_search, PARSED_SCAFFOLDS};
-use crate::search::similarity_search::encode_fingerprint;
+use rayon::prelude::*;
+use rdkit::{MolBlockIter, RWMol};
+use std::sync::{Arc, Mutex};
 
 pub const NAME: &str = "index-sdf";
 
@@ -39,6 +32,7 @@ pub fn command() -> Command {
             Arg::new("chunk-size")
                 .required(false)
                 .long("chunk-size")
+                .short('c')
                 .num_args(1),
         )
         .arg(
@@ -57,8 +51,14 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
         .get_one::<String>("index")
         .ok_or(eyre::eyre!("Failed to extract index path"))?;
     let limit = matches.get_one::<String>("limit");
-    let chunksize: usize = *matches.get_one("chunk-size").unwrap_or(&1000); // TODO figure out how to parse usize from CLI flags
+    let chunksize = matches.get_one::<String>("chunk-size");
     let commit: bool = matches.get_flag("commit");
+
+    let chunksize = if let Some(chunksize) = chunksize {
+        chunksize.parse::<usize>()?
+    } else {
+        usize::try_from(1000)?
+    };
 
     log::info!(
         "indexing path={}, index_dir={}, limit={:?}",
@@ -90,20 +90,10 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
     let index = create_or_reset_index(index_dir, schema)?;
     let mut index_writer = index.writer_with_num_threads(1, 50 * 1024 * 1024)?;
 
-    // Get all relevant descriptor fields
-    let smiles_field = schema.get_field("smiles")?;
-    let pattern_fingerprint_field = schema.get_field("pattern_fingerprint")?;
-    let morgan_fingerprint_field = schema.get_field("morgan_fingerprint")?;
-    let other_descriptors_field = schema.get_field("other_descriptors")?;
-    let descriptor_fields = KNOWN_DESCRIPTORS
-        .iter()
-        .map(|kd| (*kd, schema.get_field(kd).unwrap()))
-        .collect::<HashMap<&str, Field>>();
-
     let mut counter = 0;
     let failed_counter: Arc<Mutex<usize>> = Arc::new(Mutex::new(0));
 
-    let mut mol_vec = Vec::with_capacity(chunksize);
+    let mut compound_vec = Vec::with_capacity(chunksize);
 
     for mol in mol_iter {
         if mol.is_err() {
@@ -113,50 +103,39 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
         }
 
         let mol = mol.unwrap();
-        mol_vec.push(mol.to_ro_mol());
+        compound_vec.push((mol.to_ro_mol().as_smiles(), None));
 
-        if mol_vec.len() == chunksize {
-            let _ = mol_vec
-                .clone()
-                .into_par_iter()
-                .map(|m| {
-                    let doc = create_tantivy_doc(
-                        m,
-                        smiles_field,
-                        pattern_fingerprint_field,
-                        morgan_fingerprint_field,
-                        &descriptor_fields,
-                        other_descriptors_field,
-                    );
-
-                    match doc {
-                        Ok(doc) => {
-                            let write_operation = index_writer.add_document(doc);
-
-                            match write_operation {
+        if compound_vec.len() == chunksize {
+            match batch_doc_creation(&compound_vec, schema) {
+                Err(e) => log::warn!("Failed batched doc creation: {e}"),
+                Ok(doc_batch) => {
+                    let _ = doc_batch
+                        .into_par_iter()
+                        .map(|doc| match doc {
+                            Ok(doc) => match index_writer.add_document(doc) {
                                 Ok(_) => (),
                                 Err(_) => {
-                                    log::warn!("Failed doc creation");
+                                    log::warn!("Failed doc creation: Could not add document");
                                     let mut num = failed_counter.lock().unwrap();
                                     *num += 1;
                                 }
+                            },
+                            Err(e) => {
+                                log::warn!("Failed doc creation: {e}");
+                                let mut num = failed_counter.lock().unwrap();
+                                *num += 1;
                             }
-                        }
-                        Err(_) => {
-                            log::warn!("Failed doc creation");
-                            let mut num = failed_counter.lock().unwrap();
-                            *num += 1;
-                        }
+                        })
+                        .collect::<Vec<()>>();
+
+                    if commit {
+                        index_writer.commit()?;
                     }
-                })
-                .collect::<Vec<_>>();
-
-            mol_vec.clear();
-            counter += chunksize;
-
-            if commit {
-                index_writer.commit()?;
+                }
             }
+
+            compound_vec.clear();
+            counter += chunksize;
 
             if counter > 0 && counter % 10_000 == 0 {
                 log::info!("{:?} compounds processed so far", counter);
@@ -164,43 +143,34 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
         }
     }
 
-    if !mol_vec.is_empty() {
-        let _ = mol_vec
-            .clone()
-            .into_par_iter()
-            .map(|m| {
-                let doc = create_tantivy_doc(
-                    m,
-                    smiles_field,
-                    pattern_fingerprint_field,
-                    morgan_fingerprint_field,
-                    &descriptor_fields,
-                    other_descriptors_field,
-                );
-
-                match doc {
-                    Ok(doc) => {
-                        let write_operation = index_writer.add_document(doc);
-
-                        match write_operation {
+    if !compound_vec.is_empty() {
+        let last_chunksize = compound_vec.len();
+        match batch_doc_creation(&compound_vec, schema) {
+            Err(e) => log::warn!("Failed batched doc creation: {e}"),
+            Ok(doc_batch) => {
+                let _ = doc_batch
+                    .into_par_iter()
+                    .map(|doc| match doc {
+                        Ok(doc) => match index_writer.add_document(doc) {
                             Ok(_) => (),
                             Err(_) => {
-                                log::warn!("Failed doc creation");
+                                log::warn!("Failed doc creation: Could not add document");
                                 let mut num = failed_counter.lock().unwrap();
                                 *num += 1;
                             }
+                        },
+                        Err(e) => {
+                            log::warn!("Failed doc creation: {e}");
+                            let mut num = failed_counter.lock().unwrap();
+                            *num += 1;
                         }
-                    }
-                    Err(_) => {
-                        log::warn!("Failed doc creation");
-                        let mut num = failed_counter.lock().unwrap();
-                        *num += 1;
-                    }
-                }
-            })
-            .collect::<Vec<_>>();
+                    })
+                    .collect::<Vec<()>>();
+            }
+        }
 
-        counter += mol_vec.len();
+        compound_vec.clear();
+        counter += last_chunksize;
     }
 
     let _ = index_writer.commit();
@@ -212,55 +182,4 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
     );
 
     Ok(())
-}
-
-fn create_tantivy_doc(
-    mol: ROMol,
-    smiles_field: Field,
-    pattern_fingerprint_field: Field,
-    morgan_fingerprint_field: Field,
-    descriptor_fields: &HashMap<&str, Field>,
-    other_descriptors_field: Field,
-) -> eyre::Result<impl tantivy::Document> {
-    // By default, do not attempt to fix problematic molecules
-    let (canon_taut, pattern_fp, descriptors) = process_cpd(mol.as_smiles().as_str(), false)?;
-
-    let morgan_fp = canon_taut.morgan_fingerprint();
-
-    let mut doc = doc!(
-        smiles_field => canon_taut.as_smiles(),
-        pattern_fingerprint_field => pattern_fp.0.as_raw_slice(),
-        morgan_fingerprint_field => morgan_fp.0.as_raw_slice()
-    );
-
-    for field in KNOWN_DESCRIPTORS {
-        if let Some(val) = descriptors.get(field) {
-            let current_field = *descriptor_fields
-                .get(field)
-                .ok_or(eyre::eyre!("Failed to extract field"))?;
-            if field.starts_with("Num") || field.starts_with("lipinski") {
-                let int = val.as_f64() as i64;
-                doc.add_field_value(current_field, int);
-            } else {
-                doc.add_field_value(current_field, val.as_f64());
-            };
-        }
-    }
-
-    let scaffold_matches = scaffold_search(&pattern_fp.0, &canon_taut, &PARSED_SCAFFOLDS)?;
-    let scaffold_json = match scaffold_matches.is_empty() {
-        true => serde_json::json!({"scaffolds": vec![-1]}),
-        false => serde_json::json!({"scaffolds": scaffold_matches}),
-    };
-
-    let similarity_cluster = encode_fingerprint(&morgan_fp.0, true)?[0];
-    let cluster_json = serde_json::json!({"similarity_cluster": similarity_cluster});
-
-    let other_descriptors_json = combine_json_objects(Some(scaffold_json), Some(cluster_json));
-
-    if let Some(other_descriptors_json) = other_descriptors_json {
-        doc.add_field_value(other_descriptors_field, other_descriptors_json);
-    }
-
-    Ok(doc)
 }

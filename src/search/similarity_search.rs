@@ -68,15 +68,20 @@ pub fn similarity_search(
 
 pub fn neighbor_search(
     searcher: &Searcher,
-    query_morgan_fingerprint: &BitVec<u8>,
+    query_morgan_fingerprints: &[BitVec<u8>],
     extra_query: &str,
     search_perc: f32,
 ) -> eyre::Result<HashSet<DocAddress>> {
-    let ranked_clusters = encode_fingerprint(query_morgan_fingerprint, false)?;
-    let query = build_similarity_query(&ranked_clusters, extra_query, search_perc)?;
+    let ranked_clusters = encode_fingerprints(query_morgan_fingerprints, false)?;
 
-    let docs = basic_search(searcher, &query, 1_000_000)?;
-    let results: HashSet<DocAddress> = docs.into_iter().collect();
+    let mut results: HashSet<DocAddress> = HashSet::new();
+    for clusters in ranked_clusters {
+        let query = build_similarity_query(&clusters, extra_query, search_perc)?;
+        let docs: HashSet<DocAddress> = basic_search(searcher, &query, 1_000_000)?
+            .into_iter()
+            .collect();
+        results.extend(docs);
+    }
 
     Ok(results)
 }
@@ -139,16 +144,27 @@ pub fn get_tanimoto_similarity(fp1: &BitSlice<u8>, fp2: &BitSlice<u8>) -> f32 {
     and_ones as f32 / or_ones as f32
 }
 
-pub fn encode_fingerprint(bit_vec: &BitVec<u8>, only_best_cluster: bool) -> eyre::Result<Vec<i32>> {
-    let fp_vec = bit_vec
+pub fn encode_fingerprints(
+    bit_vecs: &[BitVec<u8>],
+    only_best_cluster: bool,
+) -> eyre::Result<Vec<Vec<i32>>> {
+    let fp_vecs = bit_vecs
         .iter()
-        .map(|b| if *b { 1 } else { 0 })
-        .collect::<Vec<u8>>();
+        .map(|bv| {
+            bv.iter()
+                .map(|b| if *b { 1 } else { 0 })
+                .collect::<Vec<i64>>()
+        })
+        .collect::<Vec<Vec<i64>>>();
 
-    let ranked_clusters = build_encoder_model()?.transform(&fp_vec)?;
+    let ranked_clusters = build_encoder_model()?.transform(&fp_vecs)?;
 
     if only_best_cluster {
-        Ok(vec![ranked_clusters[0]])
+        let best_clusters = ranked_clusters
+            .into_iter()
+            .map(|v| vec![v[0]])
+            .collect::<Vec<_>>();
+        Ok(best_clusters)
     } else {
         Ok(ranked_clusters)
     }

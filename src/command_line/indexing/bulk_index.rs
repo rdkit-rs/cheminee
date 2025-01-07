@@ -1,12 +1,8 @@
 use crate::command_line::{indexing::split_path, prelude::*};
 use crate::indexing::index_manager::IndexManager;
-use crate::search::compound_processing::process_cpd;
-use crate::search::scaffold_search::{scaffold_search, PARSED_SCAFFOLDS};
-use crate::search::similarity_search::encode_fingerprint;
-use bitvec::macros::internal::funty::Fundamental;
 use rayon::prelude::*;
-use std::{collections::HashMap, fs::File, io::BufRead, io::BufReader, ops::Deref};
-use tantivy::schema::Field;
+use serde_json::Value;
+use std::{fs::File, io::BufRead, io::BufReader, ops::Deref};
 
 pub const NAME: &str = "bulk-index";
 
@@ -43,61 +39,64 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
     let mut writer = index.writer(16 * 1024 * 1024)?;
     let schema = index.schema();
 
-    let smiles_field = schema.get_field("smiles")?;
-    let pattern_fingerprint_field = schema.get_field("pattern_fingerprint")?;
-    let morgan_fingerprint_field = schema.get_field("morgan_fingerprint")?;
-    let extra_data_field = schema.get_field("extra_data")?;
-    let other_descriptors_field = schema.get_field("other_descriptors")?;
-    let descriptor_fields = KNOWN_DESCRIPTORS
-        .iter()
-        .map(|kd| (*kd, schema.get_field(kd).unwrap()))
-        .collect::<HashMap<&str, Field>>();
-
     let file = File::open(json_path)?;
     let reader = BufReader::new(file);
     let chunksize = 1000;
-    let mut record_vec = Vec::with_capacity(chunksize);
+    let mut compound_vec = Vec::with_capacity(chunksize);
 
     for result_line in reader.lines() {
         let line = result_line?;
-        let record = serde_json::from_str(&line)?;
+        let record = &serde_json::from_str(&line)?;
+        let smiles_and_extra_data = get_smiles_and_extra_data(record)?;
 
-        record_vec.push(record);
-        if record_vec.len() == chunksize {
-            let _ = record_vec
-                .clone()
-                .into_par_iter()
-                .map(|r| {
-                    let doc = create_tantivy_doc(
-                        r,
-                        smiles_field,
-                        pattern_fingerprint_field,
-                        morgan_fingerprint_field,
-                        &descriptor_fields,
-                        extra_data_field,
-                        other_descriptors_field,
-                    );
-
-                    match doc {
-                        Ok(doc) => {
-                            let write_operation = writer.add_document(doc);
-
-                            match write_operation {
+        compound_vec.push(smiles_and_extra_data);
+        if compound_vec.len() == chunksize {
+            match batch_doc_creation(&compound_vec, &schema) {
+                Err(e) => log::warn!("Failed batched doc creation: {e}"),
+                Ok(doc_batch) => {
+                    let _ = doc_batch
+                        .into_par_iter()
+                        .map(|doc| match doc {
+                            Ok(doc) => match writer.add_document(doc) {
                                 Ok(_) => (),
-                                Err(e) => {
-                                    log::info!("Failed doc creation: {:?}", e);
+                                Err(_) => {
+                                    log::warn!("Failed doc creation: Could not add document");
                                 }
+                            },
+                            Err(e) => {
+                                log::warn!("Failed doc creation: {e}");
                             }
-                        }
-                        Err(e) => {
-                            log::info!("Failed doc creation: {:?}", e);
-                        }
-                    }
-                })
-                .collect::<Vec<_>>();
+                        })
+                        .collect::<Vec<()>>();
+                }
+            }
 
-            record_vec.clear();
+            compound_vec.clear();
         }
+    }
+
+    if !compound_vec.is_empty() {
+        match batch_doc_creation(&compound_vec, &schema) {
+            Err(e) => log::warn!("Doc creation batch failed: {e}"),
+            Ok(doc_batch) => {
+                let _ = doc_batch
+                    .into_par_iter()
+                    .map(|doc| match doc {
+                        Ok(doc) => match writer.add_document(doc) {
+                            Ok(_) => (),
+                            Err(_) => {
+                                log::warn!("Failed doc creation: Could not add document");
+                            }
+                        },
+                        Err(e) => {
+                            log::warn!("Failed doc creation: {e}");
+                        }
+                    })
+                    .collect::<Vec<()>>();
+            }
+        }
+
+        compound_vec.clear();
     }
 
     let _ = writer.commit();
@@ -105,62 +104,13 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
     Ok(())
 }
 
-fn create_tantivy_doc(
-    record: serde_json::Value,
-    smiles_field: Field,
-    pattern_fingerprint_field: Field,
-    morgan_fingerprint_field: Field,
-    descriptor_fields: &HashMap<&str, Field>,
-    extra_data_field: Field,
-    other_descriptors_field: Field,
-) -> eyre::Result<impl tantivy::Document> {
+fn get_smiles_and_extra_data(record: &Value) -> eyre::Result<(String, Option<Value>)> {
     let smiles = record
         .get("smiles")
         .ok_or(eyre::eyre!("Failed to extract smiles"))?
         .as_str()
-        .ok_or(eyre::eyre!("Failed to convert smiles to str"))?;
+        .ok_or(eyre::eyre!("Failed to parse smiles"))?
+        .to_string();
     let extra_data = record.get("extra_data").cloned();
-
-    // By default, do not attempt to fix problematic molecules
-    let (canon_taut, pattern_fp, descriptors) = process_cpd(smiles, false)?;
-
-    let morgan_fp = canon_taut.morgan_fingerprint();
-
-    let mut doc = doc!(
-        smiles_field => canon_taut.as_smiles(),
-        pattern_fingerprint_field => pattern_fp.0.as_raw_slice(),
-        morgan_fingerprint_field => morgan_fp.0.as_raw_slice(),
-    );
-
-    let scaffold_matches = scaffold_search(&pattern_fp.0, &canon_taut, &PARSED_SCAFFOLDS)?;
-    let scaffold_json = match scaffold_matches.is_empty() {
-        true => serde_json::json!({"scaffolds": vec![-1]}),
-        false => serde_json::json!({"scaffolds": scaffold_matches}),
-    };
-
-    let similarity_cluster = encode_fingerprint(&morgan_fp.0, true)?[0];
-    let cluster_json = serde_json::json!({"similarity_cluster": similarity_cluster});
-
-    let other_descriptors_json = combine_json_objects(Some(scaffold_json), Some(cluster_json));
-
-    if let Some(other_descriptors_json) = other_descriptors_json {
-        doc.add_field_value(other_descriptors_field, other_descriptors_json);
-    }
-
-    if let Some(extra_data) = extra_data {
-        doc.add_field_value(extra_data_field, extra_data);
-    }
-
-    for field in KNOWN_DESCRIPTORS {
-        if let Some(val) = descriptors.get(field) {
-            if field.starts_with("Num") || field.starts_with("lipinski") {
-                let int = val.as_f64() as i64;
-                doc.add_field_value(*descriptor_fields.get(field).unwrap(), int);
-            } else {
-                doc.add_field_value(*descriptor_fields.get(field).unwrap(), val.as_f64());
-            };
-        }
-    }
-
-    Ok(doc)
+    Ok((smiles, extra_data))
 }
