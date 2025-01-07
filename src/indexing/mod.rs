@@ -138,7 +138,7 @@ pub fn batch_doc_creation(
         })
         .collect::<Vec<_>>();
 
-    let batch_size = 100;
+    let batch_size = 200;
     let num_compounds = mol_attributes.len();
     let num_batches = (num_compounds as f32 / batch_size as f32).ceil() as usize;
     let mut similarity_clusters: Vec<Vec<Vec<i32>>> = Vec::with_capacity(num_batches);
