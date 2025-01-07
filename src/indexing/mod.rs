@@ -138,18 +138,36 @@ pub fn batch_doc_creation(
         })
         .collect::<Vec<_>>();
 
-    let mut morgan_fingerprints: Vec<Fingerprint> = Vec::with_capacity(mol_attributes.len());
-    let mut morgan_bitvecs: Vec<BitVec<u8>> = Vec::with_capacity(mol_attributes.len());
+    let batch_size = 100;
+    let num_compounds = mol_attributes.len();
+    let num_batches = (num_compounds as f32 / batch_size as f32).ceil() as usize;
+    let mut similarity_clusters: Vec<Vec<Vec<i32>>> = Vec::with_capacity(num_batches);
+    let mut morgan_bitvecs: Vec<BitVec<u8>> = Vec::with_capacity(batch_size);
+
     for attributes in &mol_attributes {
         let morgan_fp = attributes.morgan_fingerprint.clone();
-        morgan_fingerprints.push(morgan_fp.clone());
         morgan_bitvecs.push(morgan_fp.0);
+
+        if morgan_bitvecs.len() == batch_size {
+            let similarity_cluster_batch = encode_fingerprints(&morgan_bitvecs, true)
+                .map_err(|e| eyre::eyre!("Failed batched similarity cluster assignment: {e}"))?;
+
+            similarity_clusters.push(similarity_cluster_batch);
+            morgan_bitvecs.clear();
+        }
     }
 
-    let similarity_clusters = encode_fingerprints(&morgan_bitvecs, true)
-        .map_err(|e| eyre::eyre!("Failed batched similarity cluster assignment: {e}"))?;
+    if !morgan_bitvecs.is_empty() {
+        let similarity_cluster_batch = encode_fingerprints(&morgan_bitvecs, true)
+            .map_err(|e| eyre::eyre!("Failed batched similarity cluster assignment: {e}"))?;
 
-    let num_compounds = mol_attributes.len();
+        similarity_clusters.push(similarity_cluster_batch);
+    }
+
+    let similarity_clusters = similarity_clusters
+        .into_iter()
+        .flatten()
+        .collect::<Vec<Vec<i32>>>();
 
     let docs = (0..num_compounds)
         .into_par_iter()
