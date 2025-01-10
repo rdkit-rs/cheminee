@@ -89,6 +89,14 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
         .ok_or(eyre::eyre!("Failed to extract schema"))?;
 
     let index = if reset_index {
+        let index_dir_metadata = std::fs::metadata(index_dir);
+        if let Ok(metadata) = index_dir_metadata {
+            if metadata.is_dir() {
+                std::fs::remove_dir_all(index_dir)?;
+            }
+        }
+
+        std::fs::create_dir(index_dir)?;
         create_or_reset_index(index_dir, schema)?
     } else {
         let mmap_directory = MmapDirectory::open(index_dir)?;
