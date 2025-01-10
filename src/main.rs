@@ -24,6 +24,7 @@ async fn main() -> eyre::Result<()> {
         .subcommand(command_line::pubchem::fetch_pubchem::command())
         .subcommand(command_line::pubchem::stream_pubchem_sdf::command())
         .subcommand(command_line::search::basic_search::command())
+        .subcommand(command_line::search::basic_search_count::command())
         .subcommand(command_line::search::substructure_search::command())
         .subcommand(command_line::search::superstructure_search::command())
         .subcommand(command_line::search::similarity_search::command())
@@ -58,6 +59,9 @@ async fn main() -> eyre::Result<()> {
         }
         (command_line::search::basic_search::NAME, matches) => {
             command_line::search::basic_search::action(matches)
+        }
+        (command_line::search::basic_search_count::NAME, matches) => {
+            command_line::search::basic_search_count::action(matches)
         }
         (command_line::search::substructure_search::NAME, matches) => {
             command_line::search::substructure_search::action(matches)
