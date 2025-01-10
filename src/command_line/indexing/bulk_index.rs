@@ -36,7 +36,7 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
     let index_manager = IndexManager::new(storage_dir.deref(), false)?;
 
     let index = index_manager.open(index_name.deref())?;
-    let mut writer = index.writer(16 * 1024 * 1024)?;
+    let mut writer = index.writer(50 * 1024 * 1024)?;
     let schema = index.schema();
 
     let file = File::open(json_path)?;

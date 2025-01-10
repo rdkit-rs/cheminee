@@ -20,7 +20,7 @@ pub async fn v1_post_index_bulk(
         }
     };
 
-    let mut writer = match index.writer(16 * 1024 * 1024) {
+    let mut writer = match index.writer(50 * 1024 * 1024) {
         Ok(writer) => writer,
         Err(e) => {
             return PostIndexesBulkIndexResponse::Err(Json(PostIndexBulkResponseError {

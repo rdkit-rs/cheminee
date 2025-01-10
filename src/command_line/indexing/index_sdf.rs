@@ -95,7 +95,7 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
         tantivy::Index::open(mmap_directory)?
     };
 
-    let mut index_writer = index.writer_with_num_threads(1, 50 * 1024 * 1024)?;
+    let mut index_writer = index.writer(50 * 1024 * 1024)?;
 
     let mut counter = 0;
     let failed_counter: Arc<Mutex<usize>> = Arc::new(Mutex::new(0));
