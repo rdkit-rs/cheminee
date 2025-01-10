@@ -250,7 +250,7 @@ async fn test_bulk_indexing() -> eyre::Result<()> {
     let results = searcher.search(&query, &TopDocs::with_limit(100))?;
     assert_eq!(results.len(), 3);
 
-    let docs = results
+    let mut docs = results
         .into_iter()
         .map(|(_, doc_id)| searcher.doc::<tantivy::TantivyDocument>(doc_id).unwrap())
         .map(|td| {
@@ -261,7 +261,9 @@ async fn test_bulk_indexing() -> eyre::Result<()> {
                 .to_owned()
         })
         .collect::<Vec<_>>();
-    assert_eq!(&docs, &["CC", "c1ccccc1", "c1ccc(CCc2ccccc2)cc1",]);
+
+    docs.sort();
+    assert_eq!(&docs, &["CC", "c1ccc(CCc2ccccc2)cc1", "c1ccccc1"]);
 
     Ok(())
 }

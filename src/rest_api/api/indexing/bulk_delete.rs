@@ -22,7 +22,7 @@ pub async fn v1_delete_index_bulk(
         }
     };
 
-    let mut deleter = match index.writer::<tantivy::TantivyDocument>(16 * 1024 * 1024) {
+    let mut deleter = match index.writer::<tantivy::TantivyDocument>(50 * 1024 * 1024) {
         Ok(deleter) => deleter,
         Err(e) => {
             return DeleteIndexesBulkDeleteResponse::Err(Json(DeleteIndexBulkResponseError {

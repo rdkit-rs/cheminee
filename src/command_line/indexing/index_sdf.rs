@@ -2,6 +2,7 @@ use crate::command_line::prelude::*;
 use rayon::prelude::*;
 use rdkit::{MolBlockIter, RWMol};
 use std::sync::{Arc, Mutex};
+use tantivy::directory::MmapDirectory;
 
 pub const NAME: &str = "index-sdf";
 
@@ -36,6 +37,12 @@ pub fn command() -> Command {
                 .num_args(1),
         )
         .arg(
+            Arg::new("create-or-reset-index")
+                .required(false)
+                .long("create-or-reset-index")
+                .num_args(0),
+        )
+        .arg(
             Arg::new("commit")
                 .required(false)
                 .long("commit")
@@ -52,6 +59,7 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
         .ok_or(eyre::eyre!("Failed to extract index path"))?;
     let limit = matches.get_one::<String>("limit");
     let chunksize = matches.get_one::<String>("chunk-size");
+    let reset_index: bool = matches.get_flag("create-or-reset-index");
     let commit: bool = matches.get_flag("commit");
 
     let chunksize = if let Some(chunksize) = chunksize {
@@ -67,14 +75,6 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
         limit
     );
 
-    let index_dir_metadata = std::fs::metadata(index_dir);
-    if let Ok(metadata) = index_dir_metadata {
-        if metadata.is_dir() {
-            std::fs::remove_dir_all(index_dir)?;
-        }
-    }
-    std::fs::create_dir(index_dir)?;
-
     let mol_iter = MolBlockIter::from_gz_file(sdf_path, true, true, false)
         .map_err(|e| eyre::eyre!("could not read gz file: {:?}", e))?;
 
@@ -87,8 +87,23 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
     let schema = crate::schema::LIBRARY
         .get("descriptor_v1")
         .ok_or(eyre::eyre!("Failed to extract schema"))?;
-    let index = create_or_reset_index(index_dir, schema)?;
-    let mut index_writer = index.writer_with_num_threads(1, 50 * 1024 * 1024)?;
+
+    let index = if reset_index {
+        let index_dir_metadata = std::fs::metadata(index_dir);
+        if let Ok(metadata) = index_dir_metadata {
+            if metadata.is_dir() {
+                std::fs::remove_dir_all(index_dir)?;
+            }
+        }
+
+        std::fs::create_dir(index_dir)?;
+        create_or_reset_index(index_dir, schema)?
+    } else {
+        let mmap_directory = MmapDirectory::open(index_dir)?;
+        tantivy::Index::open(mmap_directory)?
+    };
+
+    let mut index_writer = index.writer(50 * 1024 * 1024)?;
 
     let mut counter = 0;
     let failed_counter: Arc<Mutex<usize>> = Arc::new(Mutex::new(0));
@@ -97,6 +112,7 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
 
     for mol in mol_iter {
         if mol.is_err() {
+            counter += 1;
             let mut num = failed_counter.lock().unwrap();
             *num += 1;
             continue;
