@@ -104,6 +104,7 @@ pub fn action(matches: &ArgMatches) -> eyre::Result<()> {
 
     for mol in mol_iter {
         if mol.is_err() {
+            counter += 1;
             let mut num = failed_counter.lock().unwrap();
             *num += 1;
             continue;
