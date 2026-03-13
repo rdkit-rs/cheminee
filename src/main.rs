@@ -2,16 +2,54 @@
 
 use cheminee::{command_line, rest_api};
 use clap::*;
+use tracing_subscriber::layer::SubscriberExt;
+use tracing_subscriber::util::SubscriberInitExt;
+
+fn init_tracing() -> eyre::Result<Option<opentelemetry_sdk::trace::SdkTracerProvider>> {
+    let env_filter = if std::env::var_os("RUST_LOG").is_some() {
+        tracing_subscriber::EnvFilter::from_default_env()
+    } else {
+        tracing_subscriber::EnvFilter::new("info")
+    };
+
+    let fmt_layer = tracing_subscriber::fmt::layer();
+
+    let registry = tracing_subscriber::registry()
+        .with(env_filter)
+        .with(fmt_layer);
+
+    if let Ok(endpoint) = std::env::var("OTEL_EXPORTER_OTLP_ENDPOINT") {
+        log::info!("OpenTelemetry enabled, exporting to {}", endpoint);
+
+        let exporter = opentelemetry_otlp::SpanExporter::builder()
+            .with_tonic()
+            .build()?;
+
+        let tracer_provider = opentelemetry_sdk::trace::SdkTracerProvider::builder()
+            .with_batch_exporter(exporter)
+            .with_resource(opentelemetry_sdk::Resource::builder()
+                .with_service_name(
+                    std::env::var("OTEL_SERVICE_NAME")
+                        .unwrap_or_else(|_| "cheminee".to_string()),
+                )
+                .build())
+            .build();
+
+        let otel_layer = tracing_opentelemetry::layer()
+            .with_tracer(tracer_provider.tracer("cheminee"));
+
+        registry.with(otel_layer).init();
+
+        Ok(Some(tracer_provider))
+    } else {
+        registry.init();
+        Ok(None)
+    }
+}
 
 #[tokio::main]
 async fn main() -> eyre::Result<()> {
-    if std::env::var_os("RUST_LOG").is_some() {
-        tracing_subscriber::fmt()
-            .with_env_filter(tracing_subscriber::EnvFilter::from_default_env())
-            .init();
-    } else {
-        tracing_subscriber::fmt().with_env_filter("info").init();
-    }
+    let tracer_provider = init_tracing()?;
 
     let app = Command::new("cheminee")
         .subcommand_required(true)
@@ -80,6 +118,10 @@ async fn main() -> eyre::Result<()> {
     };
 
     matches?;
+
+    if let Some(provider) = tracer_provider {
+        provider.shutdown()?;
+    }
 
     Ok(())
 }
