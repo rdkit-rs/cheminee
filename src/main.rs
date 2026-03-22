@@ -27,16 +27,18 @@ fn init_tracing() -> eyre::Result<Option<opentelemetry_sdk::trace::SdkTracerProv
 
         let tracer_provider = opentelemetry_sdk::trace::SdkTracerProvider::builder()
             .with_batch_exporter(exporter)
-            .with_resource(opentelemetry_sdk::Resource::builder()
-                .with_service_name(
-                    std::env::var("OTEL_SERVICE_NAME")
-                        .unwrap_or_else(|_| "cheminee".to_string()),
-                )
-                .build())
+            .with_resource(
+                opentelemetry_sdk::Resource::builder()
+                    .with_service_name(
+                        std::env::var("OTEL_SERVICE_NAME")
+                            .unwrap_or_else(|_| "cheminee".to_string()),
+                    )
+                    .build(),
+            )
             .build();
 
-        let otel_layer = tracing_opentelemetry::layer()
-            .with_tracer(tracer_provider.tracer("cheminee"));
+        let otel_layer =
+            tracing_opentelemetry::layer().with_tracer(tracer_provider.tracer("cheminee"));
 
         registry.with(otel_layer).init();
 
