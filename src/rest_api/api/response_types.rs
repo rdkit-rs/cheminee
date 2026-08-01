@@ -1,3 +1,4 @@
+use crate::search::scaffold_network::ScaffoldNetworkResult;
 use crate::search::{QuerySearchHit, StructureSearchHit};
 use poem_openapi::{payload::Json, ApiResponse, Object};
 use tantivy::Opstamp;
@@ -19,6 +20,17 @@ pub enum ConvertedSmilesResponse {
 pub enum ConvertedMolBlockResponse {
     #[oai(status = "200", content_type = "application/json")]
     Ok(Json<Vec<ConvertedMolBlock>>),
+}
+
+/// A molecule that cannot be processed comes back inside the 200 with its `error` set, so
+/// one bad input never sinks the batch. The 500 is reserved for the compute task itself
+/// falling over.
+#[derive(ApiResponse, Debug)]
+pub enum ScaffoldNetworkResponse {
+    #[oai(status = "200", content_type = "application/json")]
+    Ok(Json<Vec<ScaffoldNetworkResult>>),
+    #[oai(status = "500", content_type = "application/json")]
+    Err(Json<crate::rest_api::api::ScaffoldNetworkResponseError>),
 }
 
 #[derive(ApiResponse, Debug)]
@@ -152,6 +164,53 @@ pub struct BulkRequestDoc {
     pub smiles: String,
     /// This value can store an arbitrary JSON object like '{}'
     pub extra_data: Option<serde_json::Value>,
+}
+
+#[derive(Object, Debug)]
+pub struct ScaffoldNetworkRequest {
+    /// The molecules to fragment. Every entry gets its own entry in the response, in the
+    /// same order.
+    pub smiles: Vec<crate::rest_api::models::Smiles>,
+    pub params: Option<crate::rest_api::api::ScaffoldNetworkParams>,
+}
+
+/// Overrides for the scaffold network computation. Anything left unset keeps RDKit's own
+/// default, which is what the HierS-style hierarchy is usually built from.
+#[derive(Object, Debug)]
+pub struct ScaffoldNetworkParams {
+    /// Also emit each scaffold with every atom replaced by a dummy. On by default in
+    /// RDKit, and worth turning off if you only want concrete scaffolds.
+    pub include_generic_scaffolds: Option<bool>,
+    /// Also emit each scaffold with every bond replaced by a single bond.
+    pub include_generic_bond_scaffolds: Option<bool>,
+    /// Emit scaffolds that still carry their attachment points.
+    pub include_scaffolds_with_attachments: Option<bool>,
+    /// Emit scaffolds with the attachment points stripped off.
+    pub include_scaffolds_without_attachments: Option<bool>,
+    pub keep_only_first_fragment: Option<bool>,
+    pub prune_before_fragmenting: Option<bool>,
+    pub flatten_isotopes: Option<bool>,
+    pub flatten_chirality: Option<bool>,
+    pub flatten_keep_largest: Option<bool>,
+    /// Populate `mol_count` on each node.
+    pub collect_mol_counts: Option<bool>,
+    /// Reaction SMARTS used to cut the molecule apart. Leaving this unset keeps RDKit's
+    /// default; passing an empty list means nothing is ever cut and every network comes
+    /// back as a single node.
+    pub bond_breaker_smarts: Option<Vec<String>>,
+    /// Run each input through the same standardization as /v1/standardize before
+    /// fragmenting. Defaults to true; turn it off when the inputs are already canonical,
+    /// since tautomer canonicalization dominates the cost of the whole call.
+    pub standardize: Option<bool>,
+    /// Reject molecules with more than this many heavy atoms.
+    pub max_atoms: Option<u32>,
+    /// Report an error instead of returning a network with more nodes than this.
+    pub max_nodes: Option<u32>,
+}
+
+#[derive(Object, Debug)]
+pub struct ScaffoldNetworkResponseError {
+    pub error: String,
 }
 
 #[derive(Object, Debug)]

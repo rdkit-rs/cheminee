@@ -656,3 +656,212 @@ async fn test_standardization_with_attempt_fix() -> eyre::Result<()> {
 
     Ok(())
 }
+
+#[tokio::test]
+async fn test_scaffold_network() -> eyre::Result<()> {
+    let (test_client, _) = build_test_client()?;
+
+    // benzene is already its own scaffold, so with the dummy-atom scaffolds turned off the
+    // whole network is one node and no edges
+    let response = test_client
+        .post("/api/v1/scaffold_network")
+        .body_json(&serde_json::json!({
+            "smiles": [{"smiles": "c1ccccc1"}],
+            "params": {
+                "include_generic_scaffolds": false,
+                "include_generic_bond_scaffolds": false
+            }
+        }))
+        .send()
+        .await;
+    response.assert_status_is_ok();
+    response
+        .assert_json(&serde_json::json!([{
+            "smiles": "c1ccccc1",
+            "standardized_smiles": "c1ccccc1",
+            "nodes": [{
+                "scaffold_smiles": "c1ccccc1",
+                "is_generic": false,
+                "has_attachments": false,
+                "count": 1,
+                "mol_count": 1
+            }],
+            "edges": []
+        }]))
+        .await;
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_scaffold_network_multi_ring() -> eyre::Result<()> {
+    let (test_client, _) = build_test_client()?;
+
+    let mut response = test_client
+        .post("/api/v1/scaffold_network")
+        .body_json(&serde_json::json!({
+            "smiles": [{"smiles": "c1ccc(-c2ccc3ncccc3c2)cc1"}],
+            "params": {
+                "include_generic_scaffolds": false,
+                "include_generic_bond_scaffolds": false
+            }
+        }))
+        .send()
+        .await;
+    response.assert_status_is_ok();
+
+    let body: serde_json::Value =
+        serde_json::from_slice(&response.0.take_body().into_bytes().await?)?;
+    let result = &body[0];
+
+    // the whole molecule, both ring systems with and without their attachment points
+    let scaffolds = result["nodes"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|n| n["scaffold_smiles"].as_str().unwrap())
+        .collect::<Vec<_>>();
+    assert_eq!(
+        scaffolds,
+        [
+            "c1ccc(-c2ccc3ncccc3c2)cc1",
+            "*c1ccccc1",
+            "c1ccccc1",
+            "*c1ccc2ncccc2c1",
+            "c1ccc2ncccc2c1",
+        ]
+    );
+
+    // and every edge names both ends, so the hierarchy can be walked without the indices
+    let edges = result["edges"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|e| {
+            (
+                e["child_smiles"].as_str().unwrap(),
+                e["parent_smiles"].as_str().unwrap(),
+                e["edge_type"].as_str().unwrap(),
+            )
+        })
+        .collect::<Vec<_>>();
+    assert_eq!(
+        edges,
+        [
+            ("c1ccc(-c2ccc3ncccc3c2)cc1", "*c1ccccc1", "Fragment"),
+            ("*c1ccccc1", "c1ccccc1", "RemoveAttachment"),
+            ("c1ccc(-c2ccc3ncccc3c2)cc1", "*c1ccc2ncccc2c1", "Fragment"),
+            ("*c1ccc2ncccc2c1", "c1ccc2ncccc2c1", "RemoveAttachment"),
+        ]
+    );
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_scaffold_network_bad_smiles_is_per_item() -> eyre::Result<()> {
+    let (test_client, _) = build_test_client()?;
+
+    // a bad input is reported against that input only; the batch still returns 200
+    let response = test_client
+        .post("/api/v1/scaffold_network")
+        .body_json(&serde_json::json!({
+            "smiles": [
+                {"smiles": "not-a-smiles"},
+                {"smiles": "c1ccccc1"}
+            ],
+            "params": {
+                "include_generic_scaffolds": false,
+                "include_generic_bond_scaffolds": false
+            }
+        }))
+        .send()
+        .await;
+    response.assert_status_is_ok();
+    response
+        .assert_json(&serde_json::json!([
+            {
+                "smiles": "not-a-smiles",
+                "nodes": [],
+                "edges": [],
+                "error": "could not convert smiles to romol (nullptr)"
+            },
+            {
+                "smiles": "c1ccccc1",
+                "standardized_smiles": "c1ccccc1",
+                "nodes": [{
+                    "scaffold_smiles": "c1ccccc1",
+                    "is_generic": false,
+                    "has_attachments": false,
+                    "count": 1,
+                    "mol_count": 1
+                }],
+                "edges": []
+            }
+        ]))
+        .await;
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_scaffold_network_params_change_output() -> eyre::Result<()> {
+    let (test_client, _) = build_test_client()?;
+
+    async fn node_count(
+        test_client: &poem::test::TestClient<impl Endpoint>,
+        params: serde_json::Value,
+    ) -> eyre::Result<usize> {
+        let mut response = test_client
+            .post("/api/v1/scaffold_network")
+            .body_json(&serde_json::json!({
+                "smiles": [{"smiles": "c1ccc(-c2ccc3ncccc3c2)cc1"}],
+                "params": params
+            }))
+            .send()
+            .await;
+        response.assert_status_is_ok();
+        let body: serde_json::Value =
+            serde_json::from_slice(&response.0.take_body().into_bytes().await?)?;
+        Ok(body[0]["nodes"].as_array().unwrap().len())
+    }
+
+    // RDKit emits the dummy-atom scaffolds by default, which nearly doubles the node count
+    let with_generics = node_count(&test_client, serde_json::json!({})).await?;
+    let without_generics = node_count(
+        &test_client,
+        serde_json::json!({"include_generic_scaffolds": false, "include_generic_bond_scaffolds": false}),
+    )
+    .await?;
+
+    assert_eq!(with_generics, 9);
+    assert_eq!(without_generics, 5);
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_scaffold_network_respects_limits() -> eyre::Result<()> {
+    let (test_client, _) = build_test_client()?;
+
+    // an oversized molecule is refused before RDKit is handed anything, and says so
+    // against that molecule rather than failing the request
+    let mut response = test_client
+        .post("/api/v1/scaffold_network")
+        .body_json(&serde_json::json!({
+            "smiles": [{"smiles": "c1ccc(-c2ccc3ncccc3c2)cc1"}],
+            "params": {"max_atoms": 5}
+        }))
+        .send()
+        .await;
+    response.assert_status_is_ok();
+
+    let body: serde_json::Value =
+        serde_json::from_slice(&response.0.take_body().into_bytes().await?)?;
+    assert_eq!(
+        body[0]["error"].as_str(),
+        Some("molecule has 16 atoms, more than the 5 allowed")
+    );
+
+    Ok(())
+}

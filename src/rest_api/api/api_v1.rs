@@ -3,11 +3,12 @@ use crate::rest_api::api::{
     v1_convert_mol_block_to_smiles, v1_convert_smiles_to_mol_block, v1_delete_index,
     v1_delete_index_bulk, v1_get_index, v1_index_search_basic, v1_index_search_identity,
     v1_index_search_similarity, v1_index_search_structure, v1_list_indexes, v1_list_schemas,
-    v1_merge_segments, v1_post_index, v1_post_index_bulk, v1_standardize, BulkRequest,
-    ConvertedMolBlockResponse, ConvertedSmilesResponse, DeleteIndexResponse,
+    v1_merge_segments, v1_post_index, v1_post_index_bulk, v1_scaffold_network, v1_standardize,
+    BulkRequest, ConvertedMolBlockResponse, ConvertedSmilesResponse, DeleteIndexResponse,
     DeleteIndexesBulkDeleteResponse, GetIndexResponse, GetQuerySearchResponse,
     GetStructureSearchResponse, ListIndexesResponse, ListSchemasResponse, MergeSegmentsResponse,
-    PostIndexResponse, PostIndexesBulkIndexResponse, StandardizeResponse,
+    PostIndexResponse, PostIndexesBulkIndexResponse, ScaffoldNetworkRequest,
+    ScaffoldNetworkResponse, StandardizeResponse,
 };
 use crate::rest_api::models::{MolBlock, Smiles};
 
@@ -50,6 +51,20 @@ impl ApiV1 {
         smiles_vec: Json<Vec<Smiles>>,
     ) -> ConvertedMolBlockResponse {
         v1_convert_smiles_to_mol_block(smiles_vec).await
+    }
+
+    #[oai(path = "/v1/scaffold_network", method = "post")]
+    /// Compute the scaffold hierarchy for a list of SMILES
+    ///
+    /// Each molecule is fragmented into its scaffold network: a DAG whose nodes are
+    /// canonical scaffold SMILES and whose edges point from a more specific scaffold up to
+    /// a more general one. This is stateless and touches no index. A molecule that cannot
+    /// be processed comes back with its `error` set and the rest of the batch unaffected.
+    pub async fn v1_scaffold_network(
+        &self,
+        request: Json<ScaffoldNetworkRequest>,
+    ) -> ScaffoldNetworkResponse {
+        v1_scaffold_network(request.0).await
     }
 
     #[oai(path = "/v1/schemas", method = "get")]

@@ -23,7 +23,8 @@ poem-openapi = { version = "2", features = ["swagger-ui"] }
 poem-openapi-derive = "2"
 rand = "0.8.5"
 rayon = "1"
-rdkit = { version = "0.4.11" }
+# TODO: back to a released version once rdkit-rs/rdkit#56 lands -> rdkit = { version = "0.4.13" }
+rdkit = { git = "https://github.com/rdkit-rs/rdkit", branch = "scaffold_network_generator" }
 regex = "1"
 reqwest = "0"
 serde = { version = "1", features = ["derive"] }
