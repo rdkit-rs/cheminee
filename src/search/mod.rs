@@ -12,6 +12,7 @@ use tantivy::{DocAddress, DocId, Searcher, SegmentOrdinal};
 pub mod basic_search;
 pub mod compound_processing;
 pub mod identity_search;
+pub mod scaffold_network;
 pub mod scaffold_search;
 pub mod similarity_search;
 pub mod structure_matching;

@@ -9,6 +9,9 @@ pub use search::*;
 
 mod compound_processing;
 
+mod scaffold_network;
+pub use scaffold_network::*;
+
 mod response_types;
 pub use response_types::*;
 

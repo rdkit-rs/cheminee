@@ -2445,9 +2445,8 @@ dependencies = [
 
 [[package]]
 name = "rdkit"
-version = "0.4.12"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0b94d33c6331acb09551b75ba29db37b4da4b53a9573d79bb9c882177a921773"
+version = "0.4.13"
+source = "git+https://github.com/rdkit-rs/rdkit?branch=scaffold_network_generator#907b7f83679b295fd6744ea2a2e36058ce436421"
 dependencies = [
  "bitvec",
  "byteorder",
@@ -2460,9 +2459,8 @@ dependencies = [
 
 [[package]]
 name = "rdkit-sys"
-version = "0.4.12"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4af98a4105fe690dcd8baa743f4e25e5c3807fa13a29878f39aefb9e82daf727"
+version = "0.4.13"
+source = "git+https://github.com/rdkit-rs/rdkit?branch=scaffold_network_generator#907b7f83679b295fd6744ea2a2e36058ce436421"
 dependencies = [
  "cxx",
  "cxx-build",
