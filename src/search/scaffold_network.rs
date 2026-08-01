@@ -1,3 +1,16 @@
+//! Scaffold networks: the hierarchy of ring systems and linkers a molecule reduces to,
+//! computed by RDKit's `rdScaffoldNetwork`.
+//!
+//! Prior art for this class of hierarchy, though not the algorithm RDKit implements:
+//! Wilkens, Janes & Su, "HierS: hierarchical scaffold clustering using topological
+//! chemical graphs", J. Med. Chem. 2005, 48(9), 3182-93, doi:10.1021/jm049032d. HierS
+//! enumerates ring-delimited substructures directly, where RDKit applies a bond breaking
+//! reaction and also emits the generic and attachment point scaffolds seen in the node
+//! flags below, which HierS has no equivalent of.
+//!
+//! Not to be confused with [`crate::search::scaffold_search`], which matches against a
+//! static precomputed dictionary of scaffolds to accelerate tantivy queries.
+
 use crate::search::compound_processing::standardize_smiles;
 use poem_openapi_derive::Object;
 use rdkit::{scaffold_network_for_mol, ROMol, ScaffoldNetworkEdgeType, ScaffoldNetworkParams};
